@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { ensureDatabaseSchema } from '@/lib/db-init';
 import { WhatsAppClient } from '@/lib/whatsapp/client';
 
 export async function GET() {
+  await ensureDatabaseSchema();
+
   let settings = await prisma.settings.findUnique({
     where: { id: 'default' },
   });
@@ -14,7 +17,7 @@ export async function GET() {
         businessName: 'My WhatsApp Business',
         isMockMode: false,
         isConnected: false,
-        webhookVerifyToken: 'whatsapp_wati_webhook_secret_2026',
+        webhookVerifyToken: 'whatsapp_cloud_webhook_token_2026',
       },
     });
   }
@@ -32,6 +35,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    await ensureDatabaseSchema();
     const body = await request.json();
     const {
       wabaId,
