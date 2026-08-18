@@ -105,46 +105,76 @@ export class WhatsAppClient {
    * Fetch approved/pending message templates from Meta WABA
    */
   async fetchTemplates(): Promise<MetaTemplateResponse[]> {
-    if (!this.wabaId || !this.accessToken) {
+    if (!this.accessToken) {
       if (this.isMockMode) {
         return this.getMockTemplates();
       }
       throw new Error(
-        'Meta credentials missing: WhatsApp Business Account ID (WABA ID) and Permanent Access Token are required. Please check API & Settings.'
+        'Meta credentials missing: Permanent Access Token is required. Please check API & Settings.'
       );
     }
 
-    try {
-      const response = await fetch(
-        `${META_GRAPH_URL}/${this.wabaId.trim()}/message_templates?fields=name,status,category,language,components,id,quality_score,rejected_reason&limit=250`,
-        {
-          headers: {
-            Authorization: `Bearer ${this.accessToken.trim()}`,
-          },
-          cache: 'no-store',
+    const candidateIds = [this.wabaId?.trim(), this.phoneNumberId?.trim()].filter(Boolean) as string[];
+    if (candidateIds.length === 0) {
+      if (this.isMockMode) return this.getMockTemplates();
+      throw new Error('Meta credentials missing: WABA ID is required to fetch templates.');
+    }
+
+    let lastError: string = '';
+
+    for (const testId of candidateIds) {
+      try {
+        const response = await fetch(
+          `${META_GRAPH_URL}/${testId}/message_templates?fields=name,status,category,language,components,id,quality_score,rejected_reason&limit=250`,
+          {
+            headers: {
+              Authorization: `Bearer ${this.accessToken.trim()}`,
+            },
+            cache: 'no-store',
+          }
+        );
+
+        const data = await response.json();
+        if (response.ok && !data.error && Array.isArray(data.data)) {
+          // If candidate was swapped with phoneNumberId, auto-heal Settings in DB
+          if (testId !== this.wabaId?.trim()) {
+            try {
+              await prisma.settings.update({
+                where: { id: 'default' },
+                data: {
+                  wabaId: testId,
+                  phoneNumberId: this.wabaId,
+                },
+              });
+              this.wabaId = testId;
+            } catch {}
+          }
+
+          return data.data.map((t: any) => ({
+            id: String(t.id),
+            name: t.name,
+            language: t.language || 'en_US',
+            category: t.category || 'MARKETING',
+            status: t.status || 'APPROVED',
+            components: Array.isArray(t.components) ? t.components : [],
+            quality_score: t.quality_score,
+            rejected_reason: t.rejected_reason,
+          })) as MetaTemplateResponse[];
+        } else if (data.error) {
+          lastError = data.error.message;
         }
-      );
-
-      const data = await response.json();
-      if (!response.ok || data.error) {
-        const errorMsg = data.error?.message || `Meta API error (${response.status}): ${response.statusText}`;
-        throw new Error(`Meta Template Sync Failed: ${errorMsg}`);
+      } catch (err: any) {
+        lastError = err.message;
       }
-
-      return (data.data || []).map((t: any) => ({
-        id: String(t.id),
-        name: t.name,
-        language: t.language || 'en_US',
-        category: t.category || 'MARKETING',
-        status: t.status || 'APPROVED',
-        components: Array.isArray(t.components) ? t.components : [],
-        quality_score: t.quality_score,
-        rejected_reason: t.rejected_reason,
-      })) as MetaTemplateResponse[];
-    } catch (err: any) {
-      console.error('Error fetching templates from Meta:', err);
-      throw err;
     }
+
+    if (lastError.includes('message_templates') || lastError.includes('nonexisting field')) {
+      throw new Error(
+        `WABA ID Mismatch: The ID '${this.wabaId}' is a Phone Number ID or App ID, not a WhatsApp Business Account (WABA) ID. Please open Meta Developer Portal -> WhatsApp -> API Setup, copy the 'WhatsApp Business Account ID', and paste it in API & Settings.`
+      );
+    }
+
+    throw new Error(`Meta Template Sync Failed: ${lastError || 'Failed to fetch templates'}`);
   }
 
   /**
