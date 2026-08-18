@@ -2,6 +2,14 @@ import { prisma } from './prisma';
 
 let isInitialized = false;
 
+async function safeAddColumn(tableName: string, columnName: string, columnDef: string) {
+  try {
+    await prisma.$executeRawUnsafe(`ALTER TABLE "${tableName}" ADD COLUMN "${columnName}" ${columnDef}`);
+  } catch {
+    // Column already exists or table doesn't exist yet, ignore
+  }
+}
+
 export async function ensureDatabaseSchema(): Promise<void> {
   if (isInitialized) return;
 
@@ -245,6 +253,40 @@ export async function ensureDatabaseSchema(): Promise<void> {
         FOREIGN KEY ("automationId") REFERENCES "Automation" ("id") ON DELETE CASCADE ON UPDATE CASCADE
       );
     `);
+
+    // Self-Healing Column Alterations for Existing Databases
+    await safeAddColumn('Template', 'qualityScore', "TEXT DEFAULT 'GREEN'");
+    await safeAddColumn('Template', 'rejectedReason', 'TEXT');
+    await safeAddColumn('Template', 'rawJson', 'TEXT');
+
+    await safeAddColumn('Settings', 'qualityRating', "TEXT DEFAULT 'GREEN'");
+    await safeAddColumn('Settings', 'isMockMode', 'BOOLEAN NOT NULL DEFAULT false');
+    await safeAddColumn('Settings', 'isConnected', 'BOOLEAN NOT NULL DEFAULT false');
+    await safeAddColumn('Settings', 'appSecret', 'TEXT');
+    await safeAddColumn('Settings', 'businessName', "TEXT DEFAULT 'My WhatsApp Business'");
+    await safeAddColumn('Settings', 'businessPhone', "TEXT DEFAULT ''");
+    await safeAddColumn('Settings', 'defaultCountryCode', "TEXT DEFAULT '+1'");
+    await safeAddColumn('Settings', 'rateLimitPerSecond', 'INTEGER NOT NULL DEFAULT 20');
+    await safeAddColumn('Settings', 'tierDailyLimit', 'INTEGER NOT NULL DEFAULT 1000');
+
+    await safeAddColumn('Campaign', 'repliedCount', 'INTEGER NOT NULL DEFAULT 0');
+    await safeAddColumn('Campaign', 'variableMappings', 'TEXT NOT NULL DEFAULT "{}"');
+    await safeAddColumn('Campaign', 'headerMediaUrl', 'TEXT');
+
+    await safeAddColumn('User', 'avatarUrl', 'TEXT');
+    await safeAddColumn('User', 'metaUserId', 'TEXT');
+    await safeAddColumn('User', 'role', "TEXT NOT NULL DEFAULT 'MEMBER'");
+    await safeAddColumn('User', 'isActive', 'BOOLEAN NOT NULL DEFAULT true');
+    await safeAddColumn('User', 'lastLoginAt', 'DATETIME');
+
+    await safeAddColumn('AuthConfig', 'metaAppId', 'TEXT');
+    await safeAddColumn('AuthConfig', 'metaAppSecret', 'TEXT');
+    await safeAddColumn('AuthConfig', 'allowedDomains', "TEXT NOT NULL DEFAULT 'gccstartup.com,wayapp.io'");
+    await safeAddColumn('AuthConfig', 'allowedEmails', "TEXT NOT NULL DEFAULT 'usmankhan4001@gmail.com,admin@gccstartup.com'");
+    await safeAddColumn('AuthConfig', 'requireAuth', 'BOOLEAN NOT NULL DEFAULT true');
+
+    await safeAddColumn('Automation', 'executionCount', 'INTEGER NOT NULL DEFAULT 0');
+    await safeAddColumn('Automation', 'lastTriggeredAt', 'DATETIME');
 
     isInitialized = true;
   } catch (error) {
