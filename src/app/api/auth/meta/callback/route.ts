@@ -2,19 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { signSessionToken, SESSION_COOKIE_NAME } from '@/lib/auth/jwt';
 import { isAllowedGccUser } from '@/lib/auth/session';
-import { ensureDatabaseSchema } from '@/lib/db-init';
+import { timingSafeCompare } from '@/lib/crypto';
 
 export async function GET(request: NextRequest) {
-  await ensureDatabaseSchema();
-
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
+  const state = searchParams.get('state');
   const error = searchParams.get('error');
   const errorDescription = searchParams.get('error_description');
+
+  const cookieState = request.cookies.get('meta_oauth_state')?.value;
 
   if (error || !code) {
     return NextResponse.redirect(
       new URL(`/login?error=${encodeURIComponent(errorDescription || error || 'OAuth cancelled')}`, request.url)
+    );
+  }
+
+  // Validate state token against state cookie
+  if (!state || !cookieState || !timingSafeCompare(state, cookieState)) {
+    return NextResponse.redirect(
+      new URL('/login?error=INVALID_OAUTH_STATE', request.url)
     );
   }
 
@@ -53,11 +61,18 @@ export async function GET(request: NextRequest) {
       throw new Error(profile.error?.message || 'Failed to fetch user profile from Meta');
     }
 
-    const email = profile.email || `${profile.id}@meta.gccstartup.com`;
-    const name = profile.name || 'GCC Team Member';
+    // Require real verified email - reject synthesized emails
+    if (!profile.email) {
+      return NextResponse.redirect(
+        new URL('/login?error=EMAIL_REQUIRED_FROM_META', request.url)
+      );
+    }
+
+    const email = profile.email.toLowerCase().trim();
+    const name = profile.name || email.split('@')[0];
     const avatarUrl = profile.picture?.data?.url || null;
 
-    // 3. Security Gate: Verify GCC Domain / Email Whitelist
+    // 3. Security Gate: Verify Allowed Domain / Whitelist
     const isAllowed = await isAllowedGccUser(email);
     if (!isAllowed) {
       return NextResponse.redirect(
@@ -65,11 +80,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 4. Check if first user in database (Super Admin)
+    // 4. Resolve role & upsert user
     const userCount = await prisma.user.count();
     const role = userCount === 0 ? 'SUPER_ADMIN' : 'MEMBER';
 
-    // 5. Upsert User in Database
     const user = await prisma.user.upsert({
       where: { email },
       update: {
@@ -84,26 +98,43 @@ export async function GET(request: NextRequest) {
         avatarUrl,
         metaUserId: profile.id,
         role,
+        status: 'ACTIVE',
+        isActive: true,
         lastLoginAt: new Date(),
       },
     });
 
-    // 6. Sign JWT Session Token
-    const sessionToken = signSessionToken({
-      userId: user.id,
-      email: user.email,
-      name: user.name || 'GCC Member',
-      avatarUrl: user.avatarUrl,
-      role: user.role,
+    // 5. Create DB Session
+    const sessionId = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await prisma.session.create({
+      data: {
+        id: sessionId,
+        sessionToken: sessionId,
+        userId: user.id,
+        expiresAt,
+        userAgent: request.headers.get('user-agent') || 'meta-oauth',
+      },
     });
 
-    // 7. Set HTTP-Only Cookie and Redirect to Dashboard
+    // 6. Sign JWT
+    const sessionToken = await signSessionToken({
+      userId: user.id,
+      email: user.email,
+      name: user.name || user.email.split('@')[0],
+      avatarUrl: user.avatarUrl,
+      role: user.role,
+      jti: sessionId,
+    });
+
     const response = NextResponse.redirect(new URL('/', request.url));
+    response.cookies.delete('meta_oauth_state');
     response.cookies.set(SESSION_COOKIE_NAME, sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: 24 * 60 * 60,
       path: '/',
     });
 

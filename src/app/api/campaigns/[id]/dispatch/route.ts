@@ -1,14 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { CampaignDispatcher } from '@/lib/whatsapp/queue';
+import { requireRole } from '@/lib/auth/rbac';
+import { dispatchCampaign } from '@/worker/dispatcher';
+import { logger } from '@/lib/logger';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // 1. RBAC Check: Admins only
+  const authResult = await requireRole(request, ['SUPER_ADMIN', 'ADMIN']);
+  if ('response' in authResult) {
+    return authResult.response;
+  }
+
   try {
     const { id } = await params;
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const { action } = body; // START, PAUSE, RESUME, CANCEL
 
     const campaign = await prisma.campaign.findUnique({
@@ -20,36 +28,48 @@ export async function POST(
     }
 
     if (action === 'START' || action === 'RESUME') {
-      await prisma.campaign.update({
-        where: { id },
+      const lock = await prisma.campaign.updateMany({
+        where: {
+          id,
+          status: { in: ['DRAFT', 'PAUSED', 'QUEUED', 'SCHEDULED', 'RUNNING'] },
+        },
         data: { status: 'QUEUED' },
       });
 
-      CampaignDispatcher.startCampaign(id).catch((err) => {
-        console.error('Error in campaign dispatch:', err);
+      if (lock.count === 0) {
+        return NextResponse.json(
+          { error: `Cannot start campaign with status: ${campaign.status}` },
+          { status: 400 }
+        );
+      }
+
+      // Asynchronously trigger dispatcher
+      dispatchCampaign(id).catch((err) => {
+        logger.error({ campaignId: id, err }, 'Campaign dispatch error');
       });
 
       return NextResponse.json({ success: true, status: 'QUEUED' });
     }
 
     if (action === 'PAUSE') {
-      await prisma.campaign.update({
-        where: { id },
+      await prisma.campaign.updateMany({
+        where: { id, status: { in: ['QUEUED', 'RUNNING'] } },
         data: { status: 'PAUSED' },
       });
       return NextResponse.json({ success: true, status: 'PAUSED' });
     }
 
     if (action === 'CANCEL') {
-      await prisma.campaign.update({
-        where: { id },
+      await prisma.campaign.updateMany({
+        where: { id, status: { in: ['DRAFT', 'SCHEDULED', 'QUEUED', 'RUNNING', 'PAUSED'] } },
         data: { status: 'CANCELLED' },
       });
       return NextResponse.json({ success: true, status: 'CANCELLED' });
     }
 
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid action parameter' }, { status: 400 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    logger.error({ error }, 'Error in campaign dispatch route');
+    return NextResponse.json({ error: 'Failed to process campaign action' }, { status: 500 });
   }
 }

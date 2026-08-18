@@ -1,72 +1,39 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { jwtVerify } from 'jose';
+
+const SESSION_COOKIE_NAME = 'wayapp_session';
 
 /**
  * Public routes that do not require authentication
  */
 const PUBLIC_PATHS = [
   '/login',
+  '/register',
   '/api/auth/login',
+  '/api/auth/register',
   '/api/auth/logout',
   '/api/auth/me',
   '/api/auth/meta',
   '/api/auth/meta/callback',
   '/api/webhooks/whatsapp',
-  '/api/media',
-  '/uploads',
-  '/favicon.svg',
+  '/api/v1/auth/token',
+  '/api/v1/docs',
+  '/api/health',
+  '/openapi.json',
   '/manifest.json',
+  '/favicon.ico',
+  '/favicon.svg',
+  '/icon.svg',
   '/sw.js',
 ];
 
-/**
- * Validates HMAC SHA-256 JWT in Edge Runtime
- */
-async function verifyJwtInEdge(token: string, secret: string): Promise<any | null> {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-
-    const [headerB64, payloadB64, signatureB64] = parts;
-    const data = `${headerB64}.${payloadB64}`;
-
-    // Decode payload
-    let b64 = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
-    while (b64.length % 4) b64 += '=';
-    const payload = JSON.parse(atob(b64));
-
-    if (payload.exp && Date.now() / 1000 > payload.exp) {
-      return null; // Expired
-    }
-
-    try {
-      const enc = new TextEncoder();
-      const key = await crypto.subtle.importKey(
-        'raw',
-        enc.encode(secret),
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['verify']
-      );
-
-      let sigB64 = signatureB64.replace(/-/g, '+').replace(/_/g, '/');
-      while (sigB64.length % 4) sigB64 += '=';
-      const sigStr = atob(sigB64);
-      const sigBuf = new Uint8Array(sigStr.length);
-      for (let i = 0; i < sigStr.length; i++) {
-        sigBuf[i] = sigStr.charCodeAt(i);
-      }
-
-      const isValid = await crypto.subtle.verify('HMAC', key, sigBuf, enc.encode(data));
-      if (!isValid) return null;
-    } catch {
-      if (!payload.userId || !payload.email) return null;
-    }
-
-    return payload;
-  } catch {
-    return null;
+function getJwtSecret(): Uint8Array {
+  const secret = process.env.AUTH_SECRET || process.env.JWT_SECRET;
+  if (!secret) {
+    return new TextEncoder().encode('wayapp_dev_insecure_auth_secret_must_be_set_in_production_32bytes');
   }
+  return new TextEncoder().encode(secret);
 }
 
 export async function middleware(request: NextRequest) {
@@ -74,20 +41,46 @@ export async function middleware(request: NextRequest) {
 
   // 1. Allow public static assets and system routes
   if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/static') ||
-    pathname.includes('.') ||
-    PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p))
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/static/') ||
+    PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))
   ) {
     return NextResponse.next();
   }
 
-  // 2. Extract session token from cookie
-  const sessionToken = request.cookies.get('wayapp_session')?.value;
-  const secret =
-    process.env.AUTH_SECRET ||
-    process.env.JWT_SECRET ||
-    'wayapp_gcc_jwt_secret_key_2026_enterprise';
+  // Allow public public assets explicitly
+  if (
+    pathname.endsWith('.png') ||
+    pathname.endsWith('.jpg') ||
+    pathname.endsWith('.jpeg') ||
+    pathname.endsWith('.svg') ||
+    pathname.endsWith('.ico') ||
+    pathname.endsWith('.json') ||
+    pathname.endsWith('.js') ||
+    pathname.endsWith('.css')
+  ) {
+    // Check if it is under uploads or protected media
+    if (!pathname.startsWith('/api/media/') && !pathname.startsWith('/uploads/')) {
+      return NextResponse.next();
+    }
+  }
+
+  // 2. Allow API Key authentication for /api/v1 routes
+  if (pathname.startsWith('/api/v1')) {
+    const apiKeyHeader = request.headers.get('x-api-key');
+    if (apiKeyHeader) {
+      return NextResponse.next(); // Route handler will do SHA-256 validation against database
+    }
+  }
+
+  // 3. Extract session token from cookie or Authorization header
+  let sessionToken = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  if (!sessionToken) {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      sessionToken = authHeader.substring(7).trim();
+    }
+  }
 
   if (!sessionToken) {
     if (pathname.startsWith('/api/')) {
@@ -98,29 +91,32 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // 3. Verify JWT token signature
-  const payload = await verifyJwtInEdge(sessionToken, secret);
+  // 4. Verify JWT token signature with jose
+  try {
+    const secret = getJwtSecret();
+    const { payload } = await jwtVerify(sessionToken, secret, {
+      algorithms: ['HS256'],
+    });
 
-  if (!payload || !payload.email) {
+    if (!payload.userId || !payload.email) {
+      throw new Error('Invalid JWT payload');
+    }
+
+    return NextResponse.next();
+  } catch (error) {
     if (pathname.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Invalid or expired session' }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid or expired session token' }, { status: 401 });
     }
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('error', 'SESSION_EXPIRED');
     return NextResponse.redirect(loginUrl);
   }
-
-  // 4. Verification successful: allow access
-  return NextResponse.next();
 }
 
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
+     * Match all request paths except for Next.js internal static assets
      */
     '/((?!_next/static|_next/image|favicon.ico).*)',
   ],

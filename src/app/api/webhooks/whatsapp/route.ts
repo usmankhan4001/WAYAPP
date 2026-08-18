@@ -2,7 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyMetaSignature } from '@/lib/whatsapp/signature';
 import { MetaWebhookPayload } from '@/lib/whatsapp/types';
-import { processInboundAutomation } from '@/lib/whatsapp/automation';
+import { sanitizePhoneNumber } from '@/lib/whatsapp/phone';
+import { decryptString, timingSafeCompare } from '@/lib/crypto';
+import { logger } from '@/lib/logger';
+
+// Valid status lifecycle ranking to prevent status regression
+const STATUS_RANK: Record<string, number> = {
+  PENDING: 1,
+  SENDING: 2,
+  SENT: 3,
+  DELIVERED: 4,
+  READ: 5,
+  REPLIED: 6,
+  FAILED: 99,
+};
 
 /**
  * GET handler: Meta Webhook Verification Handshake
@@ -18,14 +31,19 @@ export async function GET(request: NextRequest) {
     where: { id: 'default' },
   });
 
-  const configuredToken = settings?.webhookVerifyToken || 'whatsapp_wati_webhook_secret_2026';
+  const configuredToken = settings?.webhookVerifyToken;
 
-  if (mode === 'subscribe' && token === configuredToken) {
-    console.log('Meta Webhook verified successfully!');
+  if (
+    mode === 'subscribe' &&
+    token &&
+    configuredToken &&
+    timingSafeCompare(token, configuredToken)
+  ) {
+    logger.info('Meta Webhook verified successfully');
     return new NextResponse(challenge, { status: 200 });
   }
 
-  return NextResponse.json({ error: 'Verification failed' }, { status: 403 });
+  return NextResponse.json({ error: 'Webhook verification failed' }, { status: 403 });
 }
 
 /**
@@ -40,24 +58,33 @@ export async function POST(request: NextRequest) {
       where: { id: 'default' },
     });
 
-    // Validate signature if app secret is provided
-    if (settings?.appSecret && !verifyMetaSignature(rawBody, signature, settings.appSecret)) {
+    const appSecret = decryptString(settings?.appSecret);
+
+    // Fail closed signature verification
+    if (!verifyMetaSignature(rawBody, signature, appSecret)) {
+      logger.warn('Meta Webhook signature validation failed');
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
-    const payload: MetaWebhookPayload = JSON.parse(rawBody);
+    let payload: MetaWebhookPayload;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+    }
 
     if (payload.object !== 'whatsapp_business_account' && payload.object !== 'whatsapp') {
       return NextResponse.json({ status: 'ignored' }, { status: 200 });
     }
 
+    // Process all entries and changes
     for (const entry of payload.entry || []) {
       for (const change of entry.changes || []) {
         const field = change.field;
         const value: any = change.value;
         if (!value) continue;
 
-        // 1. Process Template Approval Status Updates (APPROVED, REJECTED, PAUSED, FLAGGED)
+        // 1. Template Status Updates (APPROVED, REJECTED, PAUSED, etc.)
         if (field === 'message_template_status_update' || value.event) {
           const templateName = value.message_template_name || value.element_name;
           const templateLanguage = value.message_template_language || value.language;
@@ -86,80 +113,98 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // 2. Process Status Updates (sent, delivered, read, failed)
-        if (value.statuses && value.statuses.length > 0) {
+        // 2. Status Updates (SENT, DELIVERED, READ, FAILED)
+        if (value.statuses && Array.isArray(value.statuses)) {
           for (const statusObj of value.statuses) {
             const wamid = statusObj.id;
-            const status = statusObj.status.toUpperCase(); // SENT, DELIVERED, READ, FAILED
-            const timestamp = new Date(parseInt(statusObj.timestamp, 10) * 1000);
+            const newStatus = (statusObj.status || '').toUpperCase();
+            const timestamp = statusObj.timestamp
+              ? new Date(parseInt(statusObj.timestamp, 10) * 1000)
+              : new Date();
 
-            // Find corresponding CampaignMessage
+            // Update ChatMessage receipts if applicable
+            await prisma.chatMessage.updateMany({
+              where: { wamid },
+              data: { status: newStatus },
+            }).catch(() => {});
+
+            // Update CampaignMessage with idempotency and transition guard
             const existingMsg = await prisma.campaignMessage.findUnique({
               where: { wamid },
             });
 
             if (existingMsg) {
-              const updateData: any = { status };
-              const campaignIncrement: any = {};
+              const currentRank = STATUS_RANK[existingMsg.status] || 0;
+              const nextRank = STATUS_RANK[newStatus] || 0;
 
-              if (status === 'DELIVERED') {
-                updateData.deliveredAt = timestamp;
-                campaignIncrement.deliveredCount = { increment: 1 };
-              } else if (status === 'READ') {
-                updateData.readAt = timestamp;
-                campaignIncrement.readCount = { increment: 1 };
-              } else if (status === 'FAILED') {
-                updateData.failedAt = timestamp;
-                const error = statusObj.errors?.[0];
-                if (error) {
-                  updateData.errorCode = String(error.code);
-                  updateData.errorMessage = `${error.title}: ${error.message} ${error.error_data?.details || ''}`.trim();
+              // Only update if new status is a progressive transition or FAILED
+              if (nextRank > currentRank || newStatus === 'FAILED') {
+                const updateData: any = { status: newStatus };
+                const campaignIncrement: any = {};
+
+                if (newStatus === 'DELIVERED') {
+                  updateData.deliveredAt = timestamp;
+                  if (existingMsg.status !== 'DELIVERED' && existingMsg.status !== 'READ' && existingMsg.status !== 'REPLIED') {
+                    campaignIncrement.deliveredCount = { increment: 1 };
+                  }
+                } else if (newStatus === 'READ') {
+                  updateData.readAt = timestamp;
+                  if (existingMsg.status !== 'READ' && existingMsg.status !== 'REPLIED') {
+                    campaignIncrement.readCount = { increment: 1 };
+                  }
+                } else if (newStatus === 'FAILED') {
+                  updateData.failedAt = timestamp;
+                  const error = statusObj.errors?.[0];
+                  if (error) {
+                    updateData.errorCode = String(error.code);
+                    updateData.errorMessage = `${error.title || ''}: ${error.message || ''} ${error.error_data?.details || ''}`.trim();
+
+                    // Auto-suppression for Meta error 130472 (opted out / blocked)
+                    if (error.code === 130472 || error.code === '130472') {
+                      if (existingMsg.contactId) {
+                        await prisma.contact.update({
+                          where: { id: existingMsg.contactId },
+                          data: { status: 'UNSUBSCRIBED', optedOutAt: new Date() },
+                        }).catch(() => {});
+                      }
+                    }
+                  }
+                  if (existingMsg.status !== 'FAILED') {
+                    campaignIncrement.failedCount = { increment: 1 };
+                  }
                 }
-                campaignIncrement.failedCount = { increment: 1 };
-              }
 
-              await prisma.campaignMessage.update({
-                where: { id: existingMsg.id },
-                data: updateData,
-              });
-
-              if (Object.keys(campaignIncrement).length > 0) {
-                await prisma.campaign.update({
-                  where: { id: existingMsg.campaignId },
-                  data: campaignIncrement,
+                await prisma.campaignMessage.update({
+                  where: { id: existingMsg.id },
+                  data: updateData,
                 });
+
+                if (Object.keys(campaignIncrement).length > 0) {
+                  await prisma.campaign.update({
+                    where: { id: existingMsg.campaignId },
+                    data: campaignIncrement,
+                  });
+                }
               }
             }
           }
         }
 
-        // 3. Process Incoming Customer Messages & 2-Way Inbox Replies
-        if (value.messages && value.messages.length > 0) {
+        // 3. Incoming Customer Messages & 2-Way Inbox
+        if (value.messages && Array.isArray(value.messages)) {
           const contactInfo = value.contacts?.[0];
           const profileName = contactInfo?.profile?.name || 'Customer';
 
           for (const incoming of value.messages) {
-            const senderPhone = incoming.from;
+            const rawSenderPhone = incoming.from;
             const messageWamid = incoming.id;
+            const normalizedPhone = sanitizePhoneNumber(rawSenderPhone).e164 || `+${rawSenderPhone}`;
 
-            // Find or create Contact
-            let contact = await prisma.contact.findUnique({
-              where: { phoneNumber: senderPhone },
-            });
-
-            if (!contact) {
-              contact = await prisma.contact.create({
-                data: {
-                  phoneNumber: senderPhone,
-                  firstName: profileName,
-                },
-              });
-            }
-
-            // Extract message body & media URL
+            // Check if STOP keyword sent for opt-out
+            let isOptOut = false;
             let bodyText = '';
             let mediaUrl: string | null = null;
-            let messageType = incoming.type || 'text';
+            const messageType = incoming.type || 'text';
 
             if (incoming.type === 'text') {
               bodyText = incoming.text?.body || '';
@@ -193,11 +238,54 @@ export async function POST(request: NextRequest) {
               bodyText = `[${incoming.type?.toUpperCase()} attachment]`;
             }
 
-            // Store in ChatMessage
-            await prisma.chatMessage.create({
-              data: {
+            if (bodyText.trim().toUpperCase() === 'STOP' || bodyText.trim().toUpperCase() === 'UNSUBSCRIBE') {
+              isOptOut = true;
+            }
+
+            // Upsert Contact with normalized phone
+            const contact = await prisma.contact.upsert({
+              where: { phoneNumber: normalizedPhone },
+              update: {
+                lastInteractionAt: new Date(),
+                ...(isOptOut ? { status: 'UNSUBSCRIBED', optedOutAt: new Date() } : {}),
+              },
+              create: {
+                phoneNumber: normalizedPhone,
+                firstName: profileName,
+                status: isOptOut ? 'UNSUBSCRIBED' : 'ACTIVE',
+                optedOutAt: isOptOut ? new Date() : null,
+                lastInteractionAt: new Date(),
+              },
+            });
+
+            // Upsert Conversation for multi-agent inbox
+            const conversation = await prisma.conversation.upsert({
+              where: { contactId: contact.id },
+              update: {
+                lastMessageAt: new Date(),
+                unreadCount: { increment: 1 },
+                status: 'OPEN',
+              },
+              create: {
                 contactId: contact.id,
-                phoneNumber: senderPhone,
+                status: 'OPEN',
+                lastMessageAt: new Date(),
+                unreadCount: 1,
+              },
+            });
+
+            // Idempotent ChatMessage upsert by wamid
+            await prisma.chatMessage.upsert({
+              where: { wamid: messageWamid },
+              update: {
+                body: bodyText,
+                mediaUrl,
+                status: 'DELIVERED',
+              },
+              create: {
+                contactId: contact.id,
+                conversationId: conversation.id,
+                phoneNumber: normalizedPhone,
                 direction: 'INBOUND',
                 wamid: messageWamid,
                 messageType,
@@ -208,17 +296,13 @@ export async function POST(request: NextRequest) {
               },
             });
 
-            // Update contact last interaction
-            await prisma.contact.update({
-              where: { id: contact.id },
-              data: { lastInteractionAt: new Date() },
-            });
-
-            // Update replied status on recent campaign
+            // REPLIED attribution on recent campaign message within 24 hours
+            const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
             const recentCampaignMsg = await prisma.campaignMessage.findFirst({
               where: {
-                phoneNumber: senderPhone,
+                phoneNumber: normalizedPhone,
                 status: { in: ['SENT', 'DELIVERED', 'READ'] },
+                createdAt: { gte: dayAgo },
               },
               orderBy: { createdAt: 'desc' },
             });
@@ -238,12 +322,19 @@ export async function POST(request: NextRequest) {
               });
             }
 
-            // 4. Trigger Visual Automation Engine!
-            processInboundAutomation({
-              contactId: contact.id,
-              phoneNumber: senderPhone,
-              bodyText,
-            }).catch((err) => console.error('Automation error:', err));
+            // Trigger Automations & Bot Engines asynchronously
+            try {
+              const { processInboundEvent } = await import('@/worker/inbound-events');
+              processInboundEvent({
+                contactId: contact.id,
+                conversationId: conversation.id,
+                phoneNumber: normalizedPhone,
+                bodyText,
+                messageType,
+              }).catch((err) => logger.error({ err }, 'Inbound event processing error'));
+            } catch {
+              // Worker fallback
+            }
           }
         }
       }
@@ -251,7 +342,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ status: 'success' }, { status: 200 });
   } catch (error: any) {
-    console.error('Error in webhook handler:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    logger.error({ error }, 'Error in webhook handler');
+    return NextResponse.json({ error: 'Internal processing error' }, { status: 500 });
   }
 }

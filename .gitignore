@@ -24,6 +24,11 @@ yarn-error.log*
 .env*.local
 .env
 
+# Local secrets (never commit — rotate credentials if they ever leak)
+/secrets/
+*.credentials.txt
+*credentials*.txt
+
 # Local SQLite databases
 prisma/*.db
 prisma/*.db-journal

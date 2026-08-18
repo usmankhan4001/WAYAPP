@@ -1,100 +1,80 @@
-import crypto from 'crypto';
+import { SignJWT, jwtVerify } from 'jose';
 
-export const JWT_SECRET =
-  process.env.AUTH_SECRET ||
-  process.env.JWT_SECRET ||
-  'wayapp_gcc_jwt_secret_key_2026_enterprise';
 export const SESSION_COOKIE_NAME = 'wayapp_session';
+
+function getJwtSecret(): Uint8Array {
+  const secret = process.env.AUTH_SECRET || process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('FATAL: AUTH_SECRET environment variable is missing in production!');
+    }
+    // Fallback development-only secret
+    return new TextEncoder().encode('wayapp_dev_insecure_auth_secret_must_be_set_in_production_32bytes');
+  }
+  return new TextEncoder().encode(secret);
+}
 
 export interface UserSessionPayload {
   userId: string;
   email: string;
   name: string;
   avatarUrl?: string | null;
-  role: string;
-  exp: number; // Expiration timestamp (seconds)
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'MEMBER' | 'VIEWER' | string;
+  jti?: string;
+  exp?: number;
 }
 
 /**
- * Base64 URL encoding
+ * Signs a JWT session token using jose (HS256)
  */
-function base64UrlEncode(str: string): string {
-  return Buffer.from(str)
-    .toString('base64')
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
-}
-
-/**
- * Base64 URL decoding
- */
-function base64UrlDecode(str: string): string {
-  let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
-  while (base64.length % 4) {
-    base64 += '=';
-  }
-  return Buffer.from(base64, 'base64').toString('utf-8');
-}
-
-/**
- * Signs a JWT session token with HMAC SHA-256
- */
-export function signSessionToken(
+export async function signSessionToken(
   payload: Omit<UserSessionPayload, 'exp'>,
-  expiresInSeconds: number = 7 * 24 * 60 * 60 // 7 days default
-): string {
-  const header = { alg: 'HS256', typ: 'JWT' };
-  const exp = Math.floor(Date.now() / 1000) + expiresInSeconds;
-  const fullPayload: UserSessionPayload = { ...payload, exp };
+  expiresInSeconds: number = 24 * 60 * 60 // 24 hours standard
+): Promise<string> {
+  const secret = getJwtSecret();
+  const jti = payload.jti || crypto.randomUUID();
 
-  const encodedHeader = base64UrlEncode(JSON.stringify(header));
-  const encodedPayload = base64UrlEncode(JSON.stringify(fullPayload));
-
-  const signature = crypto
-    .createHmac('sha256', JWT_SECRET)
-    .update(`${encodedHeader}.${encodedPayload}`)
-    .digest('base64')
-    .replace(/=/g, '')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_');
-
-  return `${encodedHeader}.${encodedPayload}.${signature}`;
+  return await new SignJWT({
+    userId: payload.userId,
+    email: payload.email,
+    name: payload.name,
+    avatarUrl: payload.avatarUrl,
+    role: payload.role,
+  })
+    .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+    .setJti(jti)
+    .setIssuedAt()
+    .setExpirationTime(Math.floor(Date.now() / 1000) + expiresInSeconds)
+    .sign(secret);
 }
 
 /**
- * Verifies and decodes a JWT session token
+ * Verifies a JWT session token with jose (HS256) - fail-closed
  */
-export function verifySessionToken(token: string | undefined | null): UserSessionPayload | null {
+export async function verifySessionToken(token: string | undefined | null): Promise<UserSessionPayload | null> {
   if (!token) return null;
 
   try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
+    const secret = getJwtSecret();
+    const { payload } = await jwtVerify(token, secret, {
+      algorithms: ['HS256'],
+    });
 
-    const [encodedHeader, encodedPayload, signature] = parts;
-
-    // Verify signature
-    const expectedSignature = crypto
-      .createHmac('sha256', JWT_SECRET)
-      .update(`${encodedHeader}.${encodedPayload}`)
-      .digest('base64')
-      .replace(/=/g, '')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_');
-
-    if (signature !== expectedSignature) return null;
-
-    const payload: UserSessionPayload = JSON.parse(base64UrlDecode(encodedPayload));
-
-    // Check expiration
-    const nowInSeconds = Math.floor(Date.now() / 1000);
-    if (payload.exp && payload.exp < nowInSeconds) {
-      return null; // Expired
+    if (!payload.userId || !payload.email) {
+      return null;
     }
 
-    return payload;
-  } catch {
+    return {
+      userId: payload.userId as string,
+      email: payload.email as string,
+      name: (payload.name as string) || '',
+      avatarUrl: (payload.avatarUrl as string | null) || null,
+      role: (payload.role as string) || 'MEMBER',
+      jti: payload.jti,
+      exp: payload.exp,
+    };
+  } catch (error) {
+    // Fail closed on any verification error (signature mismatch, expired, malformed)
     return null;
   }
 }

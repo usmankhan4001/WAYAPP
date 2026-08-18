@@ -1,22 +1,62 @@
 version: '3.8'
 
 services:
-  whatsapp-platform:
+  postgres:
+    image: postgres:16-alpine
+    container_name: wayapp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: wayapp
+      POSTGRES_USER: wayapp
+      POSTGRES_PASSWORD: wayapp_secure_password_2026
+    ports:
+      - '5432:5432'
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wayapp -d wayapp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: whatsapp-platform
+    container_name: wayapp-web
     restart: unless-stopped
     ports:
       - '3000:3000'
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=file:/app/prisma/dev.db
+      - DATABASE_URL=postgresql://wayapp:wayapp_secure_password_2026@postgres:5432/wayapp
+      - AUTH_SECRET=wayapp_super_secret_auth_key_replace_in_production_min32chars
       - PORT=3000
+    depends_on:
+      postgres:
+        condition: service_healthy
     volumes:
-      # Persistent volume for SQLite database storage
-      - whatsapp_data:/app/prisma
+      - uploads_data:/app/uploads
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wayapp-worker
+    restart: unless-stopped
+    command: ["node", "src/worker/index.js"]
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://wayapp:wayapp_secure_password_2026@postgres:5432/wayapp
+      - AUTH_SECRET=wayapp_super_secret_auth_key_replace_in_production_min32chars
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - uploads_data:/app/uploads
 
 volumes:
-  whatsapp_data:
+  pg_data:
+    driver: local
+  uploads_data:
     driver: local

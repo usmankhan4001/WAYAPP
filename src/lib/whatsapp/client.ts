@@ -37,13 +37,14 @@ export class WhatsAppClient {
       where: { id: 'default' },
     });
 
-    const hasLiveCreds = Boolean(settings?.accessToken && (settings?.phoneNumberId || settings?.wabaId));
-    const isMock = settings?.isMockMode === true && !hasLiveCreds;
+    const { decryptString } = await import('@/lib/crypto');
+    const decryptedToken = decryptString(settings?.accessToken);
+    const isMock = settings?.isMockMode === true;
 
     return new WhatsAppClient({
       wabaId: settings?.wabaId?.trim() || null,
       phoneNumberId: settings?.phoneNumberId?.trim() || null,
-      accessToken: settings?.accessToken?.trim() || null,
+      accessToken: decryptedToken?.trim() || null,
       isMockMode: isMock,
     });
   }
@@ -639,7 +640,12 @@ export class WhatsAppClient {
   /**
    * Send 2-Way Freeform Text message (within 24h conversation window)
    */
-  async sendTextMessage(to: string, text: string): Promise<MetaSendResponse> {
+  async sendTextMessage(
+    toOrParams: string | { to: string; text: string },
+    optionalText?: string
+  ): Promise<MetaSendResponse> {
+    const to = typeof toOrParams === 'string' ? toOrParams : toOrParams.to;
+    const text = typeof toOrParams === 'string' ? (optionalText || '') : toOrParams.text;
     const cleanPhone = to.replace(/[^0-9]/g, '');
 
     if (this.isMockMode || !this.accessToken || !this.phoneNumberId) {

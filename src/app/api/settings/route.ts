@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { ensureDatabaseSchema } from '@/lib/db-init';
+import { requireRole } from '@/lib/auth/rbac';
 import { WhatsAppClient } from '@/lib/whatsapp/client';
+import { encryptString, decryptString, maskSecret } from '@/lib/crypto';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
-export async function GET() {
-  await ensureDatabaseSchema();
+export async function GET(request: NextRequest) {
+  // 1. RBAC: Only Admins can view settings
+  const authResult = await requireRole(request, ['SUPER_ADMIN', 'ADMIN']);
+  if ('response' in authResult) {
+    return authResult.response;
+  }
 
   let settings = await prisma.settings.findUnique({
     where: { id: 'default' },
@@ -21,7 +27,7 @@ export async function GET() {
         businessName: 'My WhatsApp Business',
         isMockMode: false,
         isConnected: false,
-        webhookVerifyToken: 'whatsapp_cloud_webhook_token_2026',
+        webhookVerifyToken: crypto.randomUUID().replace(/-/g, ''),
       },
     });
   }
@@ -37,23 +43,51 @@ export async function GET() {
     });
   }
 
-  // Mask access token for security
+  const rawAccessToken = decryptString(settings.accessToken);
+  const rawAppSecret = decryptString(settings.appSecret);
+  const rawMetaSecret = decryptString(authConfig?.metaAppSecret);
+
+  // Return strictly sanitized fields (NO secret leaks)
   const safeSettings = {
-    ...settings,
+    id: settings.id,
+    wabaId: settings.wabaId,
+    phoneNumberId: settings.phoneNumberId,
+    businessName: settings.businessName,
+    businessPhone: settings.businessPhone,
+    defaultCountryCode: settings.defaultCountryCode,
+    rateLimitPerSecond: settings.rateLimitPerSecond,
+    tierDailyLimit: settings.tierDailyLimit,
+    qualityRating: settings.qualityRating,
+    isMockMode: settings.isMockMode,
+    isConnected: settings.isConnected,
+    webhookVerifyToken: settings.webhookVerifyToken,
+    accessTokenMasked: rawAccessToken ? maskSecret(rawAccessToken) : null,
+    hasAppSecret: Boolean(rawAppSecret),
     metaAppId: authConfig?.metaAppId || '',
-    metaAppSecret: authConfig?.metaAppSecret || '',
+    hasMetaAppSecret: Boolean(rawMetaSecret),
     allowedDomains: authConfig?.allowedDomains || 'gccstartup.com',
-    accessTokenMasked: settings.accessToken
-      ? `${settings.accessToken.substring(0, 8)}...${settings.accessToken.substring(settings.accessToken.length - 6)}`
-      : null,
+    allowedEmails: authConfig?.allowedEmails || '',
+    requireAuth: authConfig?.requireAuth ?? true,
+    updatedAt: settings.updatedAt,
   };
 
   return NextResponse.json(safeSettings);
 }
 
 export async function POST(request: NextRequest) {
+  // 1. RBAC: Only Admins can modify settings
+  const authResult = await requireRole(request, ['SUPER_ADMIN', 'ADMIN']);
+  if ('response' in authResult) {
+    return authResult.response;
+  }
+
+  const clientIp = getClientIp(request);
+  const rateLimit = checkRateLimit(`settings:${clientIp}`, { limit: 30, windowSeconds: 60 });
+  if (!rateLimit.success) {
+    return NextResponse.json({ error: 'Too many settings requests' }, { status: 429 });
+  }
+
   try {
-    await ensureDatabaseSchema();
     const body = await request.json();
     const {
       wabaId,
@@ -71,12 +105,18 @@ export async function POST(request: NextRequest) {
       action,
     } = body;
 
-    // 1. If user clicked "Test Connection"
+    // Fetch existing credentials if unsupplied in request
+    const existing = await prisma.settings.findUnique({ where: { id: 'default' } });
+    const currentToken = accessToken && !accessToken.includes('••') && !accessToken.includes('...')
+      ? accessToken.trim()
+      : decryptString(existing?.accessToken) || '';
+
+    // 1. Test Connection
     if (action === 'TEST_CONNECTION') {
       const client = new WhatsAppClient({
         wabaId,
         phoneNumberId,
-        accessToken,
+        accessToken: currentToken,
         isMockMode: isMockMode ?? false,
       });
 
@@ -84,12 +124,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(testResult);
     }
 
-    // 1.5 If user clicked "Register Phone Number"
+    // 2. Register Phone Number
     if (action === 'REGISTER_PHONE') {
       const client = new WhatsAppClient({
         wabaId,
         phoneNumberId,
-        accessToken,
+        accessToken: currentToken,
         isMockMode: isMockMode ?? false,
       });
 
@@ -98,12 +138,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(regResult);
     }
 
-    // 2. If user is activating the connection from Setup Wizard
+    // 3. Activate Connection
     if (action === 'ACTIVATE_CONNECTION') {
       const client = new WhatsAppClient({
         wabaId,
         phoneNumberId,
-        accessToken,
+        accessToken: currentToken,
         isMockMode: isMockMode ?? false,
       });
 
@@ -118,14 +158,19 @@ export async function POST(request: NextRequest) {
       const verifiedPhone = testResult.phoneDetails?.display_phone_number || businessPhone || '+1234567890';
       const verifiedName = testResult.phoneDetails?.verified_name || businessName || 'My WhatsApp Business';
 
+      const encryptedToken = encryptString(currentToken);
+      const encryptedSecret = appSecret && !appSecret.includes('••')
+        ? encryptString(appSecret.trim())
+        : existing?.appSecret;
+
       const updated = await prisma.settings.upsert({
         where: { id: 'default' },
         update: {
           wabaId: wabaId?.trim() || null,
           phoneNumberId: phoneNumberId?.trim() || null,
-          accessToken: accessToken && !accessToken.includes('...') ? accessToken.trim() : undefined,
-          webhookVerifyToken: webhookVerifyToken?.trim() || 'whatsapp_wati_webhook_secret_2026',
-          appSecret: appSecret?.trim() || null,
+          accessToken: encryptedToken,
+          webhookVerifyToken: webhookVerifyToken?.trim() || crypto.randomUUID().replace(/-/g, ''),
+          appSecret: encryptedSecret,
           businessName: verifiedName,
           businessPhone: verifiedPhone,
           defaultCountryCode: defaultCountryCode?.trim() || '+1',
@@ -138,9 +183,9 @@ export async function POST(request: NextRequest) {
           id: 'default',
           wabaId: wabaId?.trim() || null,
           phoneNumberId: phoneNumberId?.trim() || null,
-          accessToken: accessToken?.trim() || null,
-          webhookVerifyToken: webhookVerifyToken?.trim() || 'whatsapp_wati_webhook_secret_2026',
-          appSecret: appSecret?.trim() || null,
+          accessToken: encryptedToken,
+          webhookVerifyToken: webhookVerifyToken?.trim() || crypto.randomUUID().replace(/-/g, ''),
+          appSecret: encryptedSecret,
           businessName: verifiedName,
           businessPhone: verifiedPhone,
           defaultCountryCode: defaultCountryCode?.trim() || '+1',
@@ -155,11 +200,16 @@ export async function POST(request: NextRequest) {
         success: true,
         isConnected: true,
         message: 'Meta WhatsApp Cloud API Connection Activated Successfully!',
-        settings: updated,
+        settings: {
+          ...updated,
+          accessToken: undefined,
+          appSecret: undefined,
+          accessTokenMasked: maskSecret(currentToken),
+        },
       });
     }
 
-    // 3. If user clicked "Disconnect Meta"
+    // 4. Disconnect Meta
     if (action === 'DISCONNECT_META') {
       const updated = await prisma.settings.update({
         where: { id: 'default' },
@@ -167,15 +217,18 @@ export async function POST(request: NextRequest) {
           isConnected: false,
         },
       });
-      return NextResponse.json({ success: true, isConnected: false, settings: updated });
+      return NextResponse.json({
+        success: true,
+        isConnected: false,
+        settings: { ...updated, accessToken: undefined, appSecret: undefined },
+      });
     }
 
-    // 4. Standard Save
+    // 5. Standard Save
     const dataToUpdate: any = {
       wabaId: wabaId?.trim() || null,
       phoneNumberId: phoneNumberId?.trim() || null,
-      webhookVerifyToken: webhookVerifyToken?.trim() || 'whatsapp_wati_webhook_secret_2026',
-      appSecret: appSecret?.trim() || null,
+      webhookVerifyToken: webhookVerifyToken?.trim() || crypto.randomUUID().replace(/-/g, ''),
       businessName: businessName?.trim() || 'My Business',
       businessPhone: businessPhone?.trim() || '+1234567890',
       defaultCountryCode: defaultCountryCode?.trim() || '+1',
@@ -188,8 +241,12 @@ export async function POST(request: NextRequest) {
       dataToUpdate.isConnected = Boolean(isConnected);
     }
 
-    if (accessToken && !accessToken.includes('...')) {
-      dataToUpdate.accessToken = accessToken.trim();
+    if (accessToken && !accessToken.includes('••') && !accessToken.includes('...')) {
+      dataToUpdate.accessToken = encryptString(accessToken.trim());
+    }
+
+    if (appSecret && !appSecret.includes('••')) {
+      dataToUpdate.appSecret = encryptString(appSecret.trim());
     }
 
     const updated = await prisma.settings.upsert({
@@ -203,25 +260,40 @@ export async function POST(request: NextRequest) {
 
     // Also update AuthConfig if provided
     if (body.metaAppId !== undefined || body.metaAppSecret !== undefined || body.allowedDomains !== undefined) {
+      const encryptedMetaSecret = body.metaAppSecret && !body.metaAppSecret.includes('••')
+        ? encryptString(body.metaAppSecret.trim())
+        : undefined;
+
       await prisma.authConfig.upsert({
         where: { id: 'default' },
         update: {
           metaAppId: body.metaAppId?.trim() || null,
-          metaAppSecret: body.metaAppSecret?.trim() || null,
+          ...(encryptedMetaSecret ? { metaAppSecret: encryptedMetaSecret } : {}),
           allowedDomains: body.allowedDomains?.trim() || 'gccstartup.com',
+          allowedEmails: body.allowedEmails?.trim() || '',
         },
         create: {
           id: 'default',
           metaAppId: body.metaAppId?.trim() || null,
-          metaAppSecret: body.metaAppSecret?.trim() || null,
+          metaAppSecret: encryptedMetaSecret || null,
           allowedDomains: body.allowedDomains?.trim() || 'gccstartup.com',
+          allowedEmails: body.allowedEmails?.trim() || '',
           requireAuth: true,
         },
       });
     }
 
-    return NextResponse.json({ success: true, settings: updated });
+    return NextResponse.json({
+      success: true,
+      settings: {
+        ...updated,
+        accessToken: undefined,
+        appSecret: undefined,
+        accessTokenMasked: currentToken ? maskSecret(currentToken) : null,
+      },
+    });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('[Settings API] Error:', error);
+    return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });
   }
 }

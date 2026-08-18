@@ -1,22 +1,14 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Initializing clean production database for WhatsApp Platform...');
+  console.log('Seeding WAYAPP database idempotently...');
 
-  // Delete any existing demo records to give a clean slate
-  await prisma.chatMessage.deleteMany({});
-  await prisma.campaignMessage.deleteMany({});
-  await prisma.campaign.deleteMany({});
-  await prisma.contactsOnTags.deleteMany({});
-  await prisma.contactsOnGroups.deleteMany({});
-  await prisma.contact.deleteMany({});
-  await prisma.tag.deleteMany({});
-  await prisma.contactGroup.deleteMany({});
-  await prisma.template.deleteMany({});
-
-  // Initialize Default Production Settings
+  // Default Production Settings
+  const randomVerifyToken = crypto.randomUUID().replace(/-/g, '');
   await prisma.settings.upsert({
     where: { id: 'default' },
     update: {},
@@ -29,11 +21,54 @@ async function main() {
       tierDailyLimit: 1000,
       qualityRating: 'GREEN',
       isMockMode: false,
-      webhookVerifyToken: 'whatsapp_cloud_webhook_token_2026',
+      isConnected: false,
+      webhookVerifyToken: randomVerifyToken,
     },
   });
 
-  console.log('Database initialized with clean production state!');
+  // Default Auth Config
+  await prisma.authConfig.upsert({
+    where: { id: 'default' },
+    update: {},
+    create: {
+      id: 'default',
+      allowedDomains: 'gccstartup.com,wayapp.io',
+      allowedEmails: '',
+      requireAuth: true,
+      allowRegistration: true,
+    },
+  });
+
+  // Default Tags & Groups
+  await prisma.tag.upsert({
+    where: { name: 'VIP' },
+    update: {},
+    create: { name: 'VIP', color: '#F59E0B' },
+  });
+
+  await prisma.tag.upsert({
+    where: { name: 'Lead' },
+    update: {},
+    create: { name: 'Lead', color: '#3B82F6' },
+  });
+
+  await prisma.tag.upsert({
+    where: { name: 'Customer' },
+    update: {},
+    create: { name: 'Customer', color: '#10B981' },
+  });
+
+  await prisma.contactGroup.upsert({
+    where: { name: 'All Customers' },
+    update: {},
+    create: {
+      name: 'All Customers',
+      description: 'Default master group for all customers',
+      color: '#25D366',
+    },
+  });
+
+  console.log('Database seeded safely and idempotently!');
 }
 
 main()

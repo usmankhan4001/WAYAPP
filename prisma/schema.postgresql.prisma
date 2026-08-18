@@ -1,0 +1,507 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// -------------------------------------------------------------
+// SETTINGS & META CLOUD API CONFIG
+// -------------------------------------------------------------
+model Settings {
+  id                    String   @id @default("default")
+  wabaId                String?
+  phoneNumberId         String?
+  accessToken           String?
+  accessTokenMasked     String?
+  webhookVerifyToken    String?  @default("whatsapp_wati_webhook_secret_2026")
+  appSecret             String?
+  businessName          String?  @default("My WhatsApp Business")
+  businessPhone         String?  @default("")
+  defaultCountryCode    String?  @default("+1")
+  rateLimitPerSecond    Int      @default(20)
+  tierDailyLimit        Int      @default(1000)
+  qualityRating         String?  @default("GREEN") // GREEN, YELLOW, RED
+  isMockMode            Boolean  @default(false)
+  isConnected           Boolean  @default(false)  // Gateway activation gatekeeper
+  encryptionCheck       String?  // Canary string for checking secret key validity
+  updatedAt             DateTime @updatedAt
+}
+
+// -------------------------------------------------------------
+// USER MANAGEMENT & PASSWORD/RBAC AUTHENTICATION
+// -------------------------------------------------------------
+model User {
+  id            String              @id @default(cuid())
+  email         String              @unique
+  passwordHash  String?             // Argon2 / bcrypt hash
+  name          String?
+  avatarUrl     String?
+  metaUserId    String?             @unique
+  role          String              @default("MEMBER") // SUPER_ADMIN, ADMIN, MEMBER, VIEWER
+  status        String              @default("ACTIVE") // ACTIVE, SUSPENDED, INVITED
+  isActive      Boolean             @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  // Relations
+  sessions      Session[]
+  assignedChats Conversation[]
+  notes         ConversationNote[]
+  events        ConversationEvent[]
+  apiKeys       ApiKey[]
+}
+
+model Session {
+  id            String    @id @default(cuid())
+  sessionToken  String    @unique
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt     DateTime
+  userAgent     String?
+  ipAddress     String?
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model AuthConfig {
+  id                 String   @id @default("default")
+  metaAppId          String?
+  metaAppSecret      String?
+  allowedDomains     String   @default("gccstartup.com") // Comma-separated domains e.g. gccstartup.com
+  allowedEmails      String   @default("")              // Comma-separated explicit emails
+  requireAuth        Boolean  @default(true)
+  allowRegistration  Boolean  @default(true)            // First user registers as SUPER_ADMIN
+  updatedAt          DateTime @updatedAt
+}
+
+// -------------------------------------------------------------
+// API KEYS & PUBLIC DEVELOPER PLATFORM
+// -------------------------------------------------------------
+model ApiKey {
+  id          String    @id @default(cuid())
+  name        String
+  keyHash     String    @unique // SHA-256 hash of raw API key
+  keyPrefix   String    // e.g. way_live_abc... (first 8 chars for identification)
+  scopes      String    @default("read,write") // Comma-separated: read, write, messages:send, contacts:write, etc.
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([keyHash])
+  @@index([userId])
+}
+
+// -------------------------------------------------------------
+// CONTACTS & CATEGORIZATION
+// -------------------------------------------------------------
+model Contact {
+  id                 String              @id @default(cuid())
+  phoneNumber        String              @unique // Normalized E.164 (e.g. +971501234567)
+  firstName          String?
+  lastName           String?
+  email              String?
+  customAttributes   String?             // JSON string: { "company": "Acme", "city": "Dubai", "vip": true, ... }
+  status             String              @default("ACTIVE") // ACTIVE, UNSUBSCRIBED, BOUNCED, BLOCKED
+  optedOutAt         DateTime?
+  lastInteractionAt  DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  
+  // Relations
+  groups             ContactsOnGroups[]
+  tags               ContactsOnTags[]
+  campaignMessages   CampaignMessage[]
+  chatMessages       ChatMessage[]
+  conversation       Conversation?
+  flowRuns           FlowRun[]
+
+  @@index([status])
+  @@index([phoneNumber])
+}
+
+model ContactGroup {
+  id          String              @id @default(cuid())
+  name        String              @unique
+  description String?
+  color       String              @default("#25D366") // Hex color badge
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  contacts    ContactsOnGroups[]
+}
+
+model ContactsOnGroups {
+  contactId   String
+  groupId     String
+  contact     Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  group       ContactGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  assignedAt  DateTime     @default(now())
+
+  @@id([contactId, groupId])
+}
+
+model Tag {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  color       String           @default("#3B82F6")
+  createdAt   DateTime         @default(now())
+  contacts    ContactsOnTags[]
+}
+
+model ContactsOnTags {
+  contactId   String
+  tagId       String
+  contact     Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tag         Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  assignedAt  DateTime @default(now())
+
+  @@id([contactId, tagId])
+}
+
+model Segment {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  rulesJson   String   // JSON condition rules: { match: "ALL"|"ANY", rules: [...] }
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// -------------------------------------------------------------
+// TEMPLATES
+// -------------------------------------------------------------
+model Template {
+  id              String     @id @default(cuid())
+  metaId          String     @unique
+  name            String
+  language        String     @default("en_US")
+  category        String     // MARKETING, UTILITY, AUTHENTICATION
+  status          String     // APPROVED, PENDING, REJECTED, PAUSED
+  qualityScore    String?    @default("GREEN") // GREEN, YELLOW, RED, UNKNOWN
+  rejectedReason  String?    // Meta's rejection explanation
+  components      String     // JSON array of header, body, footer, buttons
+  rawJson         String?    // Complete raw Meta payload
+  syncedAt        DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  campaigns       Campaign[]
+}
+
+// -------------------------------------------------------------
+// CAMPAIGNS & BROADCASTING
+// -------------------------------------------------------------
+model Campaign {
+  id                 String           @id @default(cuid())
+  name               String
+  templateId         String
+  template           Template         @relation(fields: [templateId], references: [id])
+  
+  // Audience Targeting Rules (JSON)
+  audienceFilter     String
+  variableMappings   String           // JSON mapping: { "1": "firstName", "2": "company", "header": "static_url" }
+  headerMediaUrl     String?
+  
+  // Status: DRAFT, SCHEDULED, QUEUED, RUNNING, COMPLETED, PAUSED, CANCELLED, FAILED
+  status             String           @default("DRAFT")
+  
+  // Aggregated Real-time Analytics Counters
+  totalContacts      Int              @default(0)
+  sentCount          Int              @default(0)
+  deliveredCount     Int              @default(0)
+  readCount          Int              @default(0)
+  repliedCount       Int              @default(0)
+  failedCount        Int              @default(0)
+  
+  scheduledAt        DateTime?
+  startedAt          DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  
+  messages           CampaignMessage[]
+}
+
+// -------------------------------------------------------------
+// MESSAGE LOGS & LIFECYCLE TRACKING
+// -------------------------------------------------------------
+model CampaignMessage {
+  id            String    @id @default(cuid())
+  campaignId    String
+  campaign      Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contactId     String?
+  contact       Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  phoneNumber   String
+  wamid         String?   @unique // Meta WhatsApp Message ID
+  
+  // State: PENDING -> SENDING -> SENT -> DELIVERED -> READ -> REPLIED / FAILED
+  status        String    @default("PENDING")
+  
+  // Latency & Lifecycle Timestamps
+  sentAt        DateTime?
+  deliveredAt   DateTime?
+  readAt        DateTime?
+  repliedAt     DateTime?
+  failedAt      DateTime?
+  
+  // Failure / Error info
+  errorCode     String?
+  errorMessage  String?
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([campaignId, contactId])
+  @@index([campaignId])
+  @@index([phoneNumber])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// -------------------------------------------------------------
+// 2-WAY MULTI-AGENT CHAT INBOX
+// -------------------------------------------------------------
+model Conversation {
+  id            String              @id @default(cuid())
+  contactId     String              @unique
+  contact       Contact             @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  assignedToId  String?
+  assignedTo    User?               @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  status        String              @default("OPEN") // OPEN, PENDING, RESOLVED, SPAM
+  lastMessageAt DateTime            @default(now())
+  unreadCount   Int                 @default(0)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  messages      ChatMessage[]
+  notes         ConversationNote[]
+  events        ConversationEvent[]
+
+  @@index([assignedToId])
+  @@index([status])
+  @@index([lastMessageAt])
+}
+
+model ConversationNote {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  authorId       String
+  author         User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body           String
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+}
+
+model ConversationEvent {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  actorId        String?
+  actor          User?        @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  type           String       // ASSIGNED, UNASSIGNED, STATUS_CHANGED, NOTE_ADDED, TRANSFERRED
+  payload        String?      // JSON payload containing event details
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+}
+
+model ChatMessage {
+  id             String        @id @default(cuid())
+  contactId      String
+  contact        Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  phoneNumber    String
+  direction      String        // INBOUND, OUTBOUND
+  wamid          String?       @unique
+  messageType    String        // text, image, document, template, interactive, button_reply
+  body           String?
+  mediaUrl       String?
+  status         String        @default("SENT") // SENT, DELIVERED, READ, FAILED
+  timestamp      DateTime      @default(now())
+
+  @@index([contactId])
+  @@index([conversationId])
+  @@index([wamid])
+  @@index([timestamp])
+}
+
+// -------------------------------------------------------------
+// WORKFLOW AUTOMATIONS & KEYWORD AUTO-RESPONDERS
+// -------------------------------------------------------------
+model Automation {
+  id              String          @id @default(cuid())
+  name            String
+  description     String?
+  triggerType     String          // KEYWORD_MATCH, BUTTON_CLICK, NEW_CONTACT, CAMPAIGN_REPLY, FLOW
+  triggerConfig   String          // JSON: { matchType: "EXACT"|"CONTAINS"|"STARTS_WITH", keywords: ["hi", "price"] }
+  actionsJson     String          // JSON: [ { type: "SEND_TEXT"|"SEND_TEMPLATE"|"ADD_TAG"|"START_FLOW", payload: ... } ]
+  isActive        Boolean         @default(true)
+  executionCount  Int             @default(0)
+  lastTriggeredAt DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  logs            AutomationLog[]
+}
+
+model AutomationLog {
+  id            String      @id @default(cuid())
+  automationId  String
+  automation    Automation  @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  contactId     String?
+  phoneNumber   String
+  triggerInput  String?
+  actionTaken   String
+  status        String      @default("SUCCESS") // SUCCESS, FAILED
+  errorMessage  String?
+  createdAt     DateTime    @default(now())
+
+  @@index([automationId])
+  @@index([contactId])
+}
+
+// -------------------------------------------------------------
+// AI & HTTP BOTS & KNOWLEDGE BASE (F2)
+// -------------------------------------------------------------
+model KnowledgeBase {
+  id              String    @id @default(cuid())
+  name            String
+  sourceType      String    @default("GENERATED") // GENERATED, UPLOADED, MANUAL
+  rawNotes        String?
+  contentMarkdown String
+  chunks          String    // JSON array of chunk strings/objects
+  status          String    @default("READY") // DRAFT, READY, PROCESSING
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  bots            Bot[]
+}
+
+model Bot {
+  id              String         @id @default(cuid())
+  name            String
+  description     String?
+  kind            String         @default("KEYWORD") // KEYWORD, AI, HTTP
+  triggerConfig   String         // JSON: { matchType: "EXACT"|"CONTAINS"|"REGEX", keywords: [] }
+  aiConfig        String?        // JSON: { provider: "openai"|"gemini"|"anthropic"|"openrouter", model: "...", systemPrompt: "...", apiKeyEncrypted: "..." }
+  actionsJson     String         // JSON: actions or fallback responses
+  knowledgeBaseId String?
+  knowledgeBase   KnowledgeBase? @relation(fields: [knowledgeBaseId], references: [id], onDelete: SetNull)
+  isActive        Boolean        @default(true)
+  cooldownSeconds Int            @default(60)
+  dailyCap        Int            @default(100)
+  executionCount  Int            @default(0)
+  lastTriggeredAt DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([knowledgeBaseId])
+}
+
+// -------------------------------------------------------------
+// NO-CODE FLOW BUILDER (F1)
+// -------------------------------------------------------------
+model Flow {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  status      String    @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
+  startNodeId String?
+  nodesJson   String    // JSON array of React Flow nodes
+  edgesJson   String    // JSON array of React Flow edges
+  version     Int       @default(1)
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  runs        FlowRun[]
+}
+
+model FlowRun {
+  id            String    @id @default(cuid())
+  flowId        String
+  flow          Flow      @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  contactId     String
+  contact       Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  currentNodeId String?
+  variables     String    // JSON object storing session variables
+  status        String    @default("ACTIVE") // ACTIVE, COMPLETED, PAUSED, ERROR
+  enteredAt     DateTime  @default(now())
+  exitedAt      DateTime?
+
+  logs          FlowLog[]
+
+  @@index([flowId])
+  @@index([contactId])
+  @@index([status])
+}
+
+model FlowLog {
+  id           String   @id @default(cuid())
+  flowRunId    String
+  flowRun      FlowRun  @relation(fields: [flowRunId], references: [id], onDelete: Cascade)
+  nodeId       String
+  action       String
+  status       String   @default("SUCCESS") // SUCCESS, FAILED
+  errorMessage String?
+  createdAt    DateTime @default(now())
+
+  @@index([flowRunId])
+}
+
+// -------------------------------------------------------------
+// OUTBOUND WEBHOOKS (F5)
+// -------------------------------------------------------------
+model WebhookEndpoint {
+  id         String            @id @default(cuid())
+  name       String
+  url        String
+  secret     String            // HMAC signing secret
+  events     String            // Comma-separated: message.received, message.status_updated, contact.created, campaign.completed
+  isActive   Boolean           @default(true)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  deliveries WebhookDelivery[]
+}
+
+model WebhookDelivery {
+  id          String          @id @default(cuid())
+  endpointId  String
+  endpoint    WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  event       String
+  payload     String          // JSON string payload
+  attempts    Int             @default(0)
+  nextRetryAt DateTime?
+  status      String          @default("PENDING") // PENDING, DELIVERED, FAILED
+  lastError   String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([endpointId])
+  @@index([status])
+  @@index([nextRetryAt])
+}
+
+// -------------------------------------------------------------
+// PWA & MOBILE PUSH NOTIFICATIONS (F6)
+// -------------------------------------------------------------
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String?
+  endpoint  String   @unique
+  p256dh    String?
+  auth      String?
+  expoToken String?  // Expo Push Token for Native App
+  platform  String   @default("web") // web, ios, android
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
