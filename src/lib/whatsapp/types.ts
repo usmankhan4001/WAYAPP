@@ -32,6 +32,7 @@ export interface SendTemplateMessageParams {
   headerMediaUrl?: string;
   headerVariables?: string[];
   bodyVariables?: string[];
+  templateComponents?: MetaTemplateComponent[] | string;
   buttonPayloads?: Array<{ type: string; payload: string }>;
 }
 

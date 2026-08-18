@@ -466,36 +466,75 @@ export class WhatsAppClient {
 
     const componentsPayload: any[] = [];
 
+    let parsedComponents: any[] = [];
+    if (params.templateComponents) {
+      try {
+        parsedComponents =
+          typeof params.templateComponents === 'string'
+            ? JSON.parse(params.templateComponents)
+            : params.templateComponents;
+      } catch {}
+    }
+
+    const bodyComp = parsedComponents.find((c) => c && c.type === 'BODY');
+    const headerComp = parsedComponents.find((c) => c && c.type === 'HEADER');
+
+    const expectedBodyVarsCount = bodyComp?.text
+      ? (bodyComp.text.match(/{{\d+}}/g) || []).length
+      : undefined;
+    const expectedHeaderVarsCount =
+      headerComp?.format === 'TEXT' && headerComp.text
+        ? (headerComp.text.match(/{{\d+}}/g) || []).length
+        : undefined;
+
     // Header media or text parameters
-    if (params.headerMediaUrl) {
-      componentsPayload.push({
-        type: 'header',
-        parameters: [
-          {
-            type: 'image',
-            image: { link: params.headerMediaUrl },
-          },
-        ],
-      });
-    } else if (params.headerVariables && params.headerVariables.length > 0) {
-      componentsPayload.push({
-        type: 'header',
-        parameters: params.headerVariables.map((val) => ({
-          type: 'text',
-          text: String(val || ''),
-        })),
-      });
+    if (headerComp?.format === 'IMAGE' || (!headerComp && params.headerMediaUrl)) {
+      if (params.headerMediaUrl) {
+        componentsPayload.push({
+          type: 'header',
+          parameters: [
+            {
+              type: 'image',
+              image: { link: params.headerMediaUrl },
+            },
+          ],
+        });
+      }
+    } else if (
+      (expectedHeaderVarsCount === undefined && params.headerVariables && params.headerVariables.length > 0) ||
+      (expectedHeaderVarsCount !== undefined && expectedHeaderVarsCount > 0)
+    ) {
+      const vars = params.headerVariables || [];
+      const count = expectedHeaderVarsCount !== undefined ? expectedHeaderVarsCount : vars.length;
+      if (count > 0) {
+        const headerParams = [];
+        for (let i = 0; i < count; i++) {
+          headerParams.push({ type: 'text', text: String(vars[i] || '-') });
+        }
+        componentsPayload.push({
+          type: 'header',
+          parameters: headerParams,
+        });
+      }
     }
 
     // Body parameters
-    if (params.bodyVariables && params.bodyVariables.length > 0) {
-      componentsPayload.push({
-        type: 'body',
-        parameters: params.bodyVariables.map((val) => ({
-          type: 'text',
-          text: String(val || ''),
-        })),
-      });
+    if (
+      (expectedBodyVarsCount === undefined && params.bodyVariables && params.bodyVariables.length > 0) ||
+      (expectedBodyVarsCount !== undefined && expectedBodyVarsCount > 0)
+    ) {
+      const vars = params.bodyVariables || [];
+      const count = expectedBodyVarsCount !== undefined ? expectedBodyVarsCount : vars.length;
+      if (count > 0) {
+        const bodyParams = [];
+        for (let i = 0; i < count; i++) {
+          bodyParams.push({ type: 'text', text: String(vars[i] || '-') });
+        }
+        componentsPayload.push({
+          type: 'body',
+          parameters: bodyParams,
+        });
+      }
     }
 
     const payload = {

@@ -11,11 +11,28 @@ interface SendTestModalProps {
 
 export function SendTestModal({ isOpen, onClose, template }: SendTestModalProps) {
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [var1, setVar1] = useState('Test User');
-  const [var2, setVar2] = useState('Apex Store');
-  const [var3, setVar3] = useState('PROMO50');
   const [isSending, setIsSending] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  let parsedComponents: any[] = [];
+  try {
+    if (template?.components) {
+      parsedComponents =
+        typeof template.components === 'string'
+          ? JSON.parse(template.components)
+          : template.components;
+    }
+  } catch {}
+
+  const bodyComp = parsedComponents.find((c: any) => c && c.type === 'BODY');
+  const bodyMatches = bodyComp?.text ? (bodyComp.text.match(/{{\d+}}/g) || []) : [];
+  const expectedVarCount = bodyMatches.length;
+
+  const [variables, setVariables] = useState<Record<number, string>>({
+    1: 'Test Customer',
+    2: 'Apex Store',
+    3: 'PROMO50',
+  });
 
   if (!isOpen || !template) return null;
 
@@ -23,6 +40,11 @@ export function SendTestModal({ isOpen, onClose, template }: SendTestModalProps)
     e.preventDefault();
     setIsSending(true);
     setResult(null);
+
+    const bodyVars: string[] = [];
+    for (let i = 1; i <= expectedVarCount; i++) {
+      bodyVars.push(variables[i] || `Sample_${i}`);
+    }
 
     try {
       const res = await fetch('/api/templates/test', {
@@ -32,7 +54,8 @@ export function SendTestModal({ isOpen, onClose, template }: SendTestModalProps)
           to: phoneNumber,
           templateName: template.name,
           languageCode: template.language || 'en_US',
-          bodyVariables: [var1, var2, var3],
+          bodyVariables: bodyVars,
+          templateComponents: template.components,
         }),
       });
 
@@ -66,7 +89,7 @@ export function SendTestModal({ isOpen, onClose, template }: SendTestModalProps)
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-900">Send Test WhatsApp Message</h3>
-              <p className="text-[11px] text-slate-500">Template: {template.name}</p>
+              <p className="text-[11px] text-slate-500 font-mono">Template: {template.name}</p>
             </div>
           </div>
           <button
@@ -112,30 +135,40 @@ export function SendTestModal({ isOpen, onClose, template }: SendTestModalProps)
           </div>
 
           <div className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-            <span className="text-xs font-bold text-slate-700">Sample Test Parameters</span>
-            <div className="grid grid-cols-1 gap-2">
-              <input
-                type="text"
-                placeholder="{{1}} value (e.g. Name)"
-                value={var1}
-                onChange={(e) => setVar1(e.target.value)}
-                className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 bg-white"
-              />
-              <input
-                type="text"
-                placeholder="{{2}} value (e.g. Company or Order)"
-                value={var2}
-                onChange={(e) => setVar2(e.target.value)}
-                className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 bg-white"
-              />
-              <input
-                type="text"
-                placeholder="{{3}} value (e.g. Code)"
-                value={var3}
-                onChange={(e) => setVar3(e.target.value)}
-                className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 bg-white"
-              />
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-700">Dynamic Template Parameters</span>
+              <span className="text-[10px] text-slate-500 font-medium font-mono">
+                {expectedVarCount} {expectedVarCount === 1 ? 'variable' : 'variables'}
+              </span>
             </div>
+
+            {expectedVarCount === 0 ? (
+              <p className="text-xs text-slate-500 italic py-1">
+                This template has no dynamic variables (static message).
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 gap-2">
+                {Array.from({ length: expectedVarCount }).map((_, idx) => {
+                  const varNum = idx + 1;
+                  return (
+                    <div key={varNum} className="flex items-center gap-2">
+                      <span className="text-xs font-mono font-bold text-slate-500 w-8 shrink-0">
+                        {`{{${varNum}}}`}
+                      </span>
+                      <input
+                        type="text"
+                        placeholder={`Value for {{${varNum}}}`}
+                        value={variables[varNum] || ''}
+                        onChange={(e) =>
+                          setVariables({ ...variables, [varNum]: e.target.value })
+                        }
+                        className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 bg-white"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-200">

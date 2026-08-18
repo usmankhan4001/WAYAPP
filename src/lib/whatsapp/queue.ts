@@ -77,7 +77,8 @@ export class CampaignDispatcher {
    */
   static resolveVariableValues(
     contact: any,
-    mappings: Record<string, string>
+    mappings: Record<string, string>,
+    templateComponents?: any[] | string
   ): { bodyVars: string[]; headerVars: string[] } {
     let customAttrs: Record<string, any> = {};
     try {
@@ -86,39 +87,59 @@ export class CampaignDispatcher {
       customAttrs = {};
     }
 
+    let parsedComponents: any[] = [];
+    try {
+      if (typeof templateComponents === 'string') {
+        parsedComponents = JSON.parse(templateComponents);
+      } else if (Array.isArray(templateComponents)) {
+        parsedComponents = templateComponents;
+      }
+    } catch {}
+
+    const bodyComp = parsedComponents.find((c) => c && c.type === 'BODY');
+    const headerComp = parsedComponents.find((c) => c && c.type === 'HEADER');
+
+    const expectedBodyVarsCount = bodyComp?.text
+      ? (bodyComp.text.match(/{{\d+}}/g) || []).length
+      : 0;
+    const expectedHeaderVarsCount =
+      headerComp?.format === 'TEXT' && headerComp.text
+        ? (headerComp.text.match(/{{\d+}}/g) || []).length
+        : 0;
+
+    const evalField = (field: string) => {
+      if (!field) return '-';
+      if (field === 'firstName') return contact.firstName || contact.name || 'Customer';
+      if (field === 'lastName') return contact.lastName || '';
+      if (field === 'fullName') return `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || contact.name || 'Customer';
+      if (field === 'phoneNumber') return contact.phoneNumber || '';
+      if (field === 'email') return contact.email || '';
+      if (field.startsWith('custom.')) {
+        const attrName = field.replace('custom.', '');
+        return customAttrs[attrName] !== undefined ? String(customAttrs[attrName]) : '-';
+      }
+      return field; // Static text fallback
+    };
+
     const bodyVars: string[] = [];
     const headerVars: string[] = [];
 
-    // Body variables like "1", "2", "3"
-    Object.keys(mappings).forEach((key) => {
-      const field = mappings[key];
-      let val = '';
-
-      if (field === 'firstName') val = contact.firstName || '';
-      else if (field === 'lastName') val = contact.lastName || '';
-      else if (field === 'fullName') val = `${contact.firstName || ''} ${contact.lastName || ''}`.trim();
-      else if (field === 'phoneNumber') val = contact.phoneNumber || '';
-      else if (field === 'email') val = contact.email || '';
-      else if (field.startsWith('custom.')) {
-        const attrName = field.replace('custom.', '');
-        val = customAttrs[attrName] !== undefined ? String(customAttrs[attrName]) : '';
-      } else {
-        val = field; // Static text fallback
+    // Only populate body variables if the template actually has placeholders
+    if (expectedBodyVarsCount > 0) {
+      for (let i = 1; i <= expectedBodyVarsCount; i++) {
+        const key = String(i);
+        const mappedField = mappings[key] || mappings[`body_${i}`] || 'fullName';
+        bodyVars.push(evalField(mappedField));
       }
+    }
 
-      if (key.startsWith('header_')) {
-        headerVars.push(val);
-      } else {
-        const idx = parseInt(key, 10);
-        if (!isNaN(idx)) {
-          bodyVars[idx - 1] = val;
-        }
+    // Only populate header variables if the template header is text and has placeholders
+    if (expectedHeaderVarsCount > 0) {
+      for (let i = 1; i <= expectedHeaderVarsCount; i++) {
+        const key = `header_${i}`;
+        const mappedField = mappings[key] || mappings['header_1'] || 'fullName';
+        headerVars.push(evalField(mappedField));
       }
-    });
-
-    // Fill empty holes with fallback
-    for (let i = 0; i < bodyVars.length; i++) {
-      if (bodyVars[i] === undefined) bodyVars[i] = '-';
     }
 
     return { bodyVars, headerVars };
@@ -183,7 +204,11 @@ export class CampaignDispatcher {
           break;
         }
 
-        const { bodyVars, headerVars } = this.resolveVariableValues(contact, mappings);
+        const { bodyVars, headerVars } = this.resolveVariableValues(
+          contact,
+          mappings,
+          campaign.template.components
+        );
 
         let msgRecord = await prisma.campaignMessage.create({
           data: {
@@ -202,6 +227,7 @@ export class CampaignDispatcher {
             headerMediaUrl: campaign.headerMediaUrl || undefined,
             headerVariables: headerVars,
             bodyVariables: bodyVars,
+            templateComponents: campaign.template.components,
           });
 
           const wamid = sendRes.messages?.[0]?.id || null;
