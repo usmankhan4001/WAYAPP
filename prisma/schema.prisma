@@ -1,0 +1,195 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// -------------------------------------------------------------
+// SETTINGS & META CLOUD API CONFIG
+// -------------------------------------------------------------
+model Settings {
+  id                    String   @id @default("default")
+  wabaId                String?
+  phoneNumberId         String?
+  accessToken           String?
+  webhookVerifyToken    String?  @default("whatsapp_wati_webhook_secret_2026")
+  appSecret             String?
+  businessName          String?  @default("My WhatsApp Business")
+  businessPhone         String?  @default("")
+  defaultCountryCode    String?  @default("+1")
+  rateLimitPerSecond    Int      @default(20)
+  tierDailyLimit        Int      @default(1000)
+  qualityRating         String?  @default("GREEN") // GREEN, YELLOW, RED
+  isMockMode            Boolean  @default(false)
+  isConnected           Boolean  @default(false)  // Gateway activation gatekeeper
+  updatedAt             DateTime @updatedAt
+}
+
+// -------------------------------------------------------------
+// CONTACTS & CATEGORIZATION
+// -------------------------------------------------------------
+model Contact {
+  id                 String              @id @default(cuid())
+  phoneNumber        String              @unique // Normalized E.164 (e.g. +971501234567)
+  firstName          String?
+  lastName           String?
+  email              String?
+  customAttributes   String?             // JSON string: { "company": "Acme", "city": "Dubai", "vip": true, ... }
+  status             String              @default("ACTIVE") // ACTIVE, UNSUBSCRIBED, BOUNCED, BLOCKED
+  lastInteractionAt  DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  
+  // Relations
+  groups             ContactsOnGroups[]
+  tags               ContactsOnTags[]
+  campaignMessages   CampaignMessage[]
+  chatMessages       ChatMessage[]
+}
+
+model ContactGroup {
+  id          String              @id @default(cuid())
+  name        String              @unique
+  description String?
+  color       String              @default("#25D366") // Hex color badge
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  contacts    ContactsOnGroups[]
+}
+
+model ContactsOnGroups {
+  contactId   String
+  groupId     String
+  contact     Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  group       ContactGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  assignedAt  DateTime     @default(now())
+
+  @@id([contactId, groupId])
+}
+
+model Tag {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  color       String           @default("#3B82F6")
+  createdAt   DateTime         @default(now())
+  contacts    ContactsOnTags[]
+}
+
+model ContactsOnTags {
+  contactId   String
+  tagId       String
+  contact     Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tag         Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  assignedAt  DateTime @default(now())
+
+  @@id([contactId, tagId])
+}
+
+model Segment {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  rulesJson   String   // JSON condition rules: { match: "ALL"|"ANY", rules: [...] }
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// -------------------------------------------------------------
+// TEMPLATES
+// -------------------------------------------------------------
+model Template {
+  id          String     @id @default(cuid())
+  metaId      String     @unique
+  name        String
+  language    String     @default("en_US")
+  category    String     // MARKETING, UTILITY, AUTHENTICATION
+  status      String     // APPROVED, PENDING, REJECTED, PAUSED
+  components  String     // JSON array of header, body, footer, buttons
+  rawJson     String?    // Complete raw Meta payload
+  syncedAt    DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  campaigns   Campaign[]
+}
+
+// -------------------------------------------------------------
+// CAMPAIGNS & BROADCASTING
+// -------------------------------------------------------------
+model Campaign {
+  id                 String           @id @default(cuid())
+  name               String
+  templateId         String
+  template           Template         @relation(fields: [templateId], references: [id])
+  
+  // Audience Targeting Rules (JSON)
+  audienceFilter     String
+  variableMappings   String           // JSON mapping: { "1": "firstName", "2": "company", "header": "static_url" }
+  headerMediaUrl     String?
+  
+  status             String           @default("DRAFT") // DRAFT, SCHEDULED, QUEUED, RUNNING, COMPLETED, PAUSED, CANCELLED
+  
+  // Aggregated Real-time Analytics Counters
+  totalContacts      Int              @default(0)
+  sentCount          Int              @default(0)
+  deliveredCount     Int              @default(0)
+  readCount          Int              @default(0)
+  repliedCount       Int              @default(0)
+  failedCount        Int              @default(0)
+  
+  scheduledAt        DateTime?
+  startedAt          DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  
+  messages           CampaignMessage[]
+}
+
+// -------------------------------------------------------------
+// MESSAGE LOGS & LIFECYCLE TRACKING
+// -------------------------------------------------------------
+model CampaignMessage {
+  id            String    @id @default(cuid())
+  campaignId    String
+  campaign      Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contactId     String?
+  contact       Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  phoneNumber   String
+  wamid         String?   @unique // Meta WhatsApp Message ID
+  
+  // State: PENDING -> SENT -> DELIVERED -> READ -> REPLIED / FAILED
+  status        String    @default("PENDING")
+  
+  // Latency & Lifecycle Timestamps
+  sentAt        DateTime?
+  deliveredAt   DateTime?
+  readAt        DateTime?
+  repliedAt     DateTime?
+  failedAt      DateTime?
+  
+  // Failure / Error info
+  errorCode     String?
+  errorMessage  String?
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// -------------------------------------------------------------
+// 2-WAY CHAT INBOX
+// -------------------------------------------------------------
+model ChatMessage {
+  id          String   @id @default(cuid())
+  contactId   String
+  contact     Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  phoneNumber String
+  direction   String   // INBOUND, OUTBOUND
+  wamid       String?  @unique
+  messageType String   // text, image, document, template, interactive, button_reply
+  body        String?
+  mediaUrl    String?
+  status      String   @default("SENT") // SENT, DELIVERED, READ, FAILED
+  timestamp   DateTime @default(now())
+}
