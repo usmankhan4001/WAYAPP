@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { verifySessionToken, SESSION_COOKIE_NAME, UserSessionPayload } from './jwt';
+import { ensureDatabaseSchema } from '@/lib/db-init';
 
 /**
  * Checks if a given email is authorized under GCC Business Whitelist policy
@@ -8,6 +9,10 @@ import { verifySessionToken, SESSION_COOKIE_NAME, UserSessionPayload } from './j
 export async function isAllowedGccUser(email: string | undefined | null): Promise<boolean> {
   if (!email) return false;
   const cleanEmail = email.trim().toLowerCase();
+
+  try {
+    await ensureDatabaseSchema();
+  } catch {}
 
   // Super-admin default whitelists
   if (
