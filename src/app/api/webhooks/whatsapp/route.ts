@@ -156,10 +156,32 @@ export async function POST(request: NextRequest) {
               });
             }
 
-            // Extract message body
+            // Extract message body & media URL
             let bodyText = '';
+            let mediaUrl: string | null = null;
+            let messageType = incoming.type || 'text';
+
             if (incoming.type === 'text') {
               bodyText = incoming.text?.body || '';
+            } else if (incoming.type === 'image') {
+              mediaUrl = incoming.image?.id ? `/api/media/${incoming.image.id}` : null;
+              bodyText = incoming.image?.caption || 'Photo';
+            } else if (incoming.type === 'video') {
+              mediaUrl = incoming.video?.id ? `/api/media/${incoming.video.id}` : null;
+              bodyText = incoming.video?.caption || 'Video';
+            } else if (incoming.type === 'audio') {
+              mediaUrl = incoming.audio?.id ? `/api/media/${incoming.audio.id}` : null;
+              bodyText = 'Audio recording';
+            } else if (incoming.type === 'voice') {
+              mediaUrl = incoming.voice?.id ? `/api/media/${incoming.voice.id}` : null;
+              bodyText = 'Voice note';
+            } else if (incoming.type === 'document') {
+              mediaUrl = incoming.document?.id ? `/api/media/${incoming.document.id}` : null;
+              bodyText = incoming.document?.filename || incoming.document?.caption || 'Document';
+            } else if (incoming.type === 'location' && incoming.location) {
+              const loc = incoming.location;
+              const mapUrl = `https://maps.google.com/?q=${loc.latitude},${loc.longitude}`;
+              bodyText = loc.name ? `📍 ${loc.name} (${mapUrl})` : `📍 Location: ${mapUrl}`;
             } else if (incoming.type === 'button') {
               bodyText = incoming.button?.text || '';
             } else if (incoming.type === 'interactive') {
@@ -168,7 +190,7 @@ export async function POST(request: NextRequest) {
                 incoming.interactive?.list_reply?.title ||
                 '';
             } else {
-              bodyText = `[${incoming.type.toUpperCase()} attachment]`;
+              bodyText = `[${incoming.type?.toUpperCase()} attachment]`;
             }
 
             // Store in ChatMessage
@@ -178,8 +200,9 @@ export async function POST(request: NextRequest) {
                 phoneNumber: senderPhone,
                 direction: 'INBOUND',
                 wamid: messageWamid,
-                messageType: incoming.type,
+                messageType,
                 body: bodyText,
+                mediaUrl,
                 status: 'DELIVERED',
                 timestamp: new Date(parseInt(incoming.timestamp, 10) * 1000),
               },

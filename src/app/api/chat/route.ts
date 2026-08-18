@@ -44,7 +44,18 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { contactId, text, templateName, languageCode, bodyVariables, headerMediaUrl } = body;
+    const {
+      contactId,
+      text,
+      templateName,
+      languageCode,
+      bodyVariables,
+      headerMediaUrl,
+      mediaUrl,
+      mediaType,
+      caption,
+      filename,
+    } = body;
 
     if (!contactId) {
       return NextResponse.json(
@@ -64,8 +75,26 @@ export async function POST(request: NextRequest) {
     const client = await WhatsAppClient.createFromSettings();
     let wamid: string | null = null;
     let messageBody = text?.trim() || '';
+    let savedMessageType = 'text';
+    let savedMediaUrl = mediaUrl || null;
 
-    if (templateName) {
+    if (mediaUrl && mediaType) {
+      // Resolve absolute public media URL for Meta API delivery
+      const origin = request.nextUrl.origin;
+      const absoluteMediaUrl = mediaUrl.startsWith('http') ? mediaUrl : `${origin}${mediaUrl}`;
+
+      const sendRes = await client.sendMediaMessage({
+        to: contact.phoneNumber,
+        type: mediaType as 'image' | 'video' | 'audio' | 'document',
+        mediaUrl: absoluteMediaUrl,
+        caption: caption?.trim() || text?.trim() || undefined,
+        filename: filename || undefined,
+      });
+
+      wamid = sendRes.messages?.[0]?.id || null;
+      savedMessageType = mediaType;
+      messageBody = caption?.trim() || text?.trim() || filename || `[${mediaType.toUpperCase()}]`;
+    } else if (templateName) {
       const tpl = await prisma.template.findFirst({
         where: { name: templateName },
       });
@@ -80,17 +109,19 @@ export async function POST(request: NextRequest) {
       });
 
       wamid = sendRes.messages?.[0]?.id || null;
+      savedMessageType = 'template';
       messageBody = `[Template: ${templateName}]`;
     } else {
       if (!text?.trim()) {
         return NextResponse.json(
-          { error: 'Message text is required' },
+          { error: 'Message text or media attachment is required' },
           { status: 400 }
         );
       }
 
       const sendRes = await client.sendTextMessage(contact.phoneNumber, text.trim());
       wamid = sendRes.messages?.[0]?.id || null;
+      savedMessageType = 'text';
     }
 
     const message = await prisma.chatMessage.create({
@@ -99,8 +130,9 @@ export async function POST(request: NextRequest) {
         phoneNumber: contact.phoneNumber,
         direction: 'OUTBOUND',
         wamid,
-        messageType: templateName ? 'template' : 'text',
+        messageType: savedMessageType,
         body: messageBody,
+        mediaUrl: savedMediaUrl,
         status: 'SENT',
       },
     });

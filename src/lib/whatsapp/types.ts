@@ -36,6 +36,15 @@ export interface SendTemplateMessageParams {
   buttonPayloads?: Array<{ type: string; payload: string }>;
 }
 
+export interface SendMediaMessageParams {
+  to: string;
+  type: 'image' | 'video' | 'audio' | 'document';
+  mediaUrl?: string;
+  mediaId?: string;
+  caption?: string;
+  filename?: string;
+}
+
 export interface MetaSendResponse {
   messaging_product: string;
   contacts: Array<{

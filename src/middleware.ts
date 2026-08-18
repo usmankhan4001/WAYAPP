@@ -12,6 +12,8 @@ const PUBLIC_PATHS = [
   '/api/auth/meta',
   '/api/auth/meta/callback',
   '/api/webhooks/whatsapp',
+  '/api/media',
+  '/uploads',
   '/favicon.svg',
   '/manifest.json',
   '/sw.js',

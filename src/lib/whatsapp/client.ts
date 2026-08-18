@@ -3,6 +3,7 @@ import {
   MetaSendResponse,
   MetaTemplateResponse,
   SendTemplateMessageParams,
+  SendMediaMessageParams,
 } from './types';
 
 const META_GRAPH_VERSION = 'v21.0';
@@ -680,5 +681,118 @@ export class WhatsAppClient {
     }
 
     return data as MetaSendResponse;
+  }
+
+  /**
+   * Send 2-Way Freeform Media message (Image, Video, Audio, Document)
+   */
+  async sendMediaMessage(params: SendMediaMessageParams): Promise<MetaSendResponse> {
+    const cleanPhone = params.to.replace(/[^0-9]/g, '');
+
+    if (this.isMockMode || !this.accessToken || !this.phoneNumberId) {
+      const fakeWamid = `wamid.HBgL${Date.now()}M${Math.random().toString(36).substring(2, 9).toUpperCase()}A`;
+      return {
+        messaging_product: 'whatsapp',
+        contacts: [{ input: params.to, wa_id: cleanPhone }],
+        messages: [{ id: fakeWamid, message_status: 'accepted' }],
+      };
+    }
+
+    const mediaObject: Record<string, any> = {};
+    if (params.mediaId) {
+      mediaObject.id = params.mediaId;
+    } else if (params.mediaUrl) {
+      mediaObject.link = params.mediaUrl;
+    }
+
+    if (params.caption && (params.type === 'image' || params.type === 'video' || params.type === 'document')) {
+      mediaObject.caption = params.caption;
+    }
+
+    if (params.filename && params.type === 'document') {
+      mediaObject.filename = params.filename;
+    }
+
+    const payload: Record<string, any> = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: cleanPhone,
+      type: params.type,
+      [params.type]: mediaObject,
+    };
+
+    const response = await fetch(`${META_GRAPH_URL}/${this.phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    if (!response.ok || data.error) {
+      const errorMsg = data.error?.message || response.statusText;
+      const errorCode = data.error?.code || response.status;
+      const err = new Error(errorMsg);
+      (err as any).code = errorCode;
+      throw err;
+    }
+
+    return data as MetaSendResponse;
+  }
+
+  /**
+   * Fetch metadata for a media attachment (including download URL) from Meta Graph API
+   */
+  async fetchMediaMetadata(
+    mediaId: string
+  ): Promise<{ url: string; mime_type: string; file_size: number } | null> {
+    if (!this.accessToken || !mediaId) return null;
+
+    try {
+      const response = await fetch(`${META_GRAPH_URL}/${mediaId}`, {
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+        },
+      });
+
+      if (!response.ok) return null;
+      const data = await response.json();
+      return {
+        url: data.url,
+        mime_type: data.mime_type,
+        file_size: data.file_size,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Download binary media stream from Meta CDN with Authorization header
+   */
+  async downloadMediaStream(
+    mediaUrl: string
+  ): Promise<{ buffer: Buffer; contentType: string } | null> {
+    if (!this.accessToken || !mediaUrl) return null;
+
+    try {
+      const response = await fetch(mediaUrl, {
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+        },
+      });
+
+      if (!response.ok) return null;
+      const arrayBuffer = await response.arrayBuffer();
+      const contentType = response.headers.get('content-type') || 'application/octet-stream';
+      return {
+        buffer: Buffer.from(arrayBuffer),
+        contentType,
+      };
+    } catch {
+      return null;
+    }
   }
 }

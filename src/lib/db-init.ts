@@ -288,6 +288,8 @@ export async function ensureDatabaseSchema(): Promise<void> {
     await safeAddColumn('Automation', 'executionCount', 'INTEGER NOT NULL DEFAULT 0');
     await safeAddColumn('Automation', 'lastTriggeredAt', 'DATETIME');
 
+    await safeAddColumn('ChatMessage', 'mediaUrl', 'TEXT');
+
     isInitialized = true;
   } catch (error) {
     console.error('Database auto-initialization error:', error);
