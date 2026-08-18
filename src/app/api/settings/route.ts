@@ -10,6 +10,10 @@ export async function GET() {
     where: { id: 'default' },
   });
 
+  let authConfig = await prisma.authConfig.findUnique({
+    where: { id: 'default' },
+  });
+
   if (!settings) {
     settings = await prisma.settings.create({
       data: {
@@ -22,9 +26,23 @@ export async function GET() {
     });
   }
 
+  if (!authConfig) {
+    authConfig = await prisma.authConfig.create({
+      data: {
+        id: 'default',
+        allowedDomains: 'gccstartup.com',
+        allowedEmails: '',
+        requireAuth: true,
+      },
+    });
+  }
+
   // Mask access token for security
   const safeSettings = {
     ...settings,
+    metaAppId: authConfig?.metaAppId || '',
+    metaAppSecret: authConfig?.metaAppSecret || '',
+    allowedDomains: authConfig?.allowedDomains || 'gccstartup.com',
     accessTokenMasked: settings.accessToken
       ? `${settings.accessToken.substring(0, 8)}...${settings.accessToken.substring(settings.accessToken.length - 6)}`
       : null,
@@ -182,6 +200,25 @@ export async function POST(request: NextRequest) {
         ...dataToUpdate,
       },
     });
+
+    // Also update AuthConfig if provided
+    if (body.metaAppId !== undefined || body.metaAppSecret !== undefined || body.allowedDomains !== undefined) {
+      await prisma.authConfig.upsert({
+        where: { id: 'default' },
+        update: {
+          metaAppId: body.metaAppId?.trim() || null,
+          metaAppSecret: body.metaAppSecret?.trim() || null,
+          allowedDomains: body.allowedDomains?.trim() || 'gccstartup.com',
+        },
+        create: {
+          id: 'default',
+          metaAppId: body.metaAppId?.trim() || null,
+          metaAppSecret: body.metaAppSecret?.trim() || null,
+          allowedDomains: body.allowedDomains?.trim() || 'gccstartup.com',
+          requireAuth: true,
+        },
+      });
+    }
 
     return NextResponse.json({ success: true, settings: updated });
   } catch (error: any) {

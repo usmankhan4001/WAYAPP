@@ -2,7 +2,18 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Send, CheckCircle2, AlertCircle, RefreshCw, Menu, BookOpen } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import {
+  Send,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+  Menu,
+  BookOpen,
+  LogOut,
+  User,
+  ShieldCheck,
+} from 'lucide-react';
 import { InfoTooltip } from '@/components/ui/Tooltip';
 
 interface HeaderProps {
@@ -11,7 +22,9 @@ interface HeaderProps {
 }
 
 export function Header({ onToggleMobileMenu, onOpenMetaGuide }: HeaderProps) {
+  const router = useRouter();
   const [settings, setSettings] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
   const [isTesting, setIsTesting] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
@@ -19,6 +32,15 @@ export function Header({ onToggleMobileMenu, onOpenMetaGuide }: HeaderProps) {
     fetch('/api/settings')
       .then((res) => res.json())
       .then((data) => setSettings(data))
+      .catch(() => {});
+
+    fetch('/api/auth/me')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.authenticated && data.user) {
+          setUser(data.user);
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -42,6 +64,16 @@ export function Header({ onToggleMobileMenu, onOpenMetaGuide }: HeaderProps) {
     } finally {
       setIsTesting(false);
       setTimeout(() => setStatusMsg(null), 4000);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
+      router.refresh();
+    } catch {
+      window.location.href = '/login';
     }
   };
 
@@ -100,10 +132,10 @@ export function Header({ onToggleMobileMenu, onOpenMetaGuide }: HeaderProps) {
         {onOpenMetaGuide && (
           <button
             onClick={onOpenMetaGuide}
-            className="btn-secondary h-8 px-2.5 text-xs"
+            className="btn-secondary h-8 px-2.5 text-xs hidden lg:inline-flex"
           >
             <BookOpen className="w-3.5 h-3.5 text-slate-500" />
-            <span className="hidden sm:inline">Setup Guide</span>
+            <span>Setup Guide</span>
           </button>
         )}
 
@@ -120,8 +152,32 @@ export function Header({ onToggleMobileMenu, onOpenMetaGuide }: HeaderProps) {
         {/* New Campaign Broadcast Button */}
         <Link href="/campaigns/new" className="btn-primary h-8 px-3 text-xs">
           <Send className="w-3.5 h-3.5" />
-          <span>New Broadcast</span>
+          <span className="hidden sm:inline">New Broadcast</span>
         </Link>
+
+        {/* User Profile & Logout */}
+        {user && (
+          <div className="flex items-center gap-2 pl-2 border-l border-slate-200 ml-1">
+            <div className="w-7 h-7 rounded-full bg-slate-900 text-white font-bold text-[11px] flex items-center justify-center shrink-0 shadow-sm ring-1 ring-slate-800">
+              {user.name ? user.name.substring(0, 1).toUpperCase() : 'G'}
+            </div>
+            <div className="hidden xl:block text-left min-w-0 max-w-[120px]">
+              <span className="text-[11px] font-bold text-slate-900 truncate block leading-tight">
+                {user.name || user.email}
+              </span>
+              <span className="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200 uppercase tracking-wider">
+                {user.role === 'SUPER_ADMIN' ? 'GCC Admin' : 'GCC Member'}
+              </span>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+              title="Sign Out"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

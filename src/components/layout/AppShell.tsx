@@ -1,30 +1,49 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { MetaSetupGuideModal } from '@/components/common/MetaSetupGuideModal';
 import { InitialSetupGatekeeper } from '@/components/common/InitialSetupGatekeeper';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [settings, setSettings] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchSettings = () => {
-    fetch('/api/settings')
-      .then((res) => res.json())
-      .then((data) => {
-        setSettings(data);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+  const fetchSessionAndSettings = async () => {
+    try {
+      const [settingsRes, authRes] = await Promise.all([
+        fetch('/api/settings'),
+        fetch('/api/auth/me'),
+      ]);
+
+      const settingsData = await settingsRes.json();
+      const authData = await authRes.json();
+
+      setSettings(settingsData);
+      if (authData?.authenticated && authData.user) {
+        setUser(authData.user);
+      }
+    } catch {
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    fetchSettings();
-  }, []);
+    fetchSessionAndSettings();
+  }, [pathname]);
+
+  // Bypass shell completely on login page
+  if (pathname === '/login') {
+    return <>{children}</>;
+  }
 
   if (loading) {
     return (

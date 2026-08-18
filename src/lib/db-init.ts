@@ -177,6 +177,33 @@ export async function ensureDatabaseSchema(): Promise<void> {
         );
       `);
 
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "User" (
+          "id" TEXT NOT NULL PRIMARY KEY,
+          "email" TEXT NOT NULL UNIQUE,
+          "name" TEXT,
+          "avatarUrl" TEXT,
+          "metaUserId" TEXT UNIQUE,
+          "role" TEXT NOT NULL DEFAULT 'MEMBER',
+          "isActive" BOOLEAN NOT NULL DEFAULT true,
+          "lastLoginAt" DATETIME,
+          "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" DATETIME NOT NULL
+        );
+      `);
+
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "AuthConfig" (
+          "id" TEXT NOT NULL PRIMARY KEY,
+          "metaAppId" TEXT,
+          "metaAppSecret" TEXT,
+          "allowedDomains" TEXT NOT NULL DEFAULT 'gccstartup.com',
+          "allowedEmails" TEXT NOT NULL DEFAULT '',
+          "requireAuth" BOOLEAN NOT NULL DEFAULT true,
+          "updatedAt" DATETIME NOT NULL
+        );
+      `);
+
       isInitialized = true;
     } catch (createErr) {
       console.error('Database auto-initialization error:', createErr);

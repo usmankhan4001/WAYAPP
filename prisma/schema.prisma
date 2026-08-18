@@ -193,3 +193,29 @@ model ChatMessage {
   status      String   @default("SENT") // SENT, DELIVERED, READ, FAILED
   timestamp   DateTime @default(now())
 }
+
+// -------------------------------------------------------------
+// USER MANAGEMENT & GCC OAUTH AUTHENTICATION
+// -------------------------------------------------------------
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  avatarUrl     String?
+  metaUserId    String?   @unique
+  role          String    @default("MEMBER") // SUPER_ADMIN, ADMIN, MEMBER, VIEWER
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model AuthConfig {
+  id                 String   @id @default("default")
+  metaAppId          String?
+  metaAppSecret      String?
+  allowedDomains     String   @default("gccstartup.com") // Comma-separated domains e.g. gccstartup.com
+  allowedEmails      String   @default("")              // Comma-separated explicit emails
+  requireAuth        Boolean  @default(true)
+  updatedAt          DateTime @updatedAt
+}

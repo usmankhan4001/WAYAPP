@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Send,
@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Zap,
   X,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +35,29 @@ interface SidebarProps {
 
 export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.authenticated && data.user) {
+          setUser(data.user);
+        }
+      })
+      .catch(() => {});
+  }, [pathname]);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
+      router.refresh();
+    } catch {
+      window.location.href = '/login';
+    }
+  };
 
   const sidebarContent = (
     <aside className="w-60 bg-slate-950 text-slate-200 flex flex-col shrink-0 border-r border-slate-800/80 h-full min-h-screen">
@@ -101,9 +125,34 @@ export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
         })}
       </nav>
 
-      {/* Footer Info */}
-      <div className="p-3 border-t border-slate-800/80">
-        <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+      {/* User & Footer Info */}
+      <div className="p-3 border-t border-slate-800/80 space-y-2">
+        {user && (
+          <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-900 border border-slate-800">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm">
+                {user.name ? user.name.substring(0, 1).toUpperCase() : 'G'}
+              </div>
+              <div className="min-w-0">
+                <span className="text-[11px] font-bold text-white block truncate">
+                  {user.name || user.email}
+                </span>
+                <span className="text-[9px] text-emerald-400 font-semibold uppercase tracking-wider block">
+                  {user.role === 'SUPER_ADMIN' ? 'GCC Admin' : 'GCC Member'}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="p-1 text-slate-400 hover:text-rose-400 rounded transition-colors"
+              title="Logout"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-400 px-1">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
           <span>Meta Graph v21.0 Ready</span>
         </div>

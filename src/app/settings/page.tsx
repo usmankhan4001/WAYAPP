@@ -12,6 +12,7 @@ import {
   RefreshCw,
   BookOpen,
   LogOut,
+  ShieldCheck,
 } from 'lucide-react';
 import { InfoTooltip } from '@/components/ui/Tooltip';
 import { MetaSetupGuideModal } from '@/components/common/MetaSetupGuideModal';
@@ -464,6 +465,67 @@ export default function SettingsPage() {
                 onChange={(e) => setSettings({ ...settings, rateLimitPerSecond: parseInt(e.target.value, 10) || 20 })}
                 className="input-base font-mono"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Section 4: Meta OAuth & GCC User Access Restrictions */}
+        <div className="card-base p-4 space-y-3.5">
+          <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <h3 className="text-xs font-semibold text-slate-900 uppercase tracking-wider">
+              Meta OAuth & GCC Business Access Control
+            </h3>
+          </div>
+
+          <p className="text-xs text-slate-500">
+            Restrict access to authorized GCC business team members logging in via Meta OAuth or business email.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <div className="flex items-center gap-1 mb-1">
+                <label className="text-xs font-medium text-slate-700">Meta App ID (OAuth Client ID)</label>
+                <InfoTooltip content="App ID from your Meta for Developers App dashboard." />
+              </div>
+              <input
+                type="text"
+                placeholder="e.g. 1240651425800657"
+                value={settings.metaAppId || ''}
+                onChange={(e) => setSettings({ ...settings, metaAppId: e.target.value })}
+                className="input-base font-mono"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center gap-1 mb-1">
+                <label className="text-xs font-medium text-slate-700">Meta App Secret (OAuth)</label>
+                <InfoTooltip content="App Secret from Meta App Settings > Basic for OAuth token exchange." />
+              </div>
+              <input
+                type="password"
+                placeholder="OAuth App Secret"
+                value={settings.metaAppSecret || ''}
+                onChange={(e) => setSettings({ ...settings, metaAppSecret: e.target.value })}
+                className="input-base font-mono"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <div className="flex items-center gap-1 mb-1">
+                <label className="text-xs font-medium text-slate-700">Allowed Corporate Domains (Whitelist)</label>
+                <InfoTooltip content="Comma-separated domains allowed to log in (e.g. gccstartup.com, mycompany.ae)." />
+              </div>
+              <input
+                type="text"
+                value={settings.allowedDomains || 'gccstartup.com'}
+                onChange={(e) => setSettings({ ...settings, allowedDomains: e.target.value })}
+                placeholder="gccstartup.com"
+                className="input-base font-mono"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">
+                Only users with emails matching these domains can log in to WAYAPP.
+              </p>
             </div>
           </div>
         </div>
