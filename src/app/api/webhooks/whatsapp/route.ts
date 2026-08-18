@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyMetaSignature } from '@/lib/whatsapp/signature';
 import { MetaWebhookPayload } from '@/lib/whatsapp/types';
+import { processInboundAutomation } from '@/lib/whatsapp/automation';
 
 /**
  * GET handler: Meta Webhook Verification Handshake
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST handler: Ingest delivery receipts & incoming messages from Meta
+ * POST handler: Ingest delivery receipts, template status approvals & incoming messages from Meta
  */
 export async function POST(request: NextRequest) {
   try {
@@ -52,10 +53,40 @@ export async function POST(request: NextRequest) {
 
     for (const entry of payload.entry || []) {
       for (const change of entry.changes || []) {
-        const value = change.value;
+        const field = change.field;
+        const value: any = change.value;
         if (!value) continue;
 
-        // 1. Process Status Updates (sent, delivered, read, failed)
+        // 1. Process Template Approval Status Updates (APPROVED, REJECTED, PAUSED, FLAGGED)
+        if (field === 'message_template_status_update' || value.event) {
+          const templateName = value.message_template_name || value.element_name;
+          const templateLanguage = value.message_template_language || value.language;
+          const metaEvent = (value.event || '').toUpperCase();
+          const reason = value.reason || value.rejection_reason || null;
+
+          if (templateName) {
+            let status = 'APPROVED';
+            if (metaEvent === 'REJECTED') status = 'REJECTED';
+            else if (metaEvent === 'PAUSED') status = 'PAUSED';
+            else if (metaEvent === 'APPROVED') status = 'APPROVED';
+            else if (metaEvent === 'PENDING') status = 'PENDING';
+
+            await prisma.template.updateMany({
+              where: {
+                name: templateName,
+                ...(templateLanguage ? { language: templateLanguage } : {}),
+              },
+              data: {
+                status,
+                rejectedReason: reason,
+                qualityScore: status === 'APPROVED' ? 'GREEN' : status === 'REJECTED' ? 'RED' : 'YELLOW',
+                syncedAt: new Date(),
+              },
+            });
+          }
+        }
+
+        // 2. Process Status Updates (sent, delivered, read, failed)
         if (value.statuses && value.statuses.length > 0) {
           for (const statusObj of value.statuses) {
             const wamid = statusObj.id;
@@ -102,12 +133,14 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // 2. Process Inbound Messages (Customer Replies)
+        // 3. Process Incoming Customer Messages & 2-Way Inbox Replies
         if (value.messages && value.messages.length > 0) {
+          const contactInfo = value.contacts?.[0];
+          const profileName = contactInfo?.profile?.name || 'Customer';
+
           for (const incoming of value.messages) {
-            const senderPhone = `+${incoming.from}`;
+            const senderPhone = incoming.from;
             const messageWamid = incoming.id;
-            const contactProfile = value.contacts?.[0]?.profile;
 
             // Find or create Contact
             let contact = await prisma.contact.findUnique({
@@ -118,14 +151,8 @@ export async function POST(request: NextRequest) {
               contact = await prisma.contact.create({
                 data: {
                   phoneNumber: senderPhone,
-                  firstName: contactProfile?.name || 'Customer',
-                  status: 'ACTIVE',
+                  firstName: profileName,
                 },
-              });
-            } else if (contactProfile?.name && (!contact.firstName || contact.firstName === 'Customer')) {
-              await prisma.contact.update({
-                where: { id: contact.id },
-                data: { firstName: contactProfile.name },
               });
             }
 
@@ -164,7 +191,7 @@ export async function POST(request: NextRequest) {
               data: { lastInteractionAt: new Date() },
             });
 
-            // Check if this contact received a recent campaign message, update replied status!
+            // Update replied status on recent campaign
             const recentCampaignMsg = await prisma.campaignMessage.findFirst({
               where: {
                 phoneNumber: senderPhone,
@@ -187,6 +214,13 @@ export async function POST(request: NextRequest) {
                 data: { repliedCount: { increment: 1 } },
               });
             }
+
+            // 4. Trigger Visual Automation Engine!
+            processInboundAutomation({
+              contactId: contact.id,
+              phoneNumber: senderPhone,
+              bodyText,
+            }).catch((err) => console.error('Automation error:', err));
           }
         }
       }

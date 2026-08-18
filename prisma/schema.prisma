@@ -101,17 +101,19 @@ model Segment {
 // TEMPLATES
 // -------------------------------------------------------------
 model Template {
-  id          String     @id @default(cuid())
-  metaId      String     @unique
-  name        String
-  language    String     @default("en_US")
-  category    String     // MARKETING, UTILITY, AUTHENTICATION
-  status      String     // APPROVED, PENDING, REJECTED, PAUSED
-  components  String     // JSON array of header, body, footer, buttons
-  rawJson     String?    // Complete raw Meta payload
-  syncedAt    DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  campaigns   Campaign[]
+  id              String     @id @default(cuid())
+  metaId          String     @unique
+  name            String
+  language        String     @default("en_US")
+  category        String     // MARKETING, UTILITY, AUTHENTICATION
+  status          String     // APPROVED, PENDING, REJECTED, PAUSED
+  qualityScore    String?    @default("GREEN") // GREEN, YELLOW, RED, UNKNOWN
+  rejectedReason  String?    // Meta's rejection explanation
+  components      String     // JSON array of header, body, footer, buttons
+  rawJson         String?    // Complete raw Meta payload
+  syncedAt        DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  campaigns       Campaign[]
 }
 
 // -------------------------------------------------------------
@@ -218,4 +220,35 @@ model AuthConfig {
   allowedEmails      String   @default("")              // Comma-separated explicit emails
   requireAuth        Boolean  @default(true)
   updatedAt          DateTime @updatedAt
+}
+
+// -------------------------------------------------------------
+// WORKFLOW AUTOMATIONS & KEYWORD AUTO-RESPONDERS
+// -------------------------------------------------------------
+model Automation {
+  id              String          @id @default(cuid())
+  name            String
+  description     String?
+  triggerType     String          // KEYWORD_MATCH, BUTTON_CLICK, NEW_CONTACT, CAMPAIGN_REPLY
+  triggerConfig   String          // JSON: { matchType: "EXACT"|"CONTAINS"|"STARTS_WITH", keywords: ["hi", "price"] }
+  actionsJson     String          // JSON: [ { type: "SEND_TEXT"|"SEND_TEMPLATE"|"ADD_TAG", payload: ... } ]
+  isActive        Boolean         @default(true)
+  executionCount  Int             @default(0)
+  lastTriggeredAt DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  logs            AutomationLog[]
+}
+
+model AutomationLog {
+  id            String      @id @default(cuid())
+  automationId  String
+  automation    Automation  @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  contactId     String?
+  phoneNumber   String
+  triggerInput  String?
+  actionTaken   String
+  status        String      @default("SUCCESS") // SUCCESS, FAILED
+  errorMessage  String?
+  createdAt     DateTime    @default(now())
 }

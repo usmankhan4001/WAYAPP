@@ -1,0 +1,37 @@
+{
+  "name": "WAYAPP — WhatsApp Platform",
+  "short_name": "WAYAPP",
+  "description": "Enterprise Meta WhatsApp Cloud API Marketing, Template Management & Live 2-Way Inbox Platform",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#0f172a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "communication", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Live Inbox",
+      "url": "/inbox",
+      "description": "Open WhatsApp 2-Way Live Inbox"
+    },
+    {
+      "name": "New Broadcast",
+      "url": "/campaigns/new",
+      "description": "Create a New Campaign Broadcast"
+    },
+    {
+      "name": "Automations",
+      "url": "/automations",
+      "description": "Manage WhatsApp Auto-Responders"
+    }
+  ]
+}

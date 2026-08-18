@@ -15,6 +15,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { InfoTooltip } from '@/components/ui/Tooltip';
+import { PWAInstallPrompt } from '@/components/common/PWAInstallPrompt';
 
 interface HeaderProps {
   onToggleMobileMenu?: () => void;
@@ -148,6 +149,9 @@ export function Header({ onToggleMobileMenu, onOpenMetaGuide }: HeaderProps) {
           <RefreshCw className={`w-3.5 h-3.5 ${isTesting ? 'animate-spin text-emerald-600' : 'text-slate-500'}`} />
           <span>{isTesting ? 'Testing...' : 'Test API'}</span>
         </button>
+
+        {/* PWA 1-Click Install Button */}
+        <PWAInstallPrompt />
 
         {/* New Campaign Broadcast Button */}
         <Link href="/campaigns/new" className="btn-primary h-8 px-3 text-xs">

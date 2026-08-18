@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/', icon: LayoutDashboard },
   { label: 'Campaigns', href: '/campaigns', icon: Send },
+  { label: 'Automations', href: '/automations', icon: Zap },
   { label: 'Templates', href: '/templates', icon: FileText },
   { label: 'Contacts & Groups', href: '/contacts', icon: Users },
   { label: 'Live Inbox', href: '/inbox', icon: MessageSquare },

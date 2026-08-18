@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { BottomNav } from './BottomNav';
+import { NotificationProvider } from '@/components/common/NotificationProvider';
 import { MetaSetupGuideModal } from '@/components/common/MetaSetupGuideModal';
 import { InitialSetupGatekeeper } from '@/components/common/InitialSetupGatekeeper';
 
@@ -66,29 +68,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // Full Active Workspace
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      {/* Sidebar (Desktop + Mobile Drawer) */}
-      <Sidebar
-        isMobileOpen={isMobileMenuOpen}
-        onCloseMobile={() => setIsMobileMenuOpen(false)}
-      />
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header
-          onToggleMobileMenu={() => setIsMobileMenuOpen((prev) => !prev)}
-          onOpenMetaGuide={() => setIsGuideOpen(true)}
+    <NotificationProvider>
+      <div className="flex min-h-screen bg-slate-50">
+        {/* Sidebar (Desktop + Mobile Drawer) */}
+        <Sidebar
+          isMobileOpen={isMobileMenuOpen}
+          onCloseMobile={() => setIsMobileMenuOpen(false)}
         />
-        <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto">
-          {children}
-        </main>
-      </div>
 
-      {/* Meta WhatsApp Cloud API Setup & Go-Live Guide Modal */}
-      <MetaSetupGuideModal
-        isOpen={isGuideOpen}
-        onClose={() => setIsGuideOpen(false)}
-      />
-    </div>
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
+          <Header
+            onToggleMobileMenu={() => setIsMobileMenuOpen((prev) => !prev)}
+            onOpenMetaGuide={() => setIsGuideOpen(true)}
+          />
+          <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto">
+            {children}
+          </main>
+        </div>
+
+        {/* WhatsApp Mobile App Bottom Navigation */}
+        <BottomNav />
+
+        {/* Meta WhatsApp Cloud API Setup & Go-Live Guide Modal */}
+        <MetaSetupGuideModal
+          isOpen={isGuideOpen}
+          onClose={() => setIsGuideOpen(false)}
+        />
+      </div>
+    </NotificationProvider>
   );
 }

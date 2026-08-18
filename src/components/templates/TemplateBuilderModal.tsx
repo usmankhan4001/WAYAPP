@@ -1,7 +1,24 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, Plus, Trash2, Sparkles, AlertCircle } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import {
+  X,
+  Plus,
+  Trash2,
+  Sparkles,
+  AlertCircle,
+  CheckCircle2,
+  Globe,
+  Image as ImageIcon,
+  Video,
+  FileText,
+  Smartphone,
+  Copy,
+  ExternalLink,
+  PhoneCall,
+  MessageSquare,
+  HelpCircle,
+} from 'lucide-react';
 import { WhatsAppMockupPreview } from './WhatsAppMockupPreview';
 import { InfoTooltip } from '@/components/ui/Tooltip';
 
@@ -11,72 +28,237 @@ interface TemplateBuilderModalProps {
   onCreated: () => void;
 }
 
+const META_LANGUAGES = [
+  { code: 'en_US', name: 'English (US)' },
+  { code: 'en_GB', name: 'English (UK)' },
+  { code: 'ar', name: 'Arabic (العربية)' },
+  { code: 'ur', name: 'Urdu (اردو)' },
+  { code: 'hi', name: 'Hindi (हिन्दी)' },
+  { code: 'fr', name: 'French (Français)' },
+  { code: 'es', name: 'Spanish (Español)' },
+  { code: 'de', name: 'German (Deutsch)' },
+  { code: 'it', name: 'Italian (Italiano)' },
+  { code: 'pt_BR', name: 'Portuguese (Brazil)' },
+  { code: 'ru', name: 'Russian (Русский)' },
+  { code: 'tr', name: 'Turkish (Türkçe)' },
+  { code: 'zh_CN', name: 'Chinese (Simplified)' },
+  { code: 'ja', name: 'Japanese (日本語)' },
+  { code: 'id', name: 'Indonesian (Bahasa)' },
+  { code: 'fa', name: 'Persian (فارسی)' },
+];
+
 export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBuilderModalProps) {
   const [name, setName] = useState('');
   const [category, setCategory] = useState<'MARKETING' | 'UTILITY' | 'AUTHENTICATION'>('MARKETING');
   const [language, setLanguage] = useState('en_US');
-  const [headerType, setHeaderType] = useState<'NONE' | 'TEXT' | 'IMAGE'>('NONE');
+  
+  // Header State
+  const [headerType, setHeaderType] = useState<'NONE' | 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT'>('NONE');
   const [headerText, setHeaderText] = useState('');
-  const [headerImageUrl, setHeaderImageUrl] = useState('');
+  const [headerSampleValue, setHeaderSampleValue] = useState('');
+  const [headerMediaUrl, setHeaderMediaUrl] = useState('');
+
+  // Body State
   const [bodyText, setBodyText] = useState(
-    'Hi {{1}}, thank you for contacting us! We have an update regarding {{2}}.'
+    'Hi {{1}}, your order {{2}} has been confirmed! We will deliver it by {{3}}.'
   );
-  const [footerText, setFooterText] = useState('Reply STOP to unsubscribe');
+  const [sampleValues, setSampleValues] = useState<Record<string, string>>({
+    '1': 'Usman',
+    '2': 'ORD-98241',
+    '3': 'Tomorrow, 2:00 PM',
+  });
+
+  // Footer State
+  const [footerText, setFooterText] = useState('Reply STOP to opt out');
+
+  // Buttons State (Up to 10 Quick Replies or CTAs)
   const [buttons, setButtons] = useState<
-    Array<{ type: 'QUICK_REPLY' | 'URL' | 'PHONE_NUMBER'; text: string; url?: string; phone_number?: string }>
+    Array<{
+      type: 'QUICK_REPLY' | 'URL' | 'PHONE_NUMBER' | 'COPY_CODE';
+      text: string;
+      url?: string;
+      urlSample?: string;
+      phone_number?: string;
+      code?: string;
+    }>
   >([
-    { type: 'QUICK_REPLY', text: 'Talk to Representative' },
+    { type: 'QUICK_REPLY', text: 'Track Order' },
+    { type: 'URL', text: 'View Invoice', url: 'https://gccstartup.com/orders/{{1}}', urlSample: 'ORD-98241' },
   ]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Extract variables from body text in real-time
+  const detectedBodyVars = useMemo(() => {
+    const matches = bodyText.match(/{{\d+}}/g) || [];
+    return Array.from(new Set(matches)).map((m) => m.replace(/[{}]/g, ''));
+  }, [bodyText]);
+
+  // Extract variables from header text
+  const detectedHeaderVars = useMemo(() => {
+    const matches = headerText.match(/{{\d+}}/g) || [];
+    return Array.from(new Set(matches)).map((m) => m.replace(/[{}]/g, ''));
+  }, [headerText]);
+
   if (!isOpen) return null;
 
-  const previewComponents: any[] = [];
-  if (headerType === 'TEXT' && headerText) {
-    previewComponents.push({ type: 'HEADER', format: 'TEXT', text: headerText });
-  } else if (headerType === 'IMAGE') {
-    previewComponents.push({
-      type: 'HEADER',
-      format: 'IMAGE',
-      example: { header_handle: [headerImageUrl || 'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=800&q=80'] },
-    });
-  }
+  // Insert variable into Body
+  const handleInsertBodyVar = () => {
+    const nextNum = detectedBodyVars.length + 1;
+    setBodyText((prev) => `${prev} {{${nextNum}}}`);
+    setSampleValues((prev) => ({ ...prev, [String(nextNum)]: `Sample ${nextNum}` }));
+  };
 
-  previewComponents.push({ type: 'BODY', text: bodyText });
-  if (footerText) previewComponents.push({ type: 'FOOTER', text: footerText });
-  if (buttons.length > 0) previewComponents.push({ type: 'BUTTONS', buttons });
-
-  const handleAddButton = () => {
-    if (buttons.length >= 3) return;
-    setButtons([...buttons, { type: 'QUICK_REPLY', text: 'Quick Action' }]);
+  // Add button
+  const handleAddButton = (type: 'QUICK_REPLY' | 'URL' | 'PHONE_NUMBER' | 'COPY_CODE') => {
+    if (buttons.length >= 10) return;
+    if (type === 'QUICK_REPLY') {
+      setButtons([...buttons, { type: 'QUICK_REPLY', text: 'Reply Option' }]);
+    } else if (type === 'URL') {
+      setButtons([...buttons, { type: 'URL', text: 'Visit Website', url: 'https://gccstartup.com' }]);
+    } else if (type === 'PHONE_NUMBER') {
+      setButtons([...buttons, { type: 'PHONE_NUMBER', text: 'Call Us', phone_number: '+971501234567' }]);
+    } else if (type === 'COPY_CODE') {
+      setButtons([...buttons, { type: 'COPY_CODE', text: 'Copy Code', code: 'WAYAPP2026' }]);
+    }
   };
 
   const handleRemoveButton = (index: number) => {
     setButtons(buttons.filter((_, i) => i !== index));
   };
 
+  // Build Preview Components with Samples Replaced
+  const previewComponents: any[] = [];
+  
+  if (headerType === 'TEXT' && headerText) {
+    let replacedHeader = headerText;
+    detectedHeaderVars.forEach((v) => {
+      replacedHeader = replacedHeader.replace(new RegExp(`{{${v}}}`, 'g'), headerSampleValue || `[Sample ${v}]`);
+    });
+    previewComponents.push({ type: 'HEADER', format: 'TEXT', text: replacedHeader });
+  } else if (headerType === 'IMAGE') {
+    previewComponents.push({
+      type: 'HEADER',
+      format: 'IMAGE',
+      example: { header_handle: [headerMediaUrl || 'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=800&q=80'] },
+    });
+  } else if (headerType === 'VIDEO') {
+    previewComponents.push({ type: 'HEADER', format: 'VIDEO' });
+  } else if (headerType === 'DOCUMENT') {
+    previewComponents.push({ type: 'HEADER', format: 'DOCUMENT' });
+  }
+
+  let replacedBody = bodyText;
+  detectedBodyVars.forEach((v) => {
+    replacedBody = replacedBody.replace(new RegExp(`{{${v}}}`, 'g'), sampleValues[v] || `[Sample ${v}]`);
+  });
+  previewComponents.push({ type: 'BODY', text: replacedBody });
+
+  if (footerText) previewComponents.push({ type: 'FOOTER', text: footerText });
+  if (buttons.length > 0) previewComponents.push({ type: 'BUTTONS', buttons });
+
+  // Pre-flight compliance validator
+  const validationErrors = useMemo(() => {
+    const errs: string[] = [];
+    if (!name.trim()) errs.push('Template Name is required.');
+    else if (!/^[a-z0-9_]+$/.test(name)) errs.push('Template Name must be lower snake_case (e.g. order_update_2026).');
+
+    if (!bodyText.trim()) errs.push('Body text cannot be empty.');
+    if (bodyText.length > 1024) errs.push('Body text exceeds 1024 character limit.');
+
+    // Check adjacent variables
+    if (/{{(\d+)}}\s*{{(\d+)}}/.test(bodyText)) {
+      errs.push('Meta does not allow adjacent variables (e.g. {{1}}{{2}}) without text in between.');
+    }
+
+    // Check missing samples
+    for (const v of detectedBodyVars) {
+      if (!sampleValues[v] || !sampleValues[v].trim()) {
+        errs.push(`Please provide a realistic sample value for variable {{${v}}}.`);
+      }
+    }
+
+    return errs;
+  }, [name, bodyText, detectedBodyVars, sampleValues]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    if (validationErrors.length > 0) {
+      setError(validationErrors[0]);
+      return;
+    }
+
     setIsSubmitting(true);
+    setError(null);
+
+    // Format components strictly to Meta Graph API requirements
+    const components: any[] = [];
+
+    if (headerType === 'TEXT' && headerText) {
+      const hObj: any = { type: 'HEADER', format: 'TEXT', text: headerText.trim() };
+      if (detectedHeaderVars.length > 0) {
+        hObj.example = { header_text: [headerSampleValue || 'Sample Header'] };
+      }
+      components.push(hObj);
+    } else if (headerType === 'IMAGE' || headerType === 'VIDEO' || headerType === 'DOCUMENT') {
+      components.push({
+        type: 'HEADER',
+        format: headerType,
+        example: {
+          header_handle: [headerMediaUrl || 'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=800&q=80'],
+        },
+      });
+    }
+
+    // Body with 2D sample array
+    const bodyObj: any = {
+      type: 'BODY',
+      text: bodyText.trim(),
+    };
+
+    if (detectedBodyVars.length > 0) {
+      bodyObj.example = {
+        body_text: [detectedBodyVars.map((v) => sampleValues[v]?.trim() || `Sample_${v}`)],
+      };
+    }
+    components.push(bodyObj);
+
+    if (footerText.trim()) {
+      components.push({ type: 'FOOTER', text: footerText.trim() });
+    }
+
+    if (buttons.length > 0) {
+      const validButtons = buttons.map((b) => {
+        const btn: any = { type: b.type, text: b.text.trim() };
+        if (b.type === 'URL') {
+          btn.url = b.url?.trim() || 'https://gccstartup.com';
+          if (btn.url.includes('{{1}}')) {
+            btn.example = [b.urlSample || 'sample_slug'];
+          }
+        } else if (b.type === 'PHONE_NUMBER') {
+          btn.phone_number = b.phone_number?.trim() || '+971501234567';
+        }
+        return btn;
+      });
+      components.push({ type: 'BUTTONS', buttons: validButtons });
+    }
 
     try {
       const res = await fetch('/api/templates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name,
+          name: name.trim().toLowerCase(),
           category,
           language,
-          components: previewComponents,
+          components,
         }),
       });
 
       const data = await res.json();
-      if (!res.ok || data.error) {
-        throw new Error(data.error || 'Failed to create template');
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to submit template to Meta');
       }
 
       onCreated();
@@ -89,310 +271,366 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-5xl w-full my-8 overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-          <div>
-            <h3 className="text-base font-bold text-slate-900">Create Meta WhatsApp Template</h3>
-            <p className="text-xs text-slate-500">Design and submit a new message template for Meta approval</p>
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 md:p-6 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-5xl overflow-hidden flex flex-col max-h-[92vh]">
+        {/* Modal Header */}
+        <div className="h-14 px-6 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/50">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-emerald-600" />
+            <h2 className="text-sm font-bold text-slate-900">
+              Meta WhatsApp Template Creator & Instant Approval Engine
+            </h2>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 flex items-center justify-center transition-colors"
+            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Content Body Grid */}
+        {/* Modal Body: Split Form & Live Mockup */}
         <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Form Left Side */}
-          <form onSubmit={handleSubmit} className="lg:col-span-7 space-y-4">
+          {/* Left Form: 7 cols */}
+          <form onSubmit={handleSubmit} className="lg:col-span-7 space-y-5">
             {error && (
-              <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{error}</span>
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2.5 text-xs text-rose-700">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-bold">Submission Rejected</p>
+                  <p className="mt-0.5">{error}</p>
+                </div>
               </div>
             )}
 
-            {/* Template Name & Category */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Template Identity */}
+            <div className="space-y-3">
               <div>
-                <div className="flex items-center gap-1 mb-1">
-                  <label className="text-xs font-bold text-slate-700">
-                    Template Name <span className="text-red-500">*</span>
-                  </label>
-                  <InfoTooltip content="Unique identifier for Meta. Must be lowercase letters, numbers, and underscores only." />
-                </div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Template Name (lower_snake_case) *
+                </label>
                 <input
                   type="text"
-                  required
-                  placeholder="e.g. order_update_v1"
+                  placeholder="e.g. order_confirmed_notification"
                   value={name}
                   onChange={(e) => setName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="input-base font-mono text-xs"
+                  required
                 />
+                <span className="text-[10px] text-slate-400">Only lowercase letters, numbers, and underscores.</span>
               </div>
 
-              <div>
-                <div className="flex items-center gap-1 mb-1">
-                  <label className="text-xs font-bold text-slate-700">Category</label>
-                  <InfoTooltip content="Marketing for promotional broadcasts, Utility for transactional/order updates, Authentication for OTP codes." />
+              <div className="grid grid-cols-2 gap-3">
+                {/* Category */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Category *</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value as any)}
+                    className="input-base text-xs font-medium"
+                  >
+                    <option value="MARKETING">Marketing (Promotional / Sales)</option>
+                    <option value="UTILITY">Utility (Order Updates / Alerts)</option>
+                    <option value="AUTHENTICATION">Authentication (OTP Verification)</option>
+                  </select>
                 </div>
-                <select
-                  value={category}
-                  onChange={(e: any) => setCategory(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="MARKETING">Marketing (Promotions, Offers)</option>
-                  <option value="UTILITY">Utility (Orders, Invoices, Alerts)</option>
-                  <option value="AUTHENTICATION">Authentication (OTPs, Security)</option>
-                </select>
+
+                {/* Language */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Language *</label>
+                  <select
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="input-base text-xs font-medium"
+                  >
+                    {META_LANGUAGES.map((lang) => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.name} ({lang.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
-            {/* Header Component */}
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
-              <div className="flex items-center gap-1">
-                <label className="text-xs font-bold text-slate-800">Header Media / Text</label>
-                <InfoTooltip content="Optional top element. You can attach a high-resolution promotional image or bold headline text." />
-              </div>
-              <div className="flex gap-4 text-xs font-medium text-slate-700">
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="headerType"
-                    checked={headerType === 'NONE'}
-                    onChange={() => setHeaderType('NONE')}
-                    className="text-emerald-600 focus:ring-emerald-500"
-                  />
-                  <span>None</span>
+            {/* Header Configuration */}
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  Header (Optional)
                 </label>
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="headerType"
-                    checked={headerType === 'TEXT'}
-                    onChange={() => setHeaderType('TEXT')}
-                    className="text-emerald-600 focus:ring-emerald-500"
-                  />
-                  <span>Text Headline</span>
-                </label>
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="headerType"
-                    checked={headerType === 'IMAGE'}
-                    onChange={() => setHeaderType('IMAGE')}
-                    className="text-emerald-600 focus:ring-emerald-500"
-                  />
-                  <span>Image Banner</span>
-                </label>
+                <div className="flex items-center gap-1">
+                  {(['NONE', 'TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT'] as const).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setHeaderType(type)}
+                      className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
+                        headerType === type
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {headerType === 'TEXT' && (
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-[10px] text-slate-400">Max 60 characters</span>
-                    <span className={`text-[10px] font-mono ${headerText.length > 55 ? 'text-amber-600 font-bold' : 'text-slate-400'}`}>
-                      {headerText.length}/60
-                    </span>
-                  </div>
+                <div className="space-y-2">
                   <input
                     type="text"
                     maxLength={60}
-                    placeholder="Header text e.g. Exclusive VIP Announcement"
+                    placeholder="e.g. Order #{{1}} Update"
                     value={headerText}
                     onChange={(e) => setHeaderText(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 bg-white"
+                    className="input-base text-xs"
                   />
+                  {detectedHeaderVars.length > 0 && (
+                    <input
+                      type="text"
+                      placeholder="Sample value for Header {{1}} (e.g. 98214)"
+                      value={headerSampleValue}
+                      onChange={(e) => setHeaderSampleValue(e.target.value)}
+                      className="input-base text-xs font-mono bg-white"
+                    />
+                  )}
                 </div>
               )}
 
               {headerType === 'IMAGE' && (
                 <input
-                  type="url"
-                  placeholder="Sample Image URL e.g. https://images.unsplash.com/..."
-                  value={headerImageUrl}
-                  onChange={(e) => setHeaderImageUrl(e.target.value)}
-                  className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 bg-white"
+                  type="text"
+                  placeholder="Sample Image URL (e.g. https://images.unsplash.com/...)"
+                  value={headerMediaUrl}
+                  onChange={(e) => setHeaderMediaUrl(e.target.value)}
+                  className="input-base text-xs font-mono"
                 />
               )}
             </div>
 
-            {/* Body */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-1">
-                  <label className="text-xs font-bold text-slate-700">
-                    Message Body <span className="text-red-500">*</span>
-                  </label>
-                  <InfoTooltip content="The main text message. Insert {{1}}, {{2}} to dynamically personalize with customer names, order IDs, or promo codes." />
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] text-slate-400">Insert:</span>
-                    <button
-                      type="button"
-                      onClick={() => setBodyText((prev) => prev + ' {{1}}')}
-                      className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 hover:bg-slate-200"
-                    >
-                      +{"{{1}}"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setBodyText((prev) => prev + ' {{2}}')}
-                      className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 hover:bg-slate-200"
-                    >
-                      +{"{{2}}"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setBodyText((prev) => prev + ' {{3}}')}
-                      className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 hover:bg-slate-200"
-                    >
-                      +{"{{3}}"}
-                    </button>
-                  </div>
-                  <span className={`text-[10px] font-mono ${bodyText.length > 950 ? 'text-amber-600 font-bold' : 'text-slate-400'}`}>
-                    {bodyText.length}/1024
-                  </span>
-                </div>
+            {/* Body Text & Variable Matrix */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  Body Text *
+                </label>
+                <button
+                  type="button"
+                  onClick={handleInsertBodyVar}
+                  className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Variable &#123;&#123;{detectedBodyVars.length + 1}&#125;&#125;</span>
+                </button>
               </div>
+
               <textarea
                 rows={4}
-                required
                 maxLength={1024}
                 value={bodyText}
                 onChange={(e) => setBodyText(e.target.value)}
-                placeholder="Type message text..."
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-sans"
+                placeholder="Type your message body here. Use {{1}}, {{2}} for dynamic customer tags."
+                className="input-base text-xs resize-none"
+                required
               />
+
+              <div className="flex justify-between text-[10px] text-slate-400">
+                <span>Variables: &#123;&#123;1&#125;&#125;, &#123;&#123;2&#125;&#125;</span>
+                <span>{bodyText.length} / 1024 chars</span>
+              </div>
+
+              {/* Explicit Realistic Sample Variable Inputs */}
+              {detectedBodyVars.length > 0 && (
+                <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Provide Realistic Sample Values (Required by Meta for Approval)</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800">
+                    Meta AI requires realistic sample text for every variable to verify policy compliance.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                    {detectedBodyVars.map((v) => (
+                      <div key={v} className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-amber-900 bg-amber-200/80 px-2 py-1 rounded">
+                          &#123;&#123;{v}&#125;&#125;
+                        </span>
+                        <input
+                          type="text"
+                          value={sampleValues[v] || ''}
+                          onChange={(e) => setSampleValues({ ...sampleValues, [v]: e.target.value })}
+                          placeholder={`Realistic sample for {{${v}}}`}
+                          className="input-base text-xs bg-white flex-1"
+                          required
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Footer */}
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-1">
-                  <label className="text-xs font-bold text-slate-700">Footer Text</label>
-                  <InfoTooltip content="Light grey text displayed at the bottom of the WhatsApp bubble. Commonly used for unsubscribe instructions." />
-                </div>
-                <span className={`text-[10px] font-mono ${footerText.length > 55 ? 'text-amber-600 font-bold' : 'text-slate-400'}`}>
-                  {footerText.length}/60
-                </span>
-              </div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Footer Text (Optional)</label>
               <input
                 type="text"
                 maxLength={60}
                 value={footerText}
                 onChange={(e) => setFooterText(e.target.value)}
                 placeholder="e.g. Reply STOP to opt out"
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="input-base text-xs"
               />
             </div>
 
-            {/* Buttons */}
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
+            {/* Interactive Buttons */}
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
               <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  Interactive Buttons (Up to 10)
+                </label>
                 <div className="flex items-center gap-1">
-                  <label className="text-xs font-bold text-slate-800">Call-to-Action Buttons (Max 3)</label>
-                  <InfoTooltip content="Interactive buttons placed below the message. Quick Replies trigger customer responses, URLs open websites." />
-                </div>
-                {buttons.length < 3 && (
                   <button
                     type="button"
-                    onClick={handleAddButton}
-                    className="text-xs text-emerald-700 hover:underline font-bold flex items-center gap-1"
+                    onClick={() => handleAddButton('QUICK_REPLY')}
+                    disabled={buttons.length >= 10}
+                    className="px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-[10px] font-bold text-slate-700"
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Add Button</span>
+                    + Quick Reply
                   </button>
-                )}
+                  <button
+                    type="button"
+                    onClick={() => handleAddButton('URL')}
+                    disabled={buttons.length >= 10}
+                    className="px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-[10px] font-bold text-slate-700"
+                  >
+                    + URL Link
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddButton('PHONE_NUMBER')}
+                    disabled={buttons.length >= 10}
+                    className="px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-[10px] font-bold text-slate-700"
+                  >
+                    + Phone Call
+                  </button>
+                </div>
               </div>
 
-              {buttons.map((btn, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <select
-                    value={btn.type}
-                    onChange={(e: any) => {
-                      const updated = [...buttons];
-                      updated[index].type = e.target.value;
-                      setButtons(updated);
-                    }}
-                    className="px-2 py-1.5 text-xs rounded-lg border border-slate-300 bg-white"
-                  >
-                    <option value="QUICK_REPLY">Quick Reply</option>
-                    <option value="URL">Visit Website</option>
-                    <option value="PHONE_NUMBER">Call Phone</option>
-                  </select>
-                  <input
-                    type="text"
-                    maxLength={25}
-                    placeholder="Label (max 25)"
-                    value={btn.text}
-                    onChange={(e) => {
-                      const updated = [...buttons];
-                      updated[index].text = e.target.value;
-                      setButtons(updated);
-                    }}
-                    className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 bg-white"
-                  />
-                  {btn.type === 'URL' && (
-                    <input
-                      type="url"
-                      placeholder="https://..."
-                      value={btn.url || ''}
-                      onChange={(e) => {
-                        const updated = [...buttons];
-                        updated[index].url = e.target.value;
-                        setButtons(updated);
-                      }}
-                      className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 bg-white"
-                    />
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveButton(index)}
-                    className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+              {buttons.length === 0 ? (
+                <p className="text-xs text-slate-400 italic">No buttons attached.</p>
+              ) : (
+                <div className="space-y-2">
+                  {buttons.map((btn, idx) => (
+                    <div key={idx} className="p-2.5 bg-white rounded-lg border border-slate-200 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                          {btn.type.replace('_', ' ')}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveButton(idx)}
+                          className="p-1 text-slate-400 hover:text-rose-600 rounded"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <input
+                        type="text"
+                        maxLength={25}
+                        placeholder="Button Label Text (max 25 chars)"
+                        value={btn.text}
+                        onChange={(e) => {
+                          const copy = [...buttons];
+                          copy[idx].text = e.target.value;
+                          setButtons(copy);
+                        }}
+                        className="input-base text-xs"
+                        required
+                      />
+
+                      {btn.type === 'URL' && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <input
+                            type="url"
+                            placeholder="https://gccstartup.com/orders/{{1}}"
+                            value={btn.url || ''}
+                            onChange={(e) => {
+                              const copy = [...buttons];
+                              copy[idx].url = e.target.value;
+                              setButtons(copy);
+                            }}
+                            className="input-base text-xs font-mono"
+                            required
+                          />
+                          {btn.url?.includes('{{1}}') && (
+                            <input
+                              type="text"
+                              placeholder="Sample slug (e.g. ORD-9812)"
+                              value={btn.urlSample || ''}
+                              onChange={(e) => {
+                                const copy = [...buttons];
+                                copy[idx].urlSample = e.target.value;
+                                setButtons(copy);
+                              }}
+                              className="input-base text-xs font-mono"
+                              required
+                            />
+                          )}
+                        </div>
+                      )}
+
+                      {btn.type === 'PHONE_NUMBER' && (
+                        <input
+                          type="text"
+                          placeholder="+971501234567"
+                          value={btn.phone_number || ''}
+                          onChange={(e) => {
+                            const copy = [...buttons];
+                            copy[idx].phone_number = e.target.value;
+                            setButtons(copy);
+                          }}
+                          className="input-base text-xs font-mono"
+                          required
+                        />
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
 
-            {/* Actions */}
-            <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-200">
+            {/* Submit Action */}
+            <div className="flex justify-end gap-3 pt-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50"
+                className="btn-secondary"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-all disabled:opacity-60"
+                disabled={isSubmitting || validationErrors.length > 0}
+                className="btn-primary"
               >
-                {isSubmitting ? 'Submitting to Meta...' : 'Save & Submit Template'}
+                {isSubmitting ? 'Submitting to Meta...' : 'Submit Template to Meta for Approval'}
               </button>
             </div>
           </form>
 
-          {/* Live Preview Right Side */}
-          <div className="lg:col-span-5 flex flex-col items-center justify-center p-4 bg-slate-50 rounded-2xl border border-slate-200">
-            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-4">
-              Real-time WhatsApp Preview
-            </h4>
-            <WhatsAppMockupPreview
-              templateName={name || 'Template Preview'}
-              category={category}
-              components={previewComponents}
-              headerMediaUrl={headerImageUrl}
-              sampleVariables={{ '1': 'Customer', '2': 'Apex Store', '3': 'PROMO20' }}
-            />
+          {/* Right Live WhatsApp Mockup: 5 cols */}
+          <div className="lg:col-span-5 flex flex-col items-center">
+            <div className="w-full sticky top-0 space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-700 px-1">
+                <span>Real-Time WhatsApp Handset Preview</span>
+                <span className="text-[10px] text-emerald-600 font-semibold">Live Rendering</span>
+              </div>
+              <WhatsAppMockupPreview components={previewComponents} />
+            </div>
           </div>
         </div>
       </div>

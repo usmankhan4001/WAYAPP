@@ -204,6 +204,37 @@ export async function ensureDatabaseSchema(): Promise<void> {
         );
       `);
 
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "Automation" (
+          "id" TEXT NOT NULL PRIMARY KEY,
+          "name" TEXT NOT NULL,
+          "description" TEXT,
+          "triggerType" TEXT NOT NULL,
+          "triggerConfig" TEXT NOT NULL,
+          "actionsJson" TEXT NOT NULL,
+          "isActive" BOOLEAN NOT NULL DEFAULT true,
+          "executionCount" INTEGER NOT NULL DEFAULT 0,
+          "lastTriggeredAt" DATETIME,
+          "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" DATETIME NOT NULL
+        );
+      `);
+
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "AutomationLog" (
+          "id" TEXT NOT NULL PRIMARY KEY,
+          "automationId" TEXT NOT NULL,
+          "contactId" TEXT,
+          "phoneNumber" TEXT NOT NULL,
+          "triggerInput" TEXT,
+          "actionTaken" TEXT NOT NULL,
+          "status" TEXT NOT NULL DEFAULT 'SUCCESS',
+          "errorMessage" TEXT,
+          "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY ("automationId") REFERENCES "Automation" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+        );
+      `);
+
       isInitialized = true;
     } catch (createErr) {
       console.error('Database auto-initialization error:', createErr);

@@ -11,12 +11,14 @@ import {
   AlertCircle,
   Clock,
   ExternalLink,
+  Sparkles,
+  ShieldCheck,
+  Edit3,
 } from 'lucide-react';
 import { WhatsAppMockupPreview } from '@/components/templates/WhatsAppMockupPreview';
 import { TemplateBuilderModal } from '@/components/templates/TemplateBuilderModal';
 import { SendTestModal } from '@/components/templates/SendTestModal';
 import { InfoTooltip, Tooltip } from '@/components/ui/Tooltip';
-import { formatDateTime } from '@/lib/utils';
 
 export default function TemplatesPage() {
   const [templates, setTemplates] = useState<any[]>([]);
@@ -47,6 +49,25 @@ export default function TemplatesPage() {
     fetchTemplates();
   }, []);
 
+  // Reactive polling: If any template is PENDING, poll every 4s to detect Meta approval automatically
+  useEffect(() => {
+    const hasPending = templates.some((t) => t.status === 'PENDING');
+    if (!hasPending) return;
+
+    const interval = setInterval(() => {
+      fetch('/api/templates')
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data)) {
+            setTemplates(data);
+          }
+        })
+        .catch(() => {});
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [templates]);
+
   const handleSyncMeta = async () => {
     setIsSyncing(true);
     setSyncNotice(null);
@@ -74,10 +95,10 @@ export default function TemplatesPage() {
         <div>
           <div className="flex items-center gap-1.5">
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">WhatsApp Template Manager</h1>
-            <InfoTooltip content="Manage, synchronize, test, and preview Meta-approved message templates for your WhatsApp business broadcasts." />
+            <InfoTooltip content="Manage, create, and track real-time approvals for Meta-approved WhatsApp message templates." />
           </div>
           <p className="text-xs text-slate-500">
-            Create and maintain message templates approved by Meta WhatsApp Cloud API
+            Full Meta WhatsApp Manager engine: create templates with realistic variables and track auto-approvals in real-time
           </p>
         </div>
 
@@ -133,9 +154,9 @@ export default function TemplatesPage() {
           ) : templates.length === 0 ? (
             <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
               <FileText className="w-10 h-10 text-slate-300 mx-auto" />
-              <h4 className="text-sm font-bold text-slate-800">No Templates in Database</h4>
-              <p className="text-xs text-slate-500">
-                Click &ldquo;Sync from Meta&rdquo; to fetch templates from your WhatsApp Business Account, or create a new template.
+              <h4 className="text-sm font-bold text-slate-800">No Templates Found</h4>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                Create a template with custom variables or click &ldquo;Sync from Meta&rdquo; to pull your existing WhatsApp Business templates.
               </p>
               <button
                 onClick={() => setIsCreateOpen(true)}
@@ -159,13 +180,13 @@ export default function TemplatesPage() {
                 <div
                   key={tpl.id}
                   onClick={() => setPreviewTemplate(tpl)}
-                  className={`p-4 rounded-2xl border-2 transition-all cursor-pointer bg-white ${
+                  className={`p-4 rounded-2xl border-2 transition-all cursor-pointer bg-white space-y-3 ${
                     isSelected
                       ? 'border-emerald-600 shadow-sm'
                       : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <FileText className={`w-4 h-4 ${isSelected ? 'text-emerald-600' : 'text-slate-400'}`} />
                       <h3 className="text-xs font-bold text-slate-900 font-mono">{tpl.name}</h3>
@@ -176,18 +197,41 @@ export default function TemplatesPage() {
                           tpl.status === 'APPROVED'
                             ? 'bg-emerald-100 text-emerald-800'
                             : tpl.status === 'PENDING'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-red-100 text-red-800'
+                            ? 'bg-amber-100 text-amber-800 animate-pulse'
+                            : 'bg-rose-100 text-rose-800'
                         }`}
                       >
-                        {tpl.status}
+                        {tpl.status === 'APPROVED' ? '● Approved' : tpl.status === 'PENDING' ? '⏳ Meta Reviewing...' : '✕ Rejected'}
                       </span>
                     </div>
                   </div>
 
-                  <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed mb-3">
+                  <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
                     {bodyText}
                   </p>
+
+                  {/* Rejection Alert */}
+                  {tpl.status === 'REJECTED' && (
+                    <div className="p-2.5 bg-rose-50 rounded-xl border border-rose-200 text-xs text-rose-800 space-y-1">
+                      <div className="flex items-center gap-1.5 font-bold text-rose-900">
+                        <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                        <span>Meta Rejection Reason:</span>
+                      </div>
+                      <p className="text-[11px] text-rose-700">
+                        {tpl.rejectedReason || 'Template violated WhatsApp Business Policy or missing realistic sample values.'}
+                      </p>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsCreateOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-800 hover:text-rose-900 underline mt-1"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                        <span>Fix & Resubmit</span>
+                      </button>
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px]">
                     <div className="flex items-center gap-3 text-slate-400 font-semibold uppercase text-[10px]">
