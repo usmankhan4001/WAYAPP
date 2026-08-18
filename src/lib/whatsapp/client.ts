@@ -306,90 +306,146 @@ export class WhatsAppClient {
     language: string;
     components: any[];
   }): Promise<{ id: string; status: string }> {
-    if (this.isMockMode || !this.accessToken || !this.wabaId) {
-      return {
-        id: `mock_tpl_${Date.now()}`,
-        status: 'APPROVED',
-      };
+    if (!this.accessToken) {
+      if (this.isMockMode) {
+        return {
+          id: `mock_tpl_${Date.now()}`,
+          status: 'APPROVED',
+        };
+      }
+      throw new Error('Permanent Access Token is required to create templates on Meta.');
     }
 
-    // Ensure components conform to strict Meta Graph API formatting rules
-    const formattedComponents = (params.components || []).map((comp: any) => {
-      const c: any = { type: comp.type };
+    const candidateIds = [this.wabaId?.trim(), this.phoneNumberId?.trim()].filter(Boolean) as string[];
+    if (candidateIds.length === 0) {
+      if (this.isMockMode) {
+        return { id: `mock_tpl_${Date.now()}`, status: 'APPROVED' };
+      }
+      throw new Error('WhatsApp Business Account ID (WABA ID) is required to create templates.');
+    }
 
+    // Format components to strict Meta Graph API v21.0 requirements
+    const formattedComponents: any[] = [];
+
+    for (const comp of (params.components || [])) {
       if (comp.type === 'HEADER') {
-        c.format = comp.format || 'TEXT';
-        if (c.format === 'TEXT') {
-          c.text = comp.text || '';
-          const varMatches = (c.text.match(/{{\d+}}/g) || []);
+        if (comp.format === 'TEXT' && comp.text && comp.text.trim()) {
+          const headerObj: any = {
+            type: 'HEADER',
+            format: 'TEXT',
+            text: comp.text.trim(),
+          };
+          const varMatches = comp.text.match(/{{\d+}}/g) || [];
           if (varMatches.length > 0) {
-            c.example = {
-              header_text: varMatches.map((_: string, idx: number) => `Header_Sample_${idx + 1}`),
+            headerObj.example = {
+              header_text: varMatches.map((_: string, idx: number) => `Header_${idx + 1}`),
             };
           }
-        } else if (c.format === 'IMAGE') {
-          c.example = comp.example || {
-            header_handle: ['https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=800&q=80'],
-          };
+          formattedComponents.push(headerObj);
+        } else if (comp.format === 'IMAGE') {
+          // If valid header_handle exists, send it; otherwise skip or fallback
+          if (comp.example?.header_handle && comp.example.header_handle.length > 0) {
+            formattedComponents.push({
+              type: 'HEADER',
+              format: 'IMAGE',
+              example: comp.example,
+            });
+          }
         }
       } else if (comp.type === 'BODY') {
-        c.text = comp.text || '';
-        const varMatches = (c.text.match(/{{\d+}}/g) || []);
-        if (varMatches.length > 0) {
-          c.example = {
-            body_text: [
-              varMatches.map((_: string, idx: number) => `Sample_Value_${idx + 1}`),
-            ],
+        const bodyText = (comp.text || '').trim();
+        if (bodyText) {
+          const bodyObj: any = {
+            type: 'BODY',
+            text: bodyText,
           };
+          const varMatches = bodyText.match(/{{\d+}}/g) || [];
+          if (varMatches.length > 0) {
+            bodyObj.example = {
+              body_text: [
+                varMatches.map((_: string, idx: number) => `Sample_${idx + 1}`),
+              ],
+            };
+          }
+          formattedComponents.push(bodyObj);
         }
       } else if (comp.type === 'FOOTER') {
-        if (comp.text) {
-          c.text = comp.text;
+        const footerText = (comp.text || '').trim();
+        if (footerText) {
+          formattedComponents.push({
+            type: 'FOOTER',
+            text: footerText,
+          });
         }
       } else if (comp.type === 'BUTTONS') {
-        c.buttons = (comp.buttons || []).map((btn: any) => {
-          const b: any = { type: btn.type, text: btn.text };
-          if (btn.type === 'URL') {
-            b.url = btn.url || 'https://example.com';
-            if (b.url.includes('{{1}}')) {
-              b.example = ['https://example.com/sample_path'];
+        const validButtons = (comp.buttons || [])
+          .filter((b: any) => b && b.text && b.text.trim())
+          .map((btn: any) => {
+            const b: any = { type: btn.type, text: btn.text.trim() };
+            if (btn.type === 'URL') {
+              b.url = (btn.url || 'https://example.com').trim();
+              if (b.url.includes('{{1}}')) {
+                b.example = ['https://example.com/sample_item'];
+              }
+            } else if (btn.type === 'PHONE_NUMBER') {
+              b.phone_number = (btn.phone_number || '+1234567890').trim();
             }
-          } else if (btn.type === 'PHONE_NUMBER') {
-            b.phone_number = btn.phone_number || '+1234567890';
-          }
-          return b;
-        });
-      }
+            return b;
+          });
 
-      return c;
-    });
+        if (validButtons.length > 0) {
+          formattedComponents.push({
+            type: 'BUTTONS',
+            buttons: validButtons,
+          });
+        }
+      }
+    }
 
     const payload = {
       name: params.name.toLowerCase().replace(/[^a-z0-9_]/g, '_'),
-      category: params.category,
+      category: params.category || 'MARKETING',
       language: params.language || 'en_US',
       components: formattedComponents,
     };
 
-    const response = await fetch(`${META_GRAPH_URL}/${this.wabaId.trim()}/message_templates`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${this.accessToken.trim()}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
+    let lastError: string = '';
 
-    const data = await response.json();
-    if (!response.ok || data.error) {
-      const msg = data.error?.message || `Meta API Error (${response.status}): ${response.statusText}`;
-      throw new Error(`Meta Template Creation Failed: ${msg}`);
+    for (const testId of candidateIds) {
+      try {
+        const response = await fetch(`${META_GRAPH_URL}/${testId}/message_templates`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${this.accessToken.trim()}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+        if (response.ok && !data.error && data.id) {
+          if (testId !== this.wabaId?.trim()) {
+            try {
+              await prisma.settings.update({
+                where: { id: 'default' },
+                data: { wabaId: testId, phoneNumberId: this.wabaId },
+              });
+              this.wabaId = testId;
+            } catch {}
+          }
+          return {
+            id: String(data.id),
+            status: data.status || 'PENDING',
+          };
+        } else if (data.error) {
+          lastError = data.error.message;
+        }
+      } catch (err: any) {
+        lastError = err.message;
+      }
     }
 
-    return {
-      id: String(data.id),
-      status: data.status || 'PENDING',
-    };
+    throw new Error(`Meta Template Creation Failed: ${lastError || 'Invalid parameter'}`);
   }
 
   /**

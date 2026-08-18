@@ -43,6 +43,6 @@ export async function POST() {
       message: `Successfully synchronized ${syncedCount} templates from Meta WhatsApp Cloud.`,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 400 });
   }
 }
