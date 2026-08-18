@@ -66,6 +66,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(testResult);
     }
 
+    // 1.5 If user clicked "Register Phone Number"
+    if (action === 'REGISTER_PHONE') {
+      const client = new WhatsAppClient({
+        wabaId,
+        phoneNumberId,
+        accessToken,
+        isMockMode: isMockMode ?? false,
+      });
+
+      const pin = body.pin || '123456';
+      const regResult = await client.registerPhoneNumber(pin);
+      return NextResponse.json(regResult);
+    }
+
     // 2. If user is activating the connection from Setup Wizard
     if (action === 'ACTIVATE_CONNECTION') {
       const client = new WhatsAppClient({

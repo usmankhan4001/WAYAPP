@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { WhatsAppClient } from './client';
+import { interpretMetaError } from './errors';
+import { sanitizePhoneNumber } from './phone';
 
 export class CampaignDispatcher {
   /**
@@ -204,6 +206,10 @@ export class CampaignDispatcher {
           break;
         }
 
+        // 1. Sanitize recipient phone number
+        const phoneResult = sanitizePhoneNumber(contact.phoneNumber);
+        const targetPhone = phoneResult.isValid ? phoneResult.e164 : contact.phoneNumber;
+
         const { bodyVars, headerVars } = this.resolveVariableValues(
           contact,
           mappings,
@@ -214,22 +220,43 @@ export class CampaignDispatcher {
           data: {
             campaignId: campaign.id,
             contactId: contact.id,
-            phoneNumber: contact.phoneNumber,
+            phoneNumber: targetPhone,
             status: 'PENDING',
           },
         });
 
-        try {
-          const sendRes = await client.sendTemplateMessage({
-            to: contact.phoneNumber,
-            templateName: campaign.template.name,
-            languageCode: campaign.template.language,
-            headerMediaUrl: campaign.headerMediaUrl || undefined,
-            headerVariables: headerVars,
-            bodyVariables: bodyVars,
-            templateComponents: campaign.template.components,
-          });
+        // 2. Retry loop with exponential backoff for transient errors
+        let sendRes: any = null;
+        let lastErr: any = null;
+        const maxRetries = 3;
 
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            sendRes = await client.sendTemplateMessage({
+              to: targetPhone,
+              templateName: campaign.template.name,
+              languageCode: campaign.template.language,
+              headerMediaUrl: campaign.headerMediaUrl || undefined,
+              headerVariables: headerVars,
+              bodyVariables: bodyVars,
+              templateComponents: campaign.template.components,
+            });
+            lastErr = null;
+            break; // Success!
+          } catch (err: any) {
+            lastErr = err;
+            const parsedError = interpretMetaError(err.code, err.message);
+
+            if (parsedError.isRetryable && attempt < maxRetries) {
+              const backoffMs = Math.pow(2, attempt) * 1000 + Math.floor(Math.random() * 500);
+              await new Promise((resolve) => setTimeout(resolve, backoffMs));
+              continue;
+            }
+            break; // Non-retryable or max retries exceeded
+          }
+        }
+
+        if (sendRes && !lastErr) {
           const wamid = sendRes.messages?.[0]?.id || null;
 
           await prisma.campaignMessage.update({
@@ -299,7 +326,7 @@ export class CampaignDispatcher {
                   await prisma.chatMessage.create({
                     data: {
                       contactId: contact.id,
-                      phoneNumber: contact.phoneNumber,
+                      phoneNumber: targetPhone,
                       direction: 'INBOUND',
                       messageType: 'text',
                       body: 'Thanks for the update! Can I get more details on this?',
@@ -310,17 +337,28 @@ export class CampaignDispatcher {
               }, 4500);
             }
           }
-        } catch (err: any) {
+        } else {
           failedCount++;
+          const errInfo = interpretMetaError(lastErr?.code, lastErr?.message);
+
           await prisma.campaignMessage.update({
             where: { id: msgRecord.id },
             data: {
               status: 'FAILED',
-              errorCode: String(err.code || 'UNKNOWN'),
-              errorMessage: err.message,
+              errorCode: String(errInfo.code),
+              errorMessage: `${errInfo.title}: ${errInfo.userMessage} (${errInfo.action})`,
               failedAt: new Date(),
             },
           });
+
+          // Handle specific fatal account-level errors
+          if (errInfo.category === 'PAYMENT_REQUIRED') {
+            await prisma.campaign.update({
+              where: { id: campaignId },
+              data: { status: 'PAUSED' },
+            });
+            break; // Pause remaining campaign
+          }
         }
 
         // Update campaign live counter
@@ -336,14 +374,21 @@ export class CampaignDispatcher {
         await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
 
-      // Mark complete
-      await prisma.campaign.update({
+      // Mark complete if not paused
+      const finalState = await prisma.campaign.findUnique({
         where: { id: campaignId },
-        data: {
-          status: 'COMPLETED',
-          completedAt: new Date(),
-        },
+        select: { status: true },
       });
+
+      if (finalState?.status === 'RUNNING') {
+        await prisma.campaign.update({
+          where: { id: campaignId },
+          data: {
+            status: 'COMPLETED',
+            completedAt: new Date(),
+          },
+        });
+      }
     })();
   }
 }

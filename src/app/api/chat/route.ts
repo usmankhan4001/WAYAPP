@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { WhatsAppClient } from '@/lib/whatsapp/client';
+import { interpretMetaError } from '@/lib/whatsapp/errors';
 
 export async function GET(request: NextRequest) {
   try {
@@ -43,11 +44,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { contactId, text } = body;
+    const { contactId, text, templateName, languageCode, bodyVariables, headerMediaUrl } = body;
 
-    if (!contactId || !text?.trim()) {
+    if (!contactId) {
       return NextResponse.json(
-        { error: 'Contact ID and message text are required' },
+        { error: 'Contact ID is required' },
         { status: 400 }
       );
     }
@@ -61,8 +62,36 @@ export async function POST(request: NextRequest) {
     }
 
     const client = await WhatsAppClient.createFromSettings();
-    const sendRes = await client.sendTextMessage(contact.phoneNumber, text.trim());
-    const wamid = sendRes.messages?.[0]?.id || null;
+    let wamid: string | null = null;
+    let messageBody = text?.trim() || '';
+
+    if (templateName) {
+      const tpl = await prisma.template.findFirst({
+        where: { name: templateName },
+      });
+
+      const sendRes = await client.sendTemplateMessage({
+        to: contact.phoneNumber,
+        templateName,
+        languageCode: languageCode || tpl?.language || 'en_US',
+        headerMediaUrl,
+        bodyVariables: bodyVariables || [],
+        templateComponents: tpl?.components,
+      });
+
+      wamid = sendRes.messages?.[0]?.id || null;
+      messageBody = `[Template: ${templateName}]`;
+    } else {
+      if (!text?.trim()) {
+        return NextResponse.json(
+          { error: 'Message text is required' },
+          { status: 400 }
+        );
+      }
+
+      const sendRes = await client.sendTextMessage(contact.phoneNumber, text.trim());
+      wamid = sendRes.messages?.[0]?.id || null;
+    }
 
     const message = await prisma.chatMessage.create({
       data: {
@@ -70,8 +99,8 @@ export async function POST(request: NextRequest) {
         phoneNumber: contact.phoneNumber,
         direction: 'OUTBOUND',
         wamid,
-        messageType: 'text',
-        body: text.trim(),
+        messageType: templateName ? 'template' : 'text',
+        body: messageBody,
         status: 'SENT',
       },
     });
@@ -83,6 +112,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, message });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const errInfo = interpretMetaError(error.code, error.message);
+    return NextResponse.json(
+      {
+        success: false,
+        error: `${errInfo.title}: ${errInfo.userMessage} (${errInfo.action})`,
+        category: errInfo.category,
+      },
+      { status: 400 }
+    );
   }
 }

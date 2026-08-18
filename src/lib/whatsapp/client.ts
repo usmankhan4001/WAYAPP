@@ -48,13 +48,14 @@ export class WhatsAppClient {
   }
 
   /**
-   * Test connection to Meta Graph API
+   * Deep diagnostic connection tester for Meta Graph API
    */
   async testConnection(): Promise<{
     success: boolean;
     message: string;
     phoneDetails?: any;
     wabaDetails?: any;
+    permissions?: string[];
   }> {
     if (this.isMockMode || !this.accessToken || !this.phoneNumberId) {
       return {
@@ -65,6 +66,12 @@ export class WhatsAppClient {
           verified_name: 'Verified Business Test Account',
           quality_rating: 'GREEN',
           messaging_tier: 'TIER_10K',
+          status: 'CONNECTED',
+        },
+        wabaDetails: {
+          name: 'Demo Enterprise WABA',
+          currency: 'USD',
+          account_review_status: 'APPROVED',
         },
       };
     }
@@ -72,7 +79,7 @@ export class WhatsAppClient {
     try {
       // 1. Check Phone Number info
       const phoneRes = await fetch(
-        `${META_GRAPH_URL}/${this.phoneNumberId}?fields=display_phone_number,verified_name,quality_rating,code_verification_status`,
+        `${META_GRAPH_URL}/${this.phoneNumberId}?fields=display_phone_number,verified_name,quality_rating,code_verification_status,status`,
         {
           headers: {
             Authorization: `Bearer ${this.accessToken}`,
@@ -88,16 +95,71 @@ export class WhatsAppClient {
         };
       }
 
+      // 2. Check WABA info if WABA ID is provided
+      let wabaData: any = null;
+      if (this.wabaId) {
+        try {
+          const wabaRes = await fetch(
+            `${META_GRAPH_URL}/${this.wabaId}?fields=name,timezone_id,currency,account_review_status`,
+            {
+              headers: {
+                Authorization: `Bearer ${this.accessToken}`,
+              },
+            }
+          );
+          wabaData = await wabaRes.json();
+        } catch {}
+      }
+
       return {
         success: true,
-        message: 'Meta WhatsApp Cloud API connected successfully!',
+        message: 'Meta WhatsApp Cloud API connected and validated successfully!',
         phoneDetails: phoneData,
+        wabaDetails: wabaData && !wabaData.error ? wabaData : undefined,
       };
     } catch (err: any) {
       return {
         success: false,
         message: `Network or API Error: ${err.message}`,
       };
+    }
+  }
+
+  /**
+   * 1-Click Phone Number 2FA Registration on Meta Cloud API
+   */
+  async registerPhoneNumber(pin: string = '123456'): Promise<{ success: boolean; message: string }> {
+    if (this.isMockMode || !this.accessToken || !this.phoneNumberId) {
+      return {
+        success: true,
+        message: 'Mock Mode: Phone number registration simulated successfully.',
+      };
+    }
+
+    try {
+      const response = await fetch(`${META_GRAPH_URL}/${this.phoneNumberId}/register`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          pin: pin.trim(),
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || data.error) {
+        throw new Error(data.error?.message || 'Failed to register phone number with Meta Cloud API');
+      }
+
+      return {
+        success: true,
+        message: 'Phone number registered with Meta Cloud API successfully!',
+      };
+    } catch (err: any) {
+      throw new Error(`Phone Registration Failed: ${err.message}`);
     }
   }
 

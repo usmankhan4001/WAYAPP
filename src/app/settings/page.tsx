@@ -40,6 +40,10 @@ export default function SettingsPage() {
   const [testDetails, setTestDetails] = useState<any | null>(null);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
 
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [pinInput, setPinInput] = useState('123456');
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+
   const fetchSettings = () => {
     fetch('/api/settings')
       .then((res) => res.json())
@@ -98,6 +102,31 @@ export default function SettingsPage() {
       setNotice({ text: err.message, success: false });
     } finally {
       setTesting(false);
+    }
+  };
+
+  const handleRegisterPhone = async () => {
+    setIsRegistering(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...settings,
+          action: 'REGISTER_PHONE',
+          pin: pinInput || '123456',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Failed to register phone');
+
+      setNotice({ text: data.message || 'Phone registered successfully with Meta Cloud API!', success: true });
+      setIsPinModalOpen(false);
+      handleTestConnection();
+    } catch (err: any) {
+      setNotice({ text: err.message, success: false });
+    } finally {
+      setIsRegistering(false);
     }
   };
 
@@ -269,22 +298,56 @@ export default function SettingsPage() {
             />
           </div>
 
-          {/* Test Connection Button */}
-          <div className="pt-1 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={handleTestConnection}
-              disabled={testing}
-              className="btn-secondary text-xs"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${testing ? 'animate-spin text-emerald-600' : 'text-slate-500'}`} />
-              <span>{testing ? 'Testing Connection...' : 'Test Meta Connection'}</span>
-            </button>
+          {/* Test Connection Button & Diagnostics */}
+          <div className="pt-2 border-t border-slate-100 space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleTestConnection}
+                  disabled={testing}
+                  className="btn-secondary text-xs"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${testing ? 'animate-spin text-emerald-600' : 'text-slate-500'}`} />
+                  <span>{testing ? 'Scanning Diagnostics...' : 'Deep Connection Diagnostics'}</span>
+                </button>
 
+                <button
+                  type="button"
+                  onClick={() => setIsPinModalOpen(true)}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold"
+                >
+                  1-Click Register Phone (2FA)
+                </button>
+              </div>
+
+              {testDetails?.phoneDetails && (
+                <div className="text-xs text-emerald-700 font-medium flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Verified: {testDetails.phoneDetails.verified_name || 'Account Active'}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Diagnostic Details Grid */}
             {testDetails?.phoneDetails && (
-              <div className="text-xs text-emerald-700 font-medium flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Verified: {testDetails.phoneDetails.verified_name || 'Account Active'}</span>
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold">Display Phone</span>
+                  <p className="font-bold font-mono text-slate-800">{testDetails.phoneDetails.display_phone_number || 'N/A'}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold">Quality Rating</span>
+                  <p className="font-bold text-emerald-700">{testDetails.phoneDetails.quality_rating || 'GREEN'}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold">Messaging Tier</span>
+                  <p className="font-bold text-slate-800">{testDetails.phoneDetails.messaging_tier || 'STANDARD'}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold">Registration Status</span>
+                  <p className="font-bold text-emerald-700">{testDetails.phoneDetails.code_verification_status || 'VERIFIED'}</p>
+                </div>
               </div>
             )}
           </div>
@@ -416,6 +479,55 @@ export default function SettingsPage() {
         isOpen={isGuideOpen}
         onClose={() => setIsGuideOpen(false)}
       />
+
+      {/* 2FA Phone Registration Modal */}
+      {isPinModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 space-y-4">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">1-Click Phone Number 2FA Registration</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Register your business phone number ID directly on the Meta Cloud API gateway with a 6-digit PIN.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                6-Digit 2FA PIN
+              </label>
+              <input
+                type="text"
+                maxLength={6}
+                value={pinInput}
+                onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
+                placeholder="123456"
+                className="w-full px-3 py-2 text-sm text-center font-mono font-bold tracking-widest rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <p className="text-[10px] text-slate-400 mt-1">
+                Choose any 6-digit PIN to secure your WhatsApp Cloud number.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsPinModalOpen(false)}
+                className="px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleRegisterPhone}
+                disabled={isRegistering || pinInput.length !== 6}
+                className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold disabled:opacity-50"
+              >
+                {isRegistering ? 'Registering...' : 'Register PIN'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

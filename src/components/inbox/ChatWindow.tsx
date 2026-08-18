@@ -1,7 +1,18 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Clock, User, CheckCheck, Sparkles, ArrowLeft } from 'lucide-react';
+import {
+  Send,
+  Clock,
+  User,
+  CheckCheck,
+  Sparkles,
+  ArrowLeft,
+  AlertCircle,
+  FileText,
+  Lock,
+  ChevronDown,
+} from 'lucide-react';
 import { formatDateTime } from '@/lib/utils';
 import { InfoTooltip, Tooltip } from '@/components/ui/Tooltip';
 
@@ -15,7 +26,19 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [isTemplatePickerOpen, setIsTemplatePickerOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<any | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // 24h Window Calculation
+  const lastInteraction = contact?.lastInteractionAt ? new Date(contact.lastInteractionAt).getTime() : null;
+  const msSinceLast = lastInteraction ? Date.now() - lastInteraction : Infinity;
+  const msRemaining = Math.max(0, 24 * 60 * 60 * 1000 - msSinceLast);
+  const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
+  const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
+  const isWindowActive = msRemaining > 0;
 
   const fetchMessages = () => {
     if (!contact?.id) return;
@@ -25,8 +48,22 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
       .catch(() => {});
   };
 
+  const fetchTemplates = () => {
+    fetch('/api/templates')
+      .then((res) => res.json())
+      .then((data) => {
+        const list = Array.isArray(data) ? data.filter((t) => t.status === 'APPROVED') : [];
+        setTemplates(list);
+        if (list.length > 0 && !selectedTemplate) {
+          setSelectedTemplate(list[0]);
+        }
+      })
+      .catch(() => {});
+  };
+
   useEffect(() => {
     fetchMessages();
+    fetchTemplates();
     const interval = setInterval(fetchMessages, 3000);
     return () => clearInterval(interval);
   }, [contact?.id]);
@@ -40,6 +77,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
     if (!text.trim() || !contact?.id) return;
 
     setIsSending(true);
+    setErrorMessage(null);
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -50,13 +88,49 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
         }),
       });
 
-      if (res.ok) {
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setErrorMessage(data.error || 'Failed to send message');
+      } else {
         setText('');
         fetchMessages();
         onRefreshList();
       }
-    } catch {}
-    finally {
+    } catch (err: any) {
+      setErrorMessage(err.message);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleSendTemplate = async (template: any) => {
+    if (!contact?.id || !template) return;
+    setIsSending(true);
+    setErrorMessage(null);
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contactId: contact.id,
+          templateName: template.name,
+          languageCode: template.language || 'en_US',
+          bodyVariables: [contact.firstName || 'Customer'],
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setErrorMessage(data.error || 'Failed to dispatch template message');
+      } else {
+        setIsTemplatePickerOpen(false);
+        fetchMessages();
+        onRefreshList();
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message);
+    } finally {
       setIsSending(false);
     }
   };
@@ -94,14 +168,43 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
             </div>
           </div>
 
-          <Tooltip content="Meta allows freeform 2-way messaging for 24 hours after a customer initiates contact or responds to a template.">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-semibold">
-              <Clock className="w-3 h-3 text-emerald-600" />
-              <span className="hidden sm:inline">24h Window Active</span>
-              <span className="sm:hidden">24h Active</span>
+          <Tooltip
+            content={
+              isWindowActive
+                ? `Meta allows freeform 2-way messaging for 24 hours. Window closes in ${hoursRemaining}h ${minutesRemaining}m.`
+                : '24-hour conversation window has expired. You must send a pre-approved Template to re-engage this customer.'
+            }
+          >
+            <div
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
+                isWindowActive
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                  : 'bg-amber-50 text-amber-800 border-amber-200'
+              }`}
+            >
+              <Clock className={`w-3 h-3 ${isWindowActive ? 'text-emerald-600' : 'text-amber-600'}`} />
+              <span>
+                {isWindowActive
+                  ? `24h Active (${hoursRemaining}h ${minutesRemaining}m)`
+                  : '24h Window Closed'}
+              </span>
             </div>
           </Tooltip>
         </div>
+
+        {/* Error Notice */}
+        {errorMessage && (
+          <div className="p-3 bg-red-50 border-b border-red-200 text-red-700 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span className="flex-1">{errorMessage}</span>
+            <button
+              onClick={() => setErrorMessage(null)}
+              className="text-xs text-red-500 hover:text-red-800 font-bold"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
 
         {/* Message Stream */}
         <div className="flex-1 p-4 md:p-6 whatsapp-bg overflow-y-auto space-y-3">
@@ -145,27 +248,92 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Bar */}
-        <form onSubmit={handleSend} className="p-3 md:p-4 bg-slate-50 border-t border-slate-200 flex items-center gap-2 md:gap-3">
-          <input
-            type="text"
-            placeholder="Type your WhatsApp reply..."
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          />
-          <button
-            type="submit"
-            disabled={isSending || !text.trim()}
-            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all disabled:opacity-50"
-          >
-            <Send className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Send</span>
-          </button>
-        </form>
+        {/* Input Bar or Window Expired Template Trigger */}
+        <div className="p-3 md:p-4 bg-slate-50 border-t border-slate-200">
+          {!isWindowActive ? (
+            <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+                <p className="text-xs text-amber-800">
+                  <strong>24h Window Expired:</strong> Send a pre-approved WhatsApp template to re-open the conversation window.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTemplatePickerOpen(!isTemplatePickerOpen)}
+                className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shrink-0 shadow-sm flex items-center gap-1.5"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Send Template</span>
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleSend} className="flex items-center gap-2 md:gap-3">
+              <input
+                type="text"
+                placeholder="Type your WhatsApp reply..."
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+              <button
+                type="submit"
+                disabled={isSending || !text.trim()}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all disabled:opacity-50"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Send</span>
+              </button>
+            </form>
+          )}
+
+          {/* Quick Template Picker Drawer */}
+          {isTemplatePickerOpen && (
+            <div className="mt-3 p-3.5 bg-white rounded-xl border border-slate-200 shadow-lg space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800">Select Approved Template to Re-Engage</span>
+                <button
+                  onClick={() => setIsTemplatePickerOpen(false)}
+                  className="text-xs text-slate-400 hover:text-slate-600"
+                >
+                  Close
+                </button>
+              </div>
+
+              {templates.length === 0 ? (
+                <p className="text-xs text-slate-500 py-2">
+                  No approved templates found. Create or sync templates in the Templates tab.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
+                  {templates.map((tpl) => (
+                    <div
+                      key={tpl.id}
+                      className="p-2.5 rounded-lg border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/20 flex items-center justify-between gap-2 cursor-pointer transition-all"
+                      onClick={() => handleSendTemplate(tpl)}
+                    >
+                      <div className="min-w-0">
+                        <h5 className="text-xs font-bold text-slate-900 font-mono">{tpl.name}</h5>
+                        <p className="text-[10px] text-slate-500 truncate">{tpl.category} • {tpl.language}</p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={isSending}
+                        className="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold shrink-0"
+                      >
+                        {isSending ? 'Sending...' : 'Send'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Right Sidebar: Contact Profile (Hidden on tablet/mobile for space) */}
+      {/* Right Sidebar: Contact Profile */}
       <div className="w-64 bg-slate-50/70 p-4 overflow-y-auto space-y-4 hidden xl:block shrink-0">
         <div className="text-center pb-3 border-b border-slate-200">
           <div className="w-12 h-12 rounded-full bg-emerald-600 text-white font-bold text-base flex items-center justify-center mx-auto mb-2 shadow-sm">

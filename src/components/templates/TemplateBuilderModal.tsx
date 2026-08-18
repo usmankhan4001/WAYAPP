@@ -192,13 +192,22 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
               </div>
 
               {headerType === 'TEXT' && (
-                <input
-                  type="text"
-                  placeholder="Header text e.g. Exclusive VIP Announcement"
-                  value={headerText}
-                  onChange={(e) => setHeaderText(e.target.value)}
-                  className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 bg-white"
-                />
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[10px] text-slate-400">Max 60 characters</span>
+                    <span className={`text-[10px] font-mono ${headerText.length > 55 ? 'text-amber-600 font-bold' : 'text-slate-400'}`}>
+                      {headerText.length}/60
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    maxLength={60}
+                    placeholder="Header text e.g. Exclusive VIP Announcement"
+                    value={headerText}
+                    onChange={(e) => setHeaderText(e.target.value)}
+                    className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 bg-white"
+                  />
+                </div>
               )}
 
               {headerType === 'IMAGE' && (
@@ -221,34 +230,40 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
                   </label>
                   <InfoTooltip content="The main text message. Insert {{1}}, {{2}} to dynamically personalize with customer names, order IDs, or promo codes." />
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] text-slate-400">Insert:</span>
-                  <button
-                    type="button"
-                    onClick={() => setBodyText((prev) => prev + ' {{1}}')}
-                    className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 hover:bg-slate-200"
-                  >
-                    +{"{{1}}"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBodyText((prev) => prev + ' {{2}}')}
-                    className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 hover:bg-slate-200"
-                  >
-                    +{"{{2}}"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBodyText((prev) => prev + ' {{3}}')}
-                    className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 hover:bg-slate-200"
-                  >
-                    +{"{{3}}"}
-                  </button>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-slate-400">Insert:</span>
+                    <button
+                      type="button"
+                      onClick={() => setBodyText((prev) => prev + ' {{1}}')}
+                      className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    >
+                      +{"{{1}}"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBodyText((prev) => prev + ' {{2}}')}
+                      className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    >
+                      +{"{{2}}"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBodyText((prev) => prev + ' {{3}}')}
+                      className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    >
+                      +{"{{3}}"}
+                    </button>
+                  </div>
+                  <span className={`text-[10px] font-mono ${bodyText.length > 950 ? 'text-amber-600 font-bold' : 'text-slate-400'}`}>
+                    {bodyText.length}/1024
+                  </span>
                 </div>
               </div>
               <textarea
                 rows={4}
                 required
+                maxLength={1024}
                 value={bodyText}
                 onChange={(e) => setBodyText(e.target.value)}
                 placeholder="Type message text..."
@@ -258,12 +273,18 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
 
             {/* Footer */}
             <div>
-              <div className="flex items-center gap-1 mb-1">
-                <label className="text-xs font-bold text-slate-700">Footer Text</label>
-                <InfoTooltip content="Light grey text displayed at the bottom of the WhatsApp bubble. Commonly used for unsubscribe instructions." />
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1">
+                  <label className="text-xs font-bold text-slate-700">Footer Text</label>
+                  <InfoTooltip content="Light grey text displayed at the bottom of the WhatsApp bubble. Commonly used for unsubscribe instructions." />
+                </div>
+                <span className={`text-[10px] font-mono ${footerText.length > 55 ? 'text-amber-600 font-bold' : 'text-slate-400'}`}>
+                  {footerText.length}/60
+                </span>
               </div>
               <input
                 type="text"
+                maxLength={60}
                 value={footerText}
                 onChange={(e) => setFooterText(e.target.value)}
                 placeholder="e.g. Reply STOP to opt out"
@@ -307,7 +328,8 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
                   </select>
                   <input
                     type="text"
-                    placeholder="Button Label"
+                    maxLength={25}
+                    placeholder="Label (max 25)"
                     value={btn.text}
                     onChange={(e) => {
                       const updated = [...buttons];
