@@ -96,26 +96,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // 4. Strict Domain Enforcement: Only @gccstartup.com or authorized domains
-  const email = payload.email.toLowerCase();
-  const isAllowedDomain =
-    email.endsWith('@gccstartup.com') ||
-    email.endsWith('@wayapp.io') ||
-    email === 'usmankhan4001@gmail.com' ||
-    email === 'admin@gccstartup.com';
-
-  if (!isAllowedDomain) {
-    if (pathname.startsWith('/api/')) {
-      return NextResponse.json(
-        { error: 'Access denied: User does not belong to authorized GCC domain' },
-        { status: 403 }
-      );
-    }
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('error', 'ACCESS_DENIED_NOT_GCC_USER');
-    return NextResponse.redirect(loginUrl);
-  }
-
+  // 4. Verification successful: allow access
   return NextResponse.next();
 }
 

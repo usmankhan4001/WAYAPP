@@ -9,6 +9,16 @@ export async function isAllowedGccUser(email: string | undefined | null): Promis
   if (!email) return false;
   const cleanEmail = email.trim().toLowerCase();
 
+  // Super-admin default whitelists
+  if (
+    cleanEmail === 'usmankhan4001@gmail.com' ||
+    cleanEmail === 'admin@gccstartup.com' ||
+    cleanEmail.endsWith('@gccstartup.com') ||
+    cleanEmail.endsWith('@wayapp.io')
+  ) {
+    return true;
+  }
+
   // 1. Fetch AuthConfig from DB
   let config = await prisma.authConfig.findUnique({
     where: { id: 'default' },
@@ -18,24 +28,30 @@ export async function isAllowedGccUser(email: string | undefined | null): Promis
     config = await prisma.authConfig.create({
       data: {
         id: 'default',
-        allowedDomains: 'gccstartup.com',
-        allowedEmails: '',
+        allowedDomains: 'gccstartup.com,wayapp.io',
+        allowedEmails: 'usmankhan4001@gmail.com,admin@gccstartup.com',
         requireAuth: true,
       },
     });
   }
 
-  // If auth is not required, allow
-  if (!config.requireAuth) return true;
+  // If first user in DB, allow as super-admin
+  const userCount = await prisma.user.count();
+  if (userCount === 0) {
+    return true;
+  }
 
-  // 2. Check Allowed Domains (e.g. gccstartup.com)
+  // If auth is not required or domain is wildcard, allow
+  if (!config.requireAuth || config.allowedDomains.includes('*')) return true;
+
+  // 2. Check Allowed Domains
   const domains = config.allowedDomains
     .split(',')
     .map((d) => d.trim().toLowerCase())
     .filter(Boolean);
 
   const emailDomain = cleanEmail.split('@')[1];
-  if (emailDomain && domains.includes(emailDomain)) {
+  if (emailDomain && (domains.includes(emailDomain) || domains.includes('*'))) {
     return true;
   }
 

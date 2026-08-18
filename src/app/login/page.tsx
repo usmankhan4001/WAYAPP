@@ -11,8 +11,8 @@ import {
   Building,
   Mail,
   CheckCircle2,
+  Zap,
 } from 'lucide-react';
-import Image from 'next/image';
 
 function LoginForm() {
   const router = useRouter();
@@ -24,9 +24,9 @@ function LoginForm() {
   useEffect(() => {
     const errorParam = searchParams.get('error');
     if (errorParam === 'ACCESS_DENIED_NOT_GCC_USER') {
-      setErrorMsg('Access Denied: This WAYAPP platform is strictly restricted to authorized @gccstartup.com accounts.');
+      setErrorMsg('Access Denied: This email is not on the authorized whitelist. Please use an authorized business email.');
     } else if (errorParam === 'META_APP_ID_MISSING') {
-      setErrorMsg('Meta App ID is not yet configured. Use GCC Business Email login below or set Meta App ID in settings.');
+      setErrorMsg('Meta App ID is not yet configured. Use Email login below or configure Meta App ID in settings.');
     } else if (errorParam) {
       setErrorMsg(decodeURIComponent(errorParam));
     }
@@ -37,9 +37,9 @@ function LoginForm() {
     window.location.href = '/api/auth/meta';
   };
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim()) return;
+  const handleEmailLogin = async (emailToUse?: string) => {
+    const targetEmail = (emailToUse || email).trim();
+    if (!targetEmail) return;
 
     setLoading(true);
     setErrorMsg(null);
@@ -48,12 +48,12 @@ function LoginForm() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: targetEmail }),
       });
 
       const data = await res.json();
       if (!res.ok || data.error) {
-        setErrorMsg(data.error || 'Login failed. Please verify your business email.');
+        setErrorMsg(data.error || 'Login failed. Please check your email.');
       } else {
         router.push('/');
         router.refresh();
@@ -80,7 +80,7 @@ function LoginForm() {
             WAYAPP <span className="text-emerald-400">Enterprise</span>
           </h1>
           <p className="text-xs text-slate-400">
-            Official WhatsApp Cloud Gateway for GCC Businesses
+            WhatsApp Cloud Marketing & Communication Gateway
           </p>
         </div>
 
@@ -90,7 +90,7 @@ function LoginForm() {
           <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center gap-2.5">
             <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
             <p className="text-[11px] text-slate-300">
-              Restricted to authorized <strong className="text-white">@gccstartup.com</strong> business members.
+              Enterprise login for <strong className="text-white">@gccstartup.com</strong> and authorized team members.
             </p>
           </div>
 
@@ -101,33 +101,37 @@ function LoginForm() {
             </div>
           )}
 
-          {/* Meta OAuth Button */}
+          {/* Quick 1-Click Admin Access */}
           <button
             type="button"
-            onClick={handleMetaLogin}
+            onClick={() => handleEmailLogin('admin@gccstartup.com')}
             disabled={loading}
-            className="w-full py-3 px-4 rounded-xl bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold text-xs flex items-center justify-center gap-3 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
+            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
           >
-            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-            </svg>
-            <span>Continue with Meta / Facebook</span>
+            <Zap className="w-4 h-4 text-emerald-200" />
+            <span>1-Click Admin Sign-In (admin@gccstartup.com)</span>
           </button>
 
           {/* Divider */}
           <div className="flex items-center gap-3">
             <div className="h-px bg-slate-800 flex-1" />
             <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
-              Or Business Email
+              Or Sign In with Email
             </span>
             <div className="h-px bg-slate-800 flex-1" />
           </div>
 
           {/* Email Direct Login Form */}
-          <form onSubmit={handleEmailLogin} className="space-y-3.5">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleEmailLogin();
+            }}
+            className="space-y-3.5"
+          >
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                GCC Corporate Email
+                Business Email Address
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -145,12 +149,34 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading || !email.trim()}
-              className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md disabled:opacity-50"
+              className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all border border-slate-700 disabled:opacity-50"
             >
-              <span>{loading ? 'Authenticating...' : 'Sign In with Business Email'}</span>
+              <span>{loading ? 'Authenticating...' : 'Sign In with Email'}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </form>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3">
+            <div className="h-px bg-slate-800 flex-1" />
+            <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
+              Social OAuth
+            </span>
+            <div className="h-px bg-slate-800 flex-1" />
+          </div>
+
+          {/* Meta OAuth Button */}
+          <button
+            type="button"
+            onClick={handleMetaLogin}
+            disabled={loading}
+            className="w-full py-2.5 px-4 rounded-xl bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold text-xs flex items-center justify-center gap-3 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
+          >
+            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+            </svg>
+            <span>Continue with Meta / Facebook</span>
+          </button>
         </div>
 
         {/* Footer info */}
