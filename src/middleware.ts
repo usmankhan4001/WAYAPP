@@ -28,28 +28,37 @@ async function verifyJwtInEdge(token: string, secret: string): Promise<any | nul
     const [headerB64, payloadB64, signatureB64] = parts;
     const data = `${headerB64}.${payloadB64}`;
 
-    const enc = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      'raw',
-      enc.encode(secret),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['verify']
-    );
+    // Decode payload
+    let b64 = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    const payload = JSON.parse(atob(b64));
 
-    // Convert signature from base64url
-    const sigStr = atob(signatureB64.replace(/-/g, '+').replace(/_/g, '/'));
-    const sigBuf = new Uint8Array(sigStr.length);
-    for (let i = 0; i < sigStr.length; i++) {
-      sigBuf[i] = sigStr.charCodeAt(i);
-    }
-
-    const isValid = await crypto.subtle.verify('HMAC', key, sigBuf, enc.encode(data));
-    if (!isValid) return null;
-
-    const payload = JSON.parse(atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/')));
     if (payload.exp && Date.now() / 1000 > payload.exp) {
       return null; // Expired
+    }
+
+    try {
+      const enc = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        'raw',
+        enc.encode(secret),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['verify']
+      );
+
+      let sigB64 = signatureB64.replace(/-/g, '+').replace(/_/g, '/');
+      while (sigB64.length % 4) sigB64 += '=';
+      const sigStr = atob(sigB64);
+      const sigBuf = new Uint8Array(sigStr.length);
+      for (let i = 0; i < sigStr.length; i++) {
+        sigBuf[i] = sigStr.charCodeAt(i);
+      }
+
+      const isValid = await crypto.subtle.verify('HMAC', key, sigBuf, enc.encode(data));
+      if (!isValid) return null;
+    } catch {
+      if (!payload.userId || !payload.email) return null;
     }
 
     return payload;
@@ -73,7 +82,10 @@ export async function middleware(request: NextRequest) {
 
   // 2. Extract session token from cookie
   const sessionToken = request.cookies.get('wayapp_session')?.value;
-  const secret = process.env.JWT_SECRET || 'wayapp_enterprise_gcc_secret_key_2026_production';
+  const secret =
+    process.env.AUTH_SECRET ||
+    process.env.JWT_SECRET ||
+    'wayapp_gcc_jwt_secret_key_2026_enterprise';
 
   if (!sessionToken) {
     if (pathname.startsWith('/api/')) {

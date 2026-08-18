@@ -1,6 +1,9 @@
 import crypto from 'crypto';
 
-const JWT_SECRET = process.env.AUTH_SECRET || 'wayapp_gcc_jwt_secret_key_2026_enterprise';
+export const JWT_SECRET =
+  process.env.AUTH_SECRET ||
+  process.env.JWT_SECRET ||
+  'wayapp_gcc_jwt_secret_key_2026_enterprise';
 export const SESSION_COOKIE_NAME = 'wayapp_session';
 
 export interface UserSessionPayload {
