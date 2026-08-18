@@ -22,7 +22,7 @@ export default function TemplatesPage() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [syncNotice, setSyncNotice] = useState<string | null>(null);
+  const [syncNotice, setSyncNotice] = useState<{ text: string; ok: boolean } | null>(null);
 
   // Modal States
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -54,16 +54,16 @@ export default function TemplatesPage() {
       const res = await fetch('/api/templates/sync', { method: 'POST' });
       const data = await res.json();
       if (data.success) {
-        setSyncNotice(data.message);
+        setSyncNotice({ text: data.message, ok: true });
         fetchTemplates();
       } else {
-        setSyncNotice(`Sync notice: ${data.error}`);
+        setSyncNotice({ text: data.error || 'Failed to sync templates from Meta', ok: false });
       }
     } catch {
-      setSyncNotice('Failed to sync templates from Meta.');
+      setSyncNotice({ text: 'Unable to reach server to sync templates.', ok: false });
     } finally {
       setIsSyncing(false);
-      setTimeout(() => setSyncNotice(null), 5000);
+      setTimeout(() => setSyncNotice(null), 8000);
     }
   };
 
@@ -106,9 +106,19 @@ export default function TemplatesPage() {
       </div>
 
       {syncNotice && (
-        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>{syncNotice}</span>
+        <div
+          className={`p-3.5 rounded-xl border text-xs flex items-center gap-2 ${
+            syncNotice.ok
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+              : 'bg-rose-50 border-rose-200 text-rose-800'
+          }`}
+        >
+          {syncNotice.ok ? (
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          ) : (
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+          )}
+          <span>{syncNotice.text}</span>
         </div>
       )}
 

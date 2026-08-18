@@ -221,13 +221,37 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
                   </label>
                   <InfoTooltip content="The main text message. Insert {{1}}, {{2}} to dynamically personalize with customer names, order IDs, or promo codes." />
                 </div>
-                <span className="text-[11px] text-slate-500 font-mono">Placeholders: {"{{1}}"}, {"{{2}}"}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-slate-400">Insert:</span>
+                  <button
+                    type="button"
+                    onClick={() => setBodyText((prev) => prev + ' {{1}}')}
+                    className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  >
+                    +{"{{1}}"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBodyText((prev) => prev + ' {{2}}')}
+                    className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  >
+                    +{"{{2}}"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBodyText((prev) => prev + ' {{3}}')}
+                    className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  >
+                    +{"{{3}}"}
+                  </button>
+                </div>
               </div>
               <textarea
                 rows={4}
                 required
                 value={bodyText}
                 onChange={(e) => setBodyText(e.target.value)}
+                placeholder="Type message text..."
                 className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-sans"
               />
             </div>

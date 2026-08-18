@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { ensureDatabaseSchema } from '@/lib/db-init';
 import { WhatsAppClient } from '@/lib/whatsapp/client';
 
 export async function POST() {
   try {
+    await ensureDatabaseSchema();
     const client = await WhatsAppClient.createFromSettings();
     const metaTemplates = await client.fetchTemplates();
 

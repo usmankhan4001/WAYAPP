@@ -36,11 +36,14 @@ export class WhatsAppClient {
       where: { id: 'default' },
     });
 
+    const hasLiveCreds = Boolean(settings?.accessToken && (settings?.phoneNumberId || settings?.wabaId));
+    const isMock = settings?.isMockMode === true && !hasLiveCreds;
+
     return new WhatsAppClient({
-      wabaId: settings?.wabaId,
-      phoneNumberId: settings?.phoneNumberId,
-      accessToken: settings?.accessToken,
-      isMockMode: settings?.isMockMode ?? (!settings?.accessToken || !settings?.phoneNumberId),
+      wabaId: settings?.wabaId?.trim() || null,
+      phoneNumberId: settings?.phoneNumberId?.trim() || null,
+      accessToken: settings?.accessToken?.trim() || null,
+      isMockMode: isMock,
     });
   }
 
@@ -102,148 +105,170 @@ export class WhatsAppClient {
    * Fetch approved/pending message templates from Meta WABA
    */
   async fetchTemplates(): Promise<MetaTemplateResponse[]> {
-    if (this.isMockMode || !this.accessToken || !this.wabaId) {
-      // Return realistic mock templates
-      return [
-        {
-          id: 'tpl_welcome_promo',
-          name: 'welcome_offer_promo',
-          language: 'en_US',
-          status: 'APPROVED',
-          category: 'MARKETING',
-          components: [
-            {
-              type: 'HEADER',
-              format: 'IMAGE',
-              text: 'Special Welcome Discount',
-            },
-            {
-              type: 'BODY',
-              text: 'Hi {{1}}, thank you for contacting {{2}}! Use your exclusive coupon code {{3}} for 25% off your first order.',
-              example: {
-                body_text: [['John', 'Our Store', 'WELCOME25']],
-              },
-            },
-            {
-              type: 'FOOTER',
-              text: 'Reply STOP to opt out',
-            },
-            {
-              type: 'BUTTONS',
-              buttons: [
-                {
-                  type: 'URL',
-                  text: 'Claim Offer Online',
-                  url: 'https://example.com/claim',
-                },
-                {
-                  type: 'QUICK_REPLY',
-                  text: 'Talk to Agent',
-                },
-              ],
-            },
-          ],
-        },
-        {
-          id: 'tpl_order_update',
-          name: 'order_status_notification',
-          language: 'en_US',
-          status: 'APPROVED',
-          category: 'UTILITY',
-          components: [
-            {
-              type: 'HEADER',
-              format: 'TEXT',
-              text: 'Order Status Update #{{1}}',
-            },
-            {
-              type: 'BODY',
-              text: 'Hello {{1}}, your order #{{2}} has been confirmed and is being prepared. Expected delivery: {{3}}.',
-              example: {
-                body_text: [['Sarah', 'ORD-9842', 'Tomorrow, 5:00 PM']],
-              },
-            },
-            {
-              type: 'FOOTER',
-              text: 'Thank you for choosing us!',
-            },
-            {
-              type: 'BUTTONS',
-              buttons: [
-                {
-                  type: 'URL',
-                  text: 'Track Live Status',
-                  url: 'https://example.com/track/{{1}}',
-                },
-              ],
-            },
-          ],
-        },
-        {
-          id: 'tpl_vip_invitation',
-          name: 'vip_exclusive_event_invite',
-          language: 'en_US',
-          status: 'APPROVED',
-          category: 'MARKETING',
-          components: [
-            {
-              type: 'HEADER',
-              format: 'TEXT',
-              text: 'Exclusive VIP Invitation',
-            },
-            {
-              type: 'BODY',
-              text: 'Dear {{1}}, you are cordially invited to our exclusive private preview event in {{2}} on {{3}}.',
-              example: {
-                body_text: [['Ahmed', 'Dubai Marina', 'Friday, 8:00 PM']],
-              },
-            },
-            {
-              type: 'FOOTER',
-              text: 'Limited seating available',
-            },
-            {
-              type: 'BUTTONS',
-              buttons: [
-                {
-                  type: 'QUICK_REPLY',
-                  text: 'RSVP Yes',
-                },
-                {
-                  type: 'QUICK_REPLY',
-                  text: 'Cannot Attend',
-                },
-              ],
-            },
-          ],
-        },
-      ];
+    if (!this.wabaId || !this.accessToken) {
+      if (this.isMockMode) {
+        return this.getMockTemplates();
+      }
+      throw new Error(
+        'Meta credentials missing: WhatsApp Business Account ID (WABA ID) and Permanent Access Token are required. Please check API & Settings.'
+      );
     }
 
     try {
       const response = await fetch(
-        `${META_GRAPH_URL}/${this.wabaId}/message_templates?limit=100`,
+        `${META_GRAPH_URL}/${this.wabaId.trim()}/message_templates?fields=name,status,category,language,components,id,quality_score,rejected_reason&limit=250`,
         {
           headers: {
-            Authorization: `Bearer ${this.accessToken}`,
+            Authorization: `Bearer ${this.accessToken.trim()}`,
           },
+          cache: 'no-store',
         }
       );
 
       const data = await response.json();
       if (!response.ok || data.error) {
-        throw new Error(data.error?.message || 'Failed to fetch templates from Meta');
+        const errorMsg = data.error?.message || `Meta API error (${response.status}): ${response.statusText}`;
+        throw new Error(`Meta Template Sync Failed: ${errorMsg}`);
       }
 
-      return data.data as MetaTemplateResponse[];
+      return (data.data || []).map((t: any) => ({
+        id: String(t.id),
+        name: t.name,
+        language: t.language || 'en_US',
+        category: t.category || 'MARKETING',
+        status: t.status || 'APPROVED',
+        components: Array.isArray(t.components) ? t.components : [],
+        quality_score: t.quality_score,
+        rejected_reason: t.rejected_reason,
+      })) as MetaTemplateResponse[];
     } catch (err: any) {
-      console.error('Error fetching templates:', err);
+      console.error('Error fetching templates from Meta:', err);
       throw err;
     }
   }
 
   /**
-   * Create a new message template on Meta
+   * Mock templates helper for offline simulation
+   */
+  private getMockTemplates(): MetaTemplateResponse[] {
+    return [
+      {
+        id: 'tpl_welcome_promo',
+        name: 'welcome_offer_promo',
+        language: 'en_US',
+        status: 'APPROVED',
+        category: 'MARKETING',
+        components: [
+          {
+            type: 'HEADER',
+            format: 'IMAGE',
+            text: 'Special Welcome Discount',
+          },
+          {
+            type: 'BODY',
+            text: 'Hi {{1}}, thank you for contacting {{2}}! Use your exclusive coupon code {{3}} for 25% off your first order.',
+            example: {
+              body_text: [['John', 'Our Store', 'WELCOME25']],
+            },
+          },
+          {
+            type: 'FOOTER',
+            text: 'Reply STOP to opt out',
+          },
+          {
+            type: 'BUTTONS',
+            buttons: [
+              {
+                type: 'URL',
+                text: 'Claim Offer Online',
+                url: 'https://example.com/claim',
+              },
+              {
+                type: 'QUICK_REPLY',
+                text: 'Talk to Agent',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: 'tpl_order_update',
+        name: 'order_status_notification',
+        language: 'en_US',
+        status: 'APPROVED',
+        category: 'UTILITY',
+        components: [
+          {
+            type: 'HEADER',
+            format: 'TEXT',
+            text: 'Order Status Update #{{1}}',
+          },
+          {
+            type: 'BODY',
+            text: 'Hello {{1}}, your order #{{2}} has been confirmed and is being prepared. Expected delivery: {{3}}.',
+            example: {
+              body_text: [['Sarah', 'ORD-9842', 'Tomorrow, 5:00 PM']],
+            },
+          },
+          {
+            type: 'FOOTER',
+            text: 'Thank you for choosing us!',
+          },
+          {
+            type: 'BUTTONS',
+            buttons: [
+              {
+                type: 'URL',
+                text: 'Track Live Status',
+                url: 'https://example.com/track/{{1}}',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: 'tpl_vip_invitation',
+        name: 'vip_exclusive_event_invite',
+        language: 'en_US',
+        status: 'APPROVED',
+        category: 'MARKETING',
+        components: [
+          {
+            type: 'HEADER',
+            format: 'TEXT',
+            text: 'Exclusive VIP Invitation',
+          },
+          {
+            type: 'BODY',
+            text: 'Dear {{1}}, you are cordially invited to our exclusive private preview event in {{2}} on {{3}}.',
+            example: {
+              body_text: [['Ahmed', 'Dubai Marina', 'Friday, 8:00 PM']],
+            },
+          },
+          {
+            type: 'FOOTER',
+            text: 'Limited seating available',
+          },
+          {
+            type: 'BUTTONS',
+            buttons: [
+              {
+                type: 'QUICK_REPLY',
+                text: 'RSVP Yes',
+              },
+              {
+                type: 'QUICK_REPLY',
+                text: 'Cannot Attend',
+              },
+            ],
+          },
+        ],
+      },
+    ];
+  }
+
+  /**
+   * Create a new message template on Meta with full Graph API v21.0 compliance
    */
   async createTemplate(params: {
     name: string;
@@ -258,22 +283,81 @@ export class WhatsAppClient {
       };
     }
 
-    const response = await fetch(`${META_GRAPH_URL}/${this.wabaId}/message_templates`, {
+    // Ensure components conform to strict Meta Graph API formatting rules
+    const formattedComponents = (params.components || []).map((comp: any) => {
+      const c: any = { type: comp.type };
+
+      if (comp.type === 'HEADER') {
+        c.format = comp.format || 'TEXT';
+        if (c.format === 'TEXT') {
+          c.text = comp.text || '';
+          const varMatches = (c.text.match(/{{\d+}}/g) || []);
+          if (varMatches.length > 0) {
+            c.example = {
+              header_text: varMatches.map((_: string, idx: number) => `Header_Sample_${idx + 1}`),
+            };
+          }
+        } else if (c.format === 'IMAGE') {
+          c.example = comp.example || {
+            header_handle: ['https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=800&q=80'],
+          };
+        }
+      } else if (comp.type === 'BODY') {
+        c.text = comp.text || '';
+        const varMatches = (c.text.match(/{{\d+}}/g) || []);
+        if (varMatches.length > 0) {
+          c.example = {
+            body_text: [
+              varMatches.map((_: string, idx: number) => `Sample_Value_${idx + 1}`),
+            ],
+          };
+        }
+      } else if (comp.type === 'FOOTER') {
+        if (comp.text) {
+          c.text = comp.text;
+        }
+      } else if (comp.type === 'BUTTONS') {
+        c.buttons = (comp.buttons || []).map((btn: any) => {
+          const b: any = { type: btn.type, text: btn.text };
+          if (btn.type === 'URL') {
+            b.url = btn.url || 'https://example.com';
+            if (b.url.includes('{{1}}')) {
+              b.example = ['https://example.com/sample_path'];
+            }
+          } else if (btn.type === 'PHONE_NUMBER') {
+            b.phone_number = btn.phone_number || '+1234567890';
+          }
+          return b;
+        });
+      }
+
+      return c;
+    });
+
+    const payload = {
+      name: params.name.toLowerCase().replace(/[^a-z0-9_]/g, '_'),
+      category: params.category,
+      language: params.language || 'en_US',
+      components: formattedComponents,
+    };
+
+    const response = await fetch(`${META_GRAPH_URL}/${this.wabaId.trim()}/message_templates`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${this.accessToken}`,
+        Authorization: `Bearer ${this.accessToken.trim()}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(params),
+      body: JSON.stringify(payload),
     });
 
     const data = await response.json();
     if (!response.ok || data.error) {
-      throw new Error(data.error?.message || 'Failed to create template on Meta');
+      const msg = data.error?.message || `Meta API Error (${response.status}): ${response.statusText}`;
+      throw new Error(`Meta Template Creation Failed: ${msg}`);
     }
 
     return {
-      id: data.id,
+      id: String(data.id),
       status: data.status || 'PENDING',
     };
   }
