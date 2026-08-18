@@ -1,8 +1,14 @@
 #!/bin/sh
 set -e
 
-# Run Prisma schema migration/sync to ensure database tables are created on fresh volume
-npx prisma db push --skip-generate
+# Ensure SQLite volume directory exists and has correct nextjs ownership
+mkdir -p /app/prisma
+chown -R nextjs:nodejs /app/prisma
 
-# Start the standalone Next.js server
-exec node server.js
+# Sync schema with SQLite database using embedded local Prisma CLI
+if [ -f "./node_modules/prisma/build/index.js" ]; then
+  su-exec nextjs node ./node_modules/prisma/build/index.js db push --accept-data-loss
+fi
+
+# Start Next.js standalone server as non-root nextjs user
+exec su-exec nextjs node server.js
