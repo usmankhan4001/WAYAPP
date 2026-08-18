@@ -130,7 +130,14 @@ const META_ERROR_CATALOG: Record<number, Omit<MetaErrorInfo, 'code'>> = {
     isRetryable: false,
   },
 
-  // Phone Number Registration
+  // Phone Number Registration & Display Name
+  131037: {
+    category: 'UNREGISTERED_PHONE',
+    title: 'Phone Display Name Pending Approval',
+    userMessage: 'The display name for your WhatsApp Business phone number has not yet been approved by Meta.',
+    action: 'Open Meta Business Manager > WhatsApp Accounts > Phone Numbers, verify your Display Name status is APPROVED, or submit a business display name for review.',
+    isRetryable: false,
+  },
   131045: {
     category: 'UNREGISTERED_PHONE',
     title: 'Phone Number Not Registered on Cloud API',

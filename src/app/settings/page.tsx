@@ -331,10 +331,16 @@ export default function SettingsPage() {
 
             {/* Diagnostic Details Grid */}
             {testDetails?.phoneDetails && (
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
                 <div>
                   <span className="text-[10px] text-slate-400 uppercase font-semibold">Display Phone</span>
                   <p className="font-bold font-mono text-slate-800">{testDetails.phoneDetails.display_phone_number || 'N/A'}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold">Display Name Status</span>
+                  <p className={`font-bold ${testDetails.phoneDetails.name_status === 'APPROVED' ? 'text-emerald-700' : 'text-amber-700'}`}>
+                    {testDetails.phoneDetails.name_status || (testDetails.phoneDetails.verified_name ? 'APPROVED' : 'PENDING')}
+                  </p>
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-400 uppercase font-semibold">Quality Rating</span>

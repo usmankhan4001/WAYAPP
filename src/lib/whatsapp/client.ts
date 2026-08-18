@@ -79,7 +79,7 @@ export class WhatsAppClient {
     try {
       // 1. Check Phone Number info
       const phoneRes = await fetch(
-        `${META_GRAPH_URL}/${this.phoneNumberId}?fields=display_phone_number,verified_name,quality_rating,code_verification_status,status`,
+        `${META_GRAPH_URL}/${this.phoneNumberId}?fields=display_phone_number,verified_name,quality_rating,code_verification_status,status,name_status`,
         {
           headers: {
             Authorization: `Bearer ${this.accessToken}`,
