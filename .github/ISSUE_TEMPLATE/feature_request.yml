@@ -1,0 +1,22 @@
+name: 💡 Feature Request
+description: Suggest an idea or enhancement for WAYAPP
+title: "[FEATURE]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: We appreciate suggestions to make WAYAPP better!
+  - type: textarea
+    id: problem
+    attributes:
+      label: Is your feature request related to a problem?
+      description: A clear description of the use case or limitation.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe what you would like to happen and how it should work.
+    validations:
+      required: true
