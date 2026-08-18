@@ -10,6 +10,7 @@ import {
   Trash2,
   Edit2,
   Filter,
+  Download,
 } from 'lucide-react';
 import { CsvImportModal } from '@/components/contacts/CsvImportModal';
 import { GroupTagModal } from '@/components/contacts/GroupTagModal';
@@ -32,6 +33,25 @@ export default function ContactsPage() {
   const [isGroupTagOpen, setIsGroupTagOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<any | null>(null);
+
+  const downloadSampleCsv = () => {
+    const csvContent =
+      'phoneNumber,firstName,lastName,email,company,city,tags\n' +
+      '+971501234567,Ahmed,Al-Maktoum,ahmed@example.com,Dubai Holdings,Dubai,"VIP, Premium"\n' +
+      '+966501234567,Sara,Al-Saud,sara@example.com,Riyadh Capital,Riyadh,"Lead, Retail"\n' +
+      '+974501234567,Tariq,Mansoor,tariq@example.com,Doha Trading,Doha,Customer\n' +
+      '+15550192834,John,Smith,john.smith@example.com,Acme Corp,New York,"VIP, Partner"\n' +
+      '+447700900077,Emma,Watson,emma.watson@example.com,London Tech,London,Lead\n';
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'wayapp_contacts_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const fetchContacts = () => {
     let url = `/api/contacts?search=${encodeURIComponent(search)}`;
@@ -87,7 +107,17 @@ export default function ContactsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <Tooltip content="Download a sample CSV file template formatted with phone numbers, names, email, and attributes.">
+            <button
+              onClick={downloadSampleCsv}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-sm transition-all"
+            >
+              <Download className="w-3.5 h-3.5 text-emerald-600" />
+              <span>CSV Template</span>
+            </button>
+          </Tooltip>
+
           <Tooltip content="Create and manage custom static groups (e.g. VIP Clients, Retail) and tag taxonomies.">
             <button
               onClick={() => setIsGroupTagOpen(true)}
