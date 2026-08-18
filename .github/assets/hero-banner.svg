@@ -82,18 +82,21 @@
     <g transform="translate(0, 180)">
       <!-- Badge 1: 2-Way Live Chat -->
       <g>
-        <rect width="130" height="30" rx="8" fill="#1e293b" fill-opacity="0.8" stroke="#334155" stroke-width="1" />
-        <text x="14" y="19" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="500" fill="#cbd5e1">⚡ Live 2-Way Chat</text>
+        <rect width="124" height="30" rx="8" fill="#1e293b" fill-opacity="0.8" stroke="#334155" stroke-width="1" />
+        <circle cx="14" cy="15" r="3.5" fill="#10b981" />
+        <text x="24" y="19" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600" fill="#cbd5e1">Live 2-Way Chat</text>
       </g>
       <!-- Badge 2: Rate Throttling -->
-      <g transform="translate(142, 0)">
-        <rect width="145" height="30" rx="8" fill="#1e293b" fill-opacity="0.8" stroke="#334155" stroke-width="1" />
-        <text x="14" y="19" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="500" fill="#cbd5e1">🎯 Smart Segmentation</text>
+      <g transform="translate(136, 0)">
+        <rect width="138" height="30" rx="8" fill="#1e293b" fill-opacity="0.8" stroke="#334155" stroke-width="1" />
+        <circle cx="14" cy="15" r="3.5" fill="#38bdf8" />
+        <text x="24" y="19" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600" fill="#cbd5e1">Segmentation</text>
       </g>
       <!-- Badge 3: Dokploy Ready -->
-      <g transform="translate(299, 0)">
-        <rect width="125" height="30" rx="8" fill="#1e293b" fill-opacity="0.8" stroke="#334155" stroke-width="1" />
-        <text x="14" y="19" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="500" fill="#cbd5e1">🐳 Dokploy Ready</text>
+      <g transform="translate(286, 0)">
+        <rect width="120" height="30" rx="8" fill="#1e293b" fill-opacity="0.8" stroke="#334155" stroke-width="1" />
+        <circle cx="14" cy="15" r="3.5" fill="#f59e0b" />
+        <text x="24" y="19" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600" fill="#cbd5e1">Dokploy Ready</text>
       </g>
     </g>
 
@@ -163,7 +166,7 @@
       </g>
 
       <text x="14" y="54" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="400" fill="#cbd5e1">
-        Hello {{1}}, your exclusive VIP access is ready! ⚡
+        Hello {{1}}, your exclusive VIP access is ready.
       </text>
       
       <!-- Action Button Pill -->

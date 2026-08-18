@@ -4,9 +4,9 @@ WAYAPP takes the security of business messaging, API credentials, and customer d
 
 ## Supported Versions
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.x.x   | :white_check_mark: |
+| Version | Supported |
+| ------- | --------- |
+| 1.x.x   | Yes       |
 
 ## Reporting a Vulnerability
 

@@ -1,6 +1,6 @@
-# Contributing to WAYAPP ⚡
+# Contributing to WAYAPP
 
-Thank you for your interest in contributing to **WAYAPP**! We welcome bug fixes, performance optimizations, feature suggestions, and documentation improvements.
+Thank you for your interest in contributing to **WAYAPP**. We welcome bug fixes, performance optimizations, feature suggestions, and documentation improvements.
 
 ## Development Setup
 

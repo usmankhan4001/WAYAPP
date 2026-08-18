@@ -18,29 +18,29 @@
 
 ---
 
-## 📑 Table of Contents
+## Table of Contents
 
-- [Overview](#-overview)
-- [Why WAYAPP vs Commercial SaaS](#-why-wayapp-vs-commercial-saas)
-- [Key Features](#-key-features)
-- [Architecture](#-architecture)
-- [Quick Start (Local Development)](#-quick-start-local-development)
-- [Dokploy & Cloudflare Tunnel Deployment](#-dokploy--cloudflare-tunnel-deployment)
-- [Meta WhatsApp Cloud API Configuration](#-meta-whatsapp-cloud-api-configuration)
-- [Environment Variables](#-environment-variables)
-- [Project Structure](#-project-structure)
-- [Contributing](#-contributing)
-- [License](#-license)
+- [Overview](#overview)
+- [Why WAYAPP vs Commercial SaaS](#why-wayapp-vs-commercial-saas)
+- [Key Features](#key-features)
+- [Architecture](#architecture)
+- [Quick Start (Local Development)](#quick-start-local-development)
+- [Dokploy & Cloudflare Tunnel Deployment](#dokploy--cloudflare-tunnel-deployment)
+- [Meta WhatsApp Cloud API Configuration](#meta-whatsapp-cloud-api-configuration)
+- [Environment Variables](#environment-variables)
+- [Project Structure](#project-structure)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
-## ⚡ Overview
+## Overview
 
 **WAYAPP** (*dablew aay yapp*) is an enterprise-grade, single-tenant WhatsApp Broadcast, Marketing Automation, and 2-Way Live Customer Support platform. Built on the official **Meta WhatsApp Business Cloud API (Graph API v21.0)**, WAYAPP lets you send high-volume campaigns, manage interactive templates, segment audiences, and chat with customers without paying monthly markups or per-conversation SaaS fees.
 
 ---
 
-## 💡 Why WAYAPP vs Commercial SaaS
+## Why WAYAPP vs Commercial SaaS
 
 | Capability | Commercial SaaS (WATI, Interakt, etc.) | **WAYAPP (Self-Hosted)** |
 | :--- | :--- | :--- |
@@ -53,69 +53,72 @@
 
 ---
 
-## 🌟 Key Features
+## Key Features
 
-### 1. 🔒 3-Step Meta Activation Gatekeeper
+### 1. 3-Step Meta Activation Gatekeeper
 - Validates Phone Number ID, WABA ID, and Permanent System User Access Token against Meta's live endpoints before unlocking the dashboard.
 - Includes a **Virtual Mock Simulator** mode for immediate testing without live credentials.
 
-### 2. 📄 Interactive Template Studio & Live Mockup
+### 2. Interactive Template Studio & Live Mockup
 - Synchronizes approved templates directly from Meta Business Manager.
 - Interactive WhatsApp mobile phone simulator showing real-time text, variable interpolations (`{{1}}`, `{{2}}`), dynamic image headers, and Quick Reply / CTA URL buttons.
 - Direct test-message dispatcher to preview approved templates on your own phone.
 
-### 3. 👥 Audience Segmentation & Smart CSV Import
+### 3. Audience Segmentation & Smart CSV Import
 - Import thousands of contacts via CSV with automatic E.164 phone formatting and country code normalization.
 - Tag taxonomies, group memberships, and arbitrary JSON custom attributes (`company`, `tier`, `balance`).
 - Dynamic audience deduplication calculator for broadcast budgeting.
 
-### 4. 🚀 Throttled Campaign Broadcast Wizard
-- 4-step wizard: Setup $\rightarrow$ Audience Filtering $\rightarrow$ Variable Mapping $\rightarrow$ Live Launch.
+### 4. Throttled Campaign Broadcast Wizard
+- 4-step wizard: Setup &rarr; Audience Filtering &rarr; Variable Mapping &rarr; Live Launch.
 - Configurable concurrency and rate-limiter (default: 20 msgs/sec) to stay within Meta account throughput limits.
 - Background worker with instant pause, resume, and real-time execution telemetry.
 
-### 5. 📊 Real-Time Webhook Pipeline & Funnel Telemetry
-- Real-time message status lifecycle:
-  $$\text{Targeted} \longrightarrow \text{Dispatched} \longrightarrow \text{Delivered (✓✓)} \longrightarrow \text{Read (✓✓ blue)} \longrightarrow \text{Replied}$$
+### 5. Real-Time Webhook Pipeline & Funnel Telemetry
+- Real-time message status lifecycle tracking:
+  - Targeted &rarr; Dispatched &rarr; Delivered &rarr; Read &rarr; Replied
 - Failure diagnostics tracking exact Meta error codes (e.g. `131026: Message Undeliverable`, `131047: 24h Window Re-engagement`).
 
-### 6. 💬 Omnichannel Live 2-Way Inbox
+### 6. Omnichannel Live 2-Way Inbox
 - Full customer service chat interface for replying to incoming inquiries within the 24-hour customer care window.
 - Visual session countdown timer showing remaining customer care window validity.
 
 ---
 
-## 🏗 Architecture
+## Architecture
 
 ```mermaid
-graph TD
-    subgraph Meta Cloud ["Meta WhatsApp Infrastructure"]
+flowchart TD
+    subgraph MetaCloud["Meta WhatsApp Cloud"]
         MetaAPI["Meta Graph API v21.0"]
-        MetaHook["Meta Inbound Webhooks"]
+        MetaHook["Inbound Webhooks"]
     end
 
-    subgraph Edge ["Edge & Ingress"]
-        CF["Cloudflare Edge (*.yourdomain.com)"]
+    subgraph EdgeNetwork["Edge & Ingress"]
+        CF["Cloudflare Edge"]
         Tunnel["Cloudflare Zero Trust Tunnel"]
     end
 
-    subgraph DokployHost ["Dokploy Host (Docker Environment)"]
+    subgraph DokployHost["Dokploy Host (Docker Environment)"]
         Traefik["Traefik Reverse Proxy"]
         App["WAYAPP Container (Next.js 15)"]
         Queue["Throttled Dispatch Worker"]
-        DB[("Persistent SQLite Volume: /app/prisma")]
+        DB[("Persistent SQLite Volume")]
     end
 
-    CF --> Tunnel --> Traefik --> App
-    App <--> DB
-    App --> Queue --> MetaAPI
-    MetaHook --> CF
+    CF --> Tunnel
+    Tunnel --> Traefik
+    Traefik --> App
     App --> DB
+    DB --> App
+    App --> Queue
+    Queue --> MetaAPI
+    MetaHook --> CF
 ```
 
 ---
 
-## 🚀 Quick Start (Local Development)
+## Quick Start (Local Development)
 
 ### Prerequisites
 - Node.js 20+ installed
@@ -147,9 +150,9 @@ Open **[http://localhost:3000](http://localhost:3000)** to launch the WAYAPP Set
 
 ---
 
-## 🐳 Dokploy & Cloudflare Tunnel Deployment
+## Dokploy & Cloudflare Tunnel Deployment
 
-Deploy WAYAPP to your Dokploy server in minutes:
+Deploy WAYAPP to your Dokploy server:
 
 1. **Create Application in Dokploy**:
    - Application Type: **Docker / Git Repository**
@@ -157,7 +160,7 @@ Deploy WAYAPP to your Dokploy server in minutes:
    - Branch: `main`
    - Build Type: **Dockerfile**
 
-2. **Configure Persistent SQLite Volume (Crucial)**:
+2. **Configure Persistent SQLite Volume**:
    - **Mount Path**: `/app/prisma`
    - **Volume Name**: `wayapp_storage`
 
@@ -174,9 +177,9 @@ Deploy WAYAPP to your Dokploy server in minutes:
 
 ---
 
-## ⚙ Meta WhatsApp Cloud API Configuration
+## Meta WhatsApp Cloud API Configuration
 
-1. In the [Meta for Developers Portal](https://developers.facebook.com/), open your WhatsApp App $\rightarrow$ **Configuration**.
+1. In the [Meta for Developers Portal](https://developers.facebook.com/), open your WhatsApp App &rarr; **Configuration**.
 2. Set **Callback URL**:
    ```
    https://whatsapp.yourdomain.com/api/webhooks/whatsapp
@@ -188,7 +191,7 @@ Deploy WAYAPP to your Dokploy server in minutes:
 
 ---
 
-## 🔐 Environment Variables
+## Environment Variables
 
 | Variable | Description | Default | Required |
 | :--- | :--- | :--- | :--- |
@@ -199,7 +202,7 @@ Deploy WAYAPP to your Dokploy server in minutes:
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 WAYAPP/
@@ -234,9 +237,9 @@ WAYAPP/
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are warmly welcomed! Please read our [Contributing Guidelines](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting pull requests.
+Contributions are welcomed. Please read our [Contributing Guidelines](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting pull requests.
 
 ```bash
 # Branch convention
@@ -245,10 +248,10 @@ git checkout -b feat/your-feature-name
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the [MIT License](LICENSE) — free for personal and commercial usage.
 
 <p align="center">
-  Built with ❤️ for high-performance WhatsApp Business operations.
+  Built for high-performance WhatsApp Business operations.
 </p>

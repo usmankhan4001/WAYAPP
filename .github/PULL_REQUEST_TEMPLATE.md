@@ -2,12 +2,12 @@
 <!-- Provide a concise description of the changes made in this pull request -->
 
 ## Type of Change
-- [ ] 🐛 Bug fix (non-breaking change which fixes an issue)
-- [ ] ✨ New feature (non-breaking change which adds functionality)
-- [ ] ⚡ Performance improvement
-- [ ] 🎨 UI / UX refinement
-- [ ] 📝 Documentation update
-- [ ] 🔒 Security fix
+- [ ] Bug fix (non-breaking change which fixes an issue)
+- [ ] New feature (non-breaking change which adds functionality)
+- [ ] Performance improvement
+- [ ] UI / UX refinement
+- [ ] Documentation update
+- [ ] Security fix
 
 ## Areas Affected
 - [ ] Meta Graph API v21.0 Client / Signature
