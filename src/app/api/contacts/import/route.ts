@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        // Assign Tag if requested
+        // Assign Tag if requested from dropdown
         if (targetTagId) {
           await prisma.contactsOnTags.upsert({
             where: {
@@ -103,6 +103,32 @@ export async function POST(request: NextRequest) {
               tagId: targetTagId,
             },
           });
+        }
+
+        // Auto-assign any comma-separated tags in the CSV row
+        const rowTagsRaw = (columnMapping.tags ? row[columnMapping.tags] : row['tags'] || row['Tags'] || row['TAGS']) as string | undefined;
+        if (rowTagsRaw && typeof rowTagsRaw === 'string') {
+          const tagNames = rowTagsRaw.split(',').map((t) => t.trim()).filter(Boolean);
+          for (const tagName of tagNames) {
+            const tagRecord = await prisma.tag.upsert({
+              where: { name: tagName },
+              update: {},
+              create: { name: tagName },
+            });
+            await prisma.contactsOnTags.upsert({
+              where: {
+                contactId_tagId: {
+                  contactId: contact.id,
+                  tagId: tagRecord.id,
+                },
+              },
+              update: {},
+              create: {
+                contactId: contact.id,
+                tagId: tagRecord.id,
+              },
+            }).catch(() => {});
+          }
         }
 
         importedCount++;

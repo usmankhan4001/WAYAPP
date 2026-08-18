@@ -1,0 +1,6 @@
+phoneNumber,firstName,lastName,email,company,city,tags
++971501234567,Ahmed,Al-Maktoum,ahmed@example.com,Dubai Holdings,Dubai,"VIP, Premium"
++966501234567,Sara,Al-Saud,sara@example.com,Riyadh Capital,Riyadh,"Lead, Tech"
++974501234567,Tariq,Mansoor,tariq@example.com,Doha Trading,Doha,Customer
++15550192834,John,Smith,john.smith@example.com,Acme Corp,New York,"VIP, Partner"
++447700900077,Emma,Watson,emma.watson@example.com,London Tech,London,Lead
