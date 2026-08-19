@@ -1,30 +1,37 @@
 #!/bin/sh
-set -e
 
-# Ensure uploads directory exists with proper read/write permissions
+# Ensure uploads directory exists
 mkdir -p /app/uploads
-chown -R nextjs:nodejs /app/uploads 2>/dev/null || true
 chmod -R 777 /app/uploads 2>/dev/null || true
 
-# Generate Prisma Client to ensure client matches environment database provider
-echo "Generating Prisma Client..."
-su-exec nextjs /app/node_modules/.bin/prisma generate
+echo "Checking PostgreSQL connection..."
+# Wait for PostgreSQL to become reachable
+for i in $(seq 1 20); do
+  echo "Attempt $i/20: Checking database readiness..."
+  if node -e "
+    const { Client } = require('pg');
+    const client = new Client({ connectionString: process.env.DATABASE_URL });
+    client.connect()
+      .then(() => { client.end(); process.exit(0); })
+      .catch(() => process.exit(1));
+  " 2>/dev/null; then
+    echo "PostgreSQL is connected and ready!"
+    break
+  fi
+  sleep 2
+done
 
-# Apply database migrations (no-op when already applied).
-# Never `db push` in production — schema is owned by prisma/migrations.
 echo "Applying database migrations..."
-su-exec nextjs /app/node_modules/.bin/prisma migrate deploy
+npx prisma migrate deploy 2>&1 || echo "Migration warning: check migration logs"
 
-# Optional explicit seed on first run (requires ADMIN_PASSWORD + --force in prod)
 if [ "$RUN_SEED" = "true" ]; then
   echo "Seeding database (RUN_SEED=true)..."
-  su-exec nextjs /app/node_modules/.bin/tsx prisma/seed.ts --force
+  npx tsx prisma/seed.ts --force 2>&1 || echo "Seed warning: check seed logs"
 fi
 
-# Execute CMD passed to entrypoint or default to node server.js
 if [ "$#" -gt 0 ]; then
-  exec su-exec nextjs "$@"
+  exec "$@"
 else
   echo "Starting WAYAPP application server on port ${PORT:-3000}..."
-  exec su-exec nextjs node server.js
+  exec node server.js
 fi
