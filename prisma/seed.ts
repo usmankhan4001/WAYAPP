@@ -32,10 +32,28 @@ async function main() {
     update: {},
     create: {
       id: 'default',
-      allowedDomains: 'gccstartup.com,wayapp.io',
-      allowedEmails: '',
       requireAuth: true,
       allowRegistration: true,
+    },
+  });
+
+  // Default Super Admin User
+  const adminPasswordHash = await bcrypt.hash('Admin@12345', 12);
+  await prisma.user.upsert({
+    where: { email: 'admin@gccstartup.com' },
+    update: {
+      passwordHash: adminPasswordHash,
+      role: 'SUPER_ADMIN',
+      isActive: true,
+      status: 'ACTIVE',
+    },
+    create: {
+      email: 'admin@gccstartup.com',
+      name: 'GCC Super Admin',
+      passwordHash: adminPasswordHash,
+      role: 'SUPER_ADMIN',
+      isActive: true,
+      status: 'ACTIVE',
     },
   });
 
