@@ -14,9 +14,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma Client & pre-build SQLite template database
+# Generate Prisma Client & pre-build SQLite database
 RUN npx prisma generate
-RUN DATABASE_URL="file:/app/prisma/template.db" npx prisma db push
+RUN DATABASE_URL="file:/app/prisma/dev.db" npx prisma db push
 
 # Build Next.js in standalone mode
 ENV NEXT_TELEMETRY_DISABLED=1
