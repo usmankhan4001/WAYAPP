@@ -27,6 +27,8 @@ model Settings {
   isMockMode            Boolean  @default(false)
   isConnected           Boolean  @default(false)  // Gateway activation gatekeeper
   encryptionCheck       String?  // Canary string for checking secret key validity
+  marketingMessagesEnabled Boolean @default(false)
+  marketingMessagesPolicy  String  @default("CLOUD_API_FALLBACK") // CLOUD_API_FALLBACK, STRICT
   updatedAt             DateTime @updatedAt
 }
 
@@ -117,12 +119,15 @@ model Contact {
   updatedAt          DateTime            @updatedAt
   
   // Relations
-  groups             ContactsOnGroups[]
-  tags               ContactsOnTags[]
-  campaignMessages   CampaignMessage[]
-  chatMessages       ChatMessage[]
-  conversation       Conversation?
-  flowRuns           FlowRun[]
+  groups               ContactsOnGroups[]
+  tags                 ContactsOnTags[]
+  campaignMessages     CampaignMessage[]
+  chatMessages         ChatMessage[]
+  conversation         Conversation?
+  flowRuns             FlowRun[]
+  conversationSessions ConversationSession[]
+  suppressions         ContactSuppression[]
+  conversionEvents     ConversionEvent[]
 
   @@index([status])
   @@index([phoneNumber])
@@ -210,6 +215,7 @@ model Campaign {
   
   // Status: DRAFT, SCHEDULED, QUEUED, RUNNING, COMPLETED, PAUSED, CANCELLED, FAILED
   status             String           @default("DRAFT")
+  optimizationMode   String           @default("AUTO") // AUTO, OPTIMIZED, STANDARD
   
   // Aggregated Real-time Analytics Counters
   totalContacts      Int              @default(0)
@@ -239,6 +245,7 @@ model CampaignMessage {
   contact       Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
   phoneNumber   String
   wamid         String?   @unique // Meta WhatsApp Message ID
+  channel       String    @default("CLOUD_API") // CLOUD_API, MARKETING_MESSAGES_API
   
   // State: PENDING -> SENDING -> SENT -> DELIVERED -> READ -> REPLIED / FAILED
   status        String    @default("PENDING")
@@ -505,3 +512,72 @@ model PushSubscription {
 
   @@index([userId])
 }
+
+// -------------------------------------------------------------
+// STATEFUL CONVERSATION FLOWS (GCC LEAD QUALIFICATION)
+// -------------------------------------------------------------
+model ConversationFlow {
+  id          String                @id @default(cuid())
+  name        String
+  slug        String                @unique
+  description String?
+  definition  String                // JSON Flow Definition
+  isActive    Boolean               @default(true)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  sessions    ConversationSession[]
+}
+
+model ConversationSession {
+  id          String            @id @default(cuid())
+  contactId   String
+  flowId      String
+  currentStep String
+  status      String            @default("ACTIVE") // ACTIVE, COMPLETED, ABANDONED, HANDED_OFF, CANCELLED
+  dataJson    String            @default("{}")
+  startedAt   DateTime          @default(now())
+  completedAt DateTime?
+  updatedAt   DateTime          @updatedAt
+
+  contact     Contact           @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  flow        ConversationFlow  @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  @@index([contactId, status])
+  @@index([flowId, currentStep])
+  @@index([status])
+}
+
+// -------------------------------------------------------------
+// MARKETING MESSAGES API & SUPPRESSION (MM API)
+// -------------------------------------------------------------
+model ContactSuppression {
+  id        String   @id @default(cuid())
+  contactId String
+  type      String   // MARKETING_OPT_OUT, GLOBAL_SUPPRESSION, MANUAL_SUPPRESSION
+  reason    String?
+  createdAt DateTime @default(now())
+
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([contactId, type])
+}
+
+model ConversionEvent {
+  id          String    @id @default(cuid())
+  contactId   String?
+  campaignId  String?
+  eventName   String    // Lead, QualificationStarted, QualificationCompleted, QualifiedLead, ConsultationBooked, Sale
+  eventTime   DateTime  @default(now())
+  value       Float?
+  currency    String?   @default("USD")
+  metadata    String?   // JSON extra context
+  createdAt   DateTime  @default(now())
+
+  contact     Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([eventName, eventTime])
+  @@index([contactId])
+  @@index([campaignId])
+}
+

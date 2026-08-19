@@ -278,13 +278,52 @@ export default function ContactsPage() {
                         </div>
                       </td>
                       <td className="py-3 px-4">
-                        <div className="text-[11px] text-slate-500 space-y-0.5">
-                          {Object.keys(customAttrs).slice(0, 2).map((k) => (
-                            <span key={k} className="inline-block mr-2">
-                              <strong>{k}:</strong> {String(customAttrs[k])}
-                            </span>
-                          ))}
-                        </div>
+                        {customAttrs.qualificationStatus === 'COMPLETED' || customAttrs.leadTemperature ? (
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                  customAttrs.leadTemperature === 'HOT'
+                                    ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                                    : customAttrs.leadTemperature === 'WARM'
+                                    ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                    : 'bg-blue-100 text-blue-800 border border-blue-200'
+                                }`}
+                              >
+                                {customAttrs.leadTemperature === 'HOT' && '🔥 HOT '}
+                                {customAttrs.leadTemperature === 'WARM' && '🟡 WARM '}
+                                {customAttrs.leadTemperature === 'COLD' && '🔵 COLD '}
+                                ({customAttrs.leadScore || 0} pts)
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-slate-600 space-y-0.5">
+                              {customAttrs.businessType && (
+                                <p><span className="font-semibold text-slate-700">Type:</span> {customAttrs.businessType}</p>
+                              )}
+                              {customAttrs.country && (
+                                <p><span className="font-semibold text-slate-700">Country:</span> {customAttrs.country}</p>
+                              )}
+                              {customAttrs.goal && (
+                                <p><span className="font-semibold text-slate-700">Goal:</span> {customAttrs.goal}</p>
+                              )}
+                              {customAttrs.timeline && (
+                                <p><span className="font-semibold text-slate-700">Timeline:</span> {customAttrs.timeline}</p>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-[11px] text-slate-500 space-y-0.5">
+                            {Object.keys(customAttrs).length > 0 ? (
+                              Object.keys(customAttrs).slice(0, 3).map((k) => (
+                                <span key={k} className="inline-block mr-2">
+                                  <strong>{k}:</strong> {String(customAttrs[k])}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-slate-400 italic">No attributes</span>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="py-3 px-4">
                         <span

@@ -204,6 +204,9 @@ export async function POST(request: NextRequest) {
             let isOptOut = false;
             let bodyText = '';
             let mediaUrl: string | null = null;
+            let interactiveId: string | undefined = undefined;
+            let interactiveTitle: string | undefined = undefined;
+            let buttonPayload: string | undefined = undefined;
             const messageType = incoming.type || 'text';
 
             if (incoming.type === 'text') {
@@ -229,11 +232,15 @@ export async function POST(request: NextRequest) {
               bodyText = loc.name ? `📍 ${loc.name} (${mapUrl})` : `📍 Location: ${mapUrl}`;
             } else if (incoming.type === 'button') {
               bodyText = incoming.button?.text || '';
+              buttonPayload = incoming.button?.payload;
             } else if (incoming.type === 'interactive') {
-              bodyText =
+              interactiveId =
+                incoming.interactive?.button_reply?.id ||
+                incoming.interactive?.list_reply?.id;
+              interactiveTitle =
                 incoming.interactive?.button_reply?.title ||
-                incoming.interactive?.list_reply?.title ||
-                '';
+                incoming.interactive?.list_reply?.title;
+              bodyText = interactiveTitle || '';
             } else {
               bodyText = `[${incoming.type?.toUpperCase()} attachment]`;
             }
@@ -257,6 +264,22 @@ export async function POST(request: NextRequest) {
                 lastInteractionAt: new Date(),
               },
             });
+
+            // If contact opted out, record suppression and cancel active sessions
+            if (isOptOut) {
+              await prisma.contactSuppression.create({
+                data: {
+                  contactId: contact.id,
+                  type: 'MARKETING_OPT_OUT',
+                  reason: `Customer sent: ${bodyText.trim()}`,
+                },
+              }).catch(() => {});
+
+              await prisma.conversationSession.updateMany({
+                where: { contactId: contact.id, status: 'ACTIVE' },
+                data: { status: 'CANCELLED' },
+              }).catch(() => {});
+            }
 
             // Upsert Conversation for multi-agent inbox
             const conversation = await prisma.conversation.upsert({
@@ -329,8 +352,13 @@ export async function POST(request: NextRequest) {
                 contactId: contact.id,
                 conversationId: conversation.id,
                 phoneNumber: normalizedPhone,
+                wamid: messageWamid,
                 bodyText,
                 messageType,
+                interactiveId,
+                interactiveTitle,
+                buttonPayload,
+                timestamp: new Date(parseInt(incoming.timestamp, 10) * 1000),
               }).catch((err) => logger.error({ err }, 'Inbound event processing error'));
             } catch {
               // Worker fallback

@@ -1,15 +1,12 @@
+import { processConversationEvent } from '@/lib/whatsapp/conversation-engine';
 import { processInboundFlow } from './flows';
 import { processInboundBot } from './bots';
+import { processInboundAutomation } from '@/lib/whatsapp/automation';
 import { enqueueOutboundWebhook } from './outbound-webhooks';
+import { InboundConversationEvent } from '@/lib/whatsapp/types';
 import { logger } from '@/lib/logger';
 
-export async function processInboundEvent(event: {
-  contactId: string;
-  conversationId?: string;
-  phoneNumber: string;
-  bodyText: string;
-  messageType: string;
-}): Promise<void> {
+export async function processInboundEvent(event: InboundConversationEvent): Promise<void> {
   const { contactId, conversationId, phoneNumber, bodyText, messageType } = event;
 
   // 1. Emit outbound webhook to customer integrations
@@ -21,7 +18,18 @@ export async function processInboundEvent(event: {
     body: bodyText,
   }).catch((err) => logger.error({ err }, 'Webhook enqueue error'));
 
-  // 2. Try Flow Builder Engine first
+  // 2. Try Stateful Conversation Flow Engine first (GCC Lead Qualification & Interactive Funnels)
+  try {
+    const handledByConversationEngine = await processConversationEvent(event);
+    if (handledByConversationEngine) {
+      logger.info({ contactId }, '[InboundEvents] Handled by Stateful Conversation Flow Engine');
+      return;
+    }
+  } catch (convErr: any) {
+    logger.error({ err: convErr.message }, '[InboundEvents] Error in ConversationFlowEngine');
+  }
+
+  // 3. Try Visual Flow Builder Engine
   const handledByFlow = await processInboundFlow({
     contactId,
     phoneNumber,
@@ -33,7 +41,7 @@ export async function processInboundEvent(event: {
     return;
   }
 
-  // 3. Try Bot Engine (AI / Keyword / HTTP)
+  // 4. Try Bot Engine (AI / Keyword / HTTP)
   const handledByBot = await processInboundBot({
     contactId,
     conversationId,
@@ -43,5 +51,17 @@ export async function processInboundEvent(event: {
 
   if (handledByBot) {
     logger.info({ contactId }, '[InboundEvents] Handled by Bot');
+    return;
+  }
+
+  // 5. Try Legacy/Generic Keyword Automations
+  try {
+    await processInboundAutomation({
+      contactId,
+      phoneNumber,
+      bodyText,
+    });
+  } catch (autoErr: any) {
+    logger.error({ err: autoErr.message }, '[InboundEvents] Error in AutomationEngine');
   }
 }

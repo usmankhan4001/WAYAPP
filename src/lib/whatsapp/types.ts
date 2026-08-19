@@ -57,6 +57,52 @@ export interface MetaSendResponse {
   }>;
 }
 
+export interface InteractiveListRow {
+  id: string;
+  title: string;
+  description?: string;
+}
+
+export interface InteractiveListSection {
+  title?: string;
+  rows: InteractiveListRow[];
+}
+
+export interface SendListMessageParams {
+  to: string;
+  body: string;
+  buttonText: string;
+  sections: InteractiveListSection[];
+  header?: string;
+  footer?: string;
+}
+
+export interface InteractiveButton {
+  id: string;
+  title: string;
+}
+
+export interface SendButtonMessageParams {
+  to: string;
+  body: string;
+  buttons: InteractiveButton[];
+  header?: string;
+  footer?: string;
+}
+
+export interface InboundConversationEvent {
+  contactId: string;
+  conversationId?: string;
+  phoneNumber: string;
+  wamid: string;
+  messageType: string;
+  bodyText: string;
+  interactiveId?: string;
+  interactiveTitle?: string;
+  buttonPayload?: string;
+  timestamp?: Date;
+}
+
 export interface MetaWebhookPayload {
   object: string;
   entry: Array<{
@@ -78,7 +124,7 @@ export interface MetaWebhookPayload {
           from: string;
           id: string;
           timestamp: string;
-          type: 'text' | 'image' | 'document' | 'button' | 'interactive';
+          type: 'text' | 'image' | 'video' | 'audio' | 'voice' | 'document' | 'location' | 'button' | 'interactive';
           text?: {
             body: string;
           };
@@ -87,6 +133,7 @@ export interface MetaWebhookPayload {
             payload: string;
           };
           interactive?: {
+            type?: 'button_reply' | 'list_reply';
             button_reply?: {
               id: string;
               title: string;
@@ -94,6 +141,7 @@ export interface MetaWebhookPayload {
             list_reply?: {
               id: string;
               title: string;
+              description?: string;
             };
           };
         }>;

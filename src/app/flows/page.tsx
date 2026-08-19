@@ -84,11 +84,51 @@ export default function FlowsPage() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
         <div>
-          <h1 className="text-2xl font-black text-white tracking-tight">Visual Flow Builder</h1>
+          <h1 className="text-2xl font-black text-white tracking-tight">Conversation Flows & Visual Builder</h1>
           <p className="text-xs text-slate-400">
-            Design interactive chatbot conversation funnels, branching journeys, and automated actions
+            Automated multi-step qualification funnels, interactive Meta list messages, and drag-and-drop conversational journeys
           </p>
         </div>
+
+        {/* GCC Startup Lead Qualification Showcase Banner */}
+        <div className="bg-gradient-to-r from-emerald-950/80 via-slate-900 to-slate-900 border border-emerald-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+            <div className="space-y-2 max-w-2xl">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                  Active Engine
+                </span>
+                <span className="text-xs font-semibold text-slate-400">GCCStartup Lead Qualification</span>
+              </div>
+              <h2 className="text-lg font-bold text-white tracking-tight">
+                4-Step Interactive Lead Qualification & Scoring Funnel
+              </h2>
+              <p className="text-xs text-slate-300">
+                Automatically engages inbound leads via Meta Quick Replies & Keywords, delivers native Interactive List Messages for Business Activity, Country, Goal, and Timeline, calculates lead score & temperature (<span className="text-rose-400 font-bold">HOT 🔥</span> / <span className="text-amber-400 font-bold">WARM 🟡</span>), tags contacts, and pauses for human advisor takeover.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-3 text-center">
+                <span className="text-[10px] font-medium text-slate-400 block">Step 1</span>
+                <span className="text-xs font-bold text-white">Activity List</span>
+              </div>
+              <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-3 text-center">
+                <span className="text-[10px] font-medium text-slate-400 block">Step 2</span>
+                <span className="text-xs font-bold text-white">Country List</span>
+              </div>
+              <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-3 text-center">
+                <span className="text-[10px] font-medium text-slate-400 block">Step 3</span>
+                <span className="text-xs font-bold text-white">Goal List</span>
+              </div>
+              <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-3 text-center">
+                <span className="text-[10px] font-medium text-slate-400 block">Step 4</span>
+                <span className="text-xs font-bold text-white">Timeline List</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Top Controls */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
           <div className="relative flex-1 max-w-md">

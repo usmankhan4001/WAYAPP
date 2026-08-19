@@ -468,6 +468,54 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+        <div className="card-base p-4 space-y-3.5">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <Sliders className="w-4 h-4 text-emerald-600" />
+              <h3 className="text-xs font-semibold text-slate-900 uppercase tracking-wider">
+                Marketing Messages API (MM API Optimizations)
+              </h3>
+            </div>
+            <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold">
+              Meta Graph v21.0
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <input
+                type="checkbox"
+                id="mmApiToggle"
+                checked={settings.marketingMessagesEnabled || false}
+                onChange={(e) => setSettings({ ...settings, marketingMessagesEnabled: e.target.checked })}
+                className="mt-1 rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+              />
+              <label htmlFor="mmApiToggle" className="text-xs cursor-pointer">
+                <span className="font-bold text-slate-900 block">Enable Marketing Messages API</span>
+                <span className="text-slate-500 text-[11px]">
+                  Routes eligible outbound marketing templates through Meta's optimized delivery engine for higher engagement.
+                </span>
+              </label>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">
+                Fallback Policy
+              </label>
+              <select
+                value={settings.marketingMessagesPolicy || 'CLOUD_API_FALLBACK'}
+                onChange={(e) => setSettings({ ...settings, marketingMessagesPolicy: e.target.value })}
+                className="input-base text-xs"
+              >
+                <option value="CLOUD_API_FALLBACK">Auto Fallback to Cloud API (Recommended)</option>
+                <option value="STRICT">Strict MM API Only (Fail if ineligible)</option>
+              </select>
+              <p className="text-[10px] text-slate-400 mt-1">
+                If MM API send is unavailable or contact is ineligible, automatically route via standard Cloud API.
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* Section 4: Meta OAuth & GCC User Access Restrictions */}
         <div className="card-base p-4 space-y-3.5">

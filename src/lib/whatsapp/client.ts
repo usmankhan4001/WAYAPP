@@ -4,6 +4,8 @@ import {
   MetaTemplateResponse,
   SendTemplateMessageParams,
   SendMediaMessageParams,
+  SendListMessageParams,
+  SendButtonMessageParams,
 } from './types';
 
 const META_GRAPH_VERSION = 'v21.0';
@@ -725,6 +727,156 @@ export class WhatsAppClient {
       to: cleanPhone,
       type: params.type,
       [params.type]: mediaObject,
+    };
+
+    const response = await fetch(`${META_GRAPH_URL}/${this.phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    if (!response.ok || data.error) {
+      const errorMsg = data.error?.message || response.statusText;
+      const errorCode = data.error?.code || response.status;
+      const err = new Error(errorMsg);
+      (err as any).code = errorCode;
+      throw err;
+    }
+
+    return data as MetaSendResponse;
+  }
+
+  /**
+   * Send WhatsApp Interactive List Message (Meta Graph API v21.0)
+   */
+  async sendListMessage(params: SendListMessageParams): Promise<MetaSendResponse> {
+    const cleanPhone = params.to.replace(/[^0-9]/g, '');
+
+    if (this.isMockMode || !this.accessToken || !this.phoneNumberId) {
+      const fakeWamid = `wamid.HBgL${Date.now()}L${Math.random().toString(36).substring(2, 9).toUpperCase()}A`;
+      return {
+        messaging_product: 'whatsapp',
+        contacts: [{ input: params.to, wa_id: cleanPhone }],
+        messages: [{ id: fakeWamid, message_status: 'accepted' }],
+      };
+    }
+
+    const interactivePayload: Record<string, any> = {
+      type: 'list',
+      body: {
+        text: params.body,
+      },
+      action: {
+        button: (params.buttonText || 'View Options').substring(0, 20),
+        sections: params.sections.map((section) => ({
+          title: section.title ? section.title.substring(0, 24) : undefined,
+          rows: section.rows.map((row) => ({
+            id: row.id.substring(0, 200),
+            title: row.title.substring(0, 24),
+            description: row.description ? row.description.substring(0, 72) : undefined,
+          })),
+        })),
+      },
+    };
+
+    if (params.header && params.header.trim()) {
+      interactivePayload.header = {
+        type: 'text',
+        text: params.header.trim().substring(0, 60),
+      };
+    }
+
+    if (params.footer && params.footer.trim()) {
+      interactivePayload.footer = {
+        text: params.footer.trim().substring(0, 60),
+      };
+    }
+
+    const payload = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: cleanPhone,
+      type: 'interactive',
+      interactive: interactivePayload,
+    };
+
+    const response = await fetch(`${META_GRAPH_URL}/${this.phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    if (!response.ok || data.error) {
+      const errorMsg = data.error?.message || response.statusText;
+      const errorCode = data.error?.code || response.status;
+      const err = new Error(errorMsg);
+      (err as any).code = errorCode;
+      throw err;
+    }
+
+    return data as MetaSendResponse;
+  }
+
+  /**
+   * Send WhatsApp Interactive Reply Buttons (Up to 3 buttons) (Meta Graph API v21.0)
+   */
+  async sendReplyButtons(params: SendButtonMessageParams): Promise<MetaSendResponse> {
+    const cleanPhone = params.to.replace(/[^0-9]/g, '');
+
+    if (this.isMockMode || !this.accessToken || !this.phoneNumberId) {
+      const fakeWamid = `wamid.HBgL${Date.now()}B${Math.random().toString(36).substring(2, 9).toUpperCase()}A`;
+      return {
+        messaging_product: 'whatsapp',
+        contacts: [{ input: params.to, wa_id: cleanPhone }],
+        messages: [{ id: fakeWamid, message_status: 'accepted' }],
+      };
+    }
+
+    const formattedButtons = params.buttons.slice(0, 3).map((btn) => ({
+      type: 'reply',
+      reply: {
+        id: btn.id.substring(0, 256),
+        title: btn.title.substring(0, 20),
+      },
+    }));
+
+    const interactivePayload: Record<string, any> = {
+      type: 'button',
+      body: {
+        text: params.body,
+      },
+      action: {
+        buttons: formattedButtons,
+      },
+    };
+
+    if (params.header && params.header.trim()) {
+      interactivePayload.header = {
+        type: 'text',
+        text: params.header.trim().substring(0, 60),
+      };
+    }
+
+    if (params.footer && params.footer.trim()) {
+      interactivePayload.footer = {
+        text: params.footer.trim().substring(0, 60),
+      };
+    }
+
+    const payload = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: cleanPhone,
+      type: 'interactive',
+      interactive: interactivePayload,
     };
 
     const response = await fetch(`${META_GRAPH_URL}/${this.phoneNumberId}/messages`, {

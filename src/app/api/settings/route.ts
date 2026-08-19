@@ -60,6 +60,8 @@ export async function GET(request: NextRequest) {
     qualityRating: settings.qualityRating,
     isMockMode: settings.isMockMode,
     isConnected: settings.isConnected,
+    marketingMessagesEnabled: settings.marketingMessagesEnabled ?? false,
+    marketingMessagesPolicy: settings.marketingMessagesPolicy || 'CLOUD_API_FALLBACK',
     webhookVerifyToken: settings.webhookVerifyToken,
     accessTokenMasked: rawAccessToken ? maskSecret(rawAccessToken) : null,
     hasAppSecret: Boolean(rawAppSecret),
@@ -235,6 +237,8 @@ export async function POST(request: NextRequest) {
       rateLimitPerSecond: Number(rateLimitPerSecond) || 20,
       tierDailyLimit: Number(tierDailyLimit) || 1000,
       isMockMode: Boolean(isMockMode),
+      ...(body.marketingMessagesEnabled !== undefined ? { marketingMessagesEnabled: Boolean(body.marketingMessagesEnabled) } : {}),
+      ...(body.marketingMessagesPolicy ? { marketingMessagesPolicy: String(body.marketingMessagesPolicy) } : {}),
     };
 
     if (isConnected !== undefined) {
