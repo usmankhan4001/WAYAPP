@@ -66,10 +66,11 @@ export async function POST(request: NextRequest) {
       where: { id: 'default' },
     });
 
+    const isMock = settings?.isMockMode === true;
     const appSecret = decryptString(settings?.appSecret);
 
-    // Fail closed signature verification
-    if (!verifyMetaSignature(rawBody, signature, appSecret)) {
+    // Fail closed signature verification unless running in mock simulation mode
+    if (!isMock && !verifyMetaSignature(rawBody, signature, appSecret)) {
       logger.warn('Meta Webhook signature validation failed');
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
@@ -257,21 +258,37 @@ export async function POST(request: NextRequest) {
               isOptOut = true;
             }
 
-            // Upsert Contact with normalized phone
-            const contact = await prisma.contact.upsert({
-              where: { phoneNumber: normalizedPhone },
-              update: {
-                lastInteractionAt: new Date(),
-                ...(isOptOut ? { status: 'UNSUBSCRIBED', optedOutAt: new Date() } : {}),
-              },
-              create: {
-                phoneNumber: normalizedPhone,
-                firstName: profileName,
-                status: isOptOut ? 'UNSUBSCRIBED' : 'ACTIVE',
-                optedOutAt: isOptOut ? new Date() : null,
-                lastInteractionAt: new Date(),
+            // Find existing contact by exact phone or with/without leading plus
+            let contact = await prisma.contact.findFirst({
+              where: {
+                OR: [
+                  { phoneNumber: normalizedPhone },
+                  { phoneNumber: normalizedPhone.replace(/^\+/, '') },
+                  { phoneNumber: `+${normalizedPhone.replace(/^\+/, '')}` },
+                ],
               },
             });
+
+            if (contact) {
+              contact = await prisma.contact.update({
+                where: { id: contact.id },
+                data: {
+                  phoneNumber: normalizedPhone,
+                  lastInteractionAt: new Date(),
+                  ...(isOptOut ? { status: 'UNSUBSCRIBED', optedOutAt: new Date() } : {}),
+                },
+              });
+            } else {
+              contact = await prisma.contact.create({
+                data: {
+                  phoneNumber: normalizedPhone,
+                  firstName: profileName,
+                  status: isOptOut ? 'UNSUBSCRIBED' : 'ACTIVE',
+                  optedOutAt: isOptOut ? new Date() : null,
+                  lastInteractionAt: new Date(),
+                },
+              });
+            }
 
             // If contact opted out, record suppression and cancel active sessions
             if (isOptOut) {

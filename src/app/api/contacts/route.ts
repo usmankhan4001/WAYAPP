@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     }
 
     const settings = await prisma.settings.findUnique({ where: { id: 'default' } });
-    const normalizedPhone = normalizePhoneNumber(phoneNumber, settings?.defaultCountryCode || '+1');
+    const normalizedPhone = normalizePhoneNumber(phoneNumber, settings?.defaultCountryCode || '+971');
 
     // Only update fields the client explicitly sent — partial updates must not
     // wipe existing name/email/attributes/group/tag assignments

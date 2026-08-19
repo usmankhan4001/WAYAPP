@@ -26,7 +26,7 @@ async function ensureDefaultSettings(): Promise<void> {
         id: 'default',
         businessName: 'My WhatsApp Business',
         businessPhone: '',
-        defaultCountryCode: '+1',
+        defaultCountryCode: '+971',
         rateLimitPerSecond: 20,
         tierDailyLimit: 1000,
         qualityRating: 'GREEN',

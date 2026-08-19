@@ -5,33 +5,21 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+import { sanitizePhoneNumber, formatDisplayPhone } from "@/lib/whatsapp/phone";
+
 /**
- * Normalizes a phone number to standard E.164 format
- * Strips whitespace, brackets, hyphens, and prepends default + country code if missing
+ * Normalizes a phone number to standard E.164 format using libphonenumber-js
+ * Strips whitespace, brackets, hyphens, and uses default country code without blindly appending +1
  */
-export function normalizePhoneNumber(phone: string, defaultCountryCode: string = "+1"): string {
+export function normalizePhoneNumber(phone: string, defaultCountryCode: string = "+971"): string {
   if (!phone) return "";
-  let cleaned = phone.replace(/[^0-9+]/g, "").trim();
-  if (!cleaned) return "";
-
-  if (cleaned.startsWith("00")) {
-    cleaned = "+" + cleaned.slice(2);
-  } else if (!cleaned.startsWith("+")) {
-    const code = defaultCountryCode.startsWith("+") ? defaultCountryCode : `+${defaultCountryCode}`;
-    // If it starts with leading zero (e.g. 0501234567 in UAE/UK), strip zero
-    if (cleaned.startsWith("0")) {
-      cleaned = code + cleaned.slice(1);
-    } else {
-      cleaned = code + cleaned;
-    }
-  }
-
-  return cleaned;
+  const result = sanitizePhoneNumber(phone, defaultCountryCode);
+  return result.isValid ? result.e164 : result.e164 || phone.trim();
 }
 
 export function formatPhoneNumberDisplay(phone: string): string {
   if (!phone) return "";
-  return phone;
+  return formatDisplayPhone(phone);
 }
 
 export function formatDateTime(date: Date | string | null | undefined): string {

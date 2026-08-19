@@ -98,12 +98,19 @@ export async function GET(request: NextRequest) {
       orderBy: { lastMessageAt: 'desc' },
     });
 
-    // Fallback: If no conversation rows exist yet, return contacts with chats
-    if (conversations.length === 0 && filter === 'all' && !search) {
-      const contactsWithChats = await prisma.contact.findMany({
-        where: {
-          chatMessages: { some: {} },
-        },
+    // Fallback: If no conversation rows exist yet, return active contacts
+    if (conversations.length === 0 && (filter === 'all' || filter === 'unassigned')) {
+      const contacts = await prisma.contact.findMany({
+        where: search
+          ? {
+              OR: [
+                { phoneNumber: { contains: search } },
+                { firstName: { contains: search } },
+                { lastName: { contains: search } },
+                { email: { contains: search } },
+              ],
+            }
+          : undefined,
         include: {
           groups: { include: { group: true } },
           tags: { include: { tag: true } },
@@ -113,9 +120,10 @@ export async function GET(request: NextRequest) {
           },
         },
         orderBy: { updatedAt: 'desc' },
+        take: 50,
       });
 
-      return NextResponse.json(contactsWithChats);
+      return NextResponse.json(contacts);
     }
 
     return NextResponse.json(conversations);
@@ -165,9 +173,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const settings = await prisma.settings.findUnique({ where: { id: 'default' } });
+    const isMock = settings?.isMockMode === true;
+
     // 24-HOUR CUSTOMER CARE WINDOW ENFORCEMENT
     const isFreeFormMessage = !templateName;
-    if (isFreeFormMessage) {
+    if (isFreeFormMessage && !isMock) {
       const now = Date.now();
       const lastInteraction = contact.lastInteractionAt ? new Date(contact.lastInteractionAt).getTime() : 0;
       const hoursSinceLastMessage = (now - lastInteraction) / (1000 * 60 * 60);

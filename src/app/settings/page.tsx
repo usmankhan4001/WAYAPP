@@ -26,7 +26,7 @@ export default function SettingsPage() {
     appSecret: '',
     businessName: 'My WhatsApp Business',
     businessPhone: '',
-    defaultCountryCode: '+1',
+    defaultCountryCode: '+971',
     rateLimitPerSecond: 20,
     tierDailyLimit: 1000,
     isMockMode: false,
@@ -448,9 +448,9 @@ export default function SettingsPage() {
               <label className="block text-xs font-medium text-slate-700 mb-1">Default Country Code</label>
               <input
                 type="text"
-                value={settings.defaultCountryCode || '+1'}
+                value={settings.defaultCountryCode || '+971'}
                 onChange={(e) => setSettings({ ...settings, defaultCountryCode: e.target.value })}
-                placeholder="+1 or +971"
+                placeholder="+971 or +966"
                 className="input-base font-mono"
               />
             </div>

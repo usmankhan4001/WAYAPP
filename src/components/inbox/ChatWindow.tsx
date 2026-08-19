@@ -60,6 +60,8 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
     caption?: string;
   } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isMockMode, setIsMockMode] = useState(false);
+  const [isSimulatingInbound, setIsSimulatingInbound] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputTypeRef = useRef<'image' | 'video' | 'audio' | 'document'>('image');
@@ -72,6 +74,16 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
   const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
   const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
   const isWindowActive = msRemaining > 0;
+  const effectiveWindowActive = isMockMode || isWindowActive;
+
+  const fetchSettings = () => {
+    fetch('/api/settings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.isMockMode) setIsMockMode(true);
+      })
+      .catch(() => {});
+  };
 
   const fetchMessages = () => {
     if (!contact?.id) return;
@@ -95,6 +107,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
   };
 
   useEffect(() => {
+    fetchSettings();
     fetchMessages();
     fetchTemplates();
     const interval = setInterval(fetchMessages, 3000);
@@ -295,6 +308,39 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
     }
   };
 
+  const handleSimulateInbound = async () => {
+    if (!contact?.id) return;
+    setIsSimulatingInbound(true);
+    try {
+      const promptText = window.prompt(
+        `Simulate Incoming WhatsApp Message from ${contactName}:`,
+        'Hi, I received your message! How can I proceed?'
+      );
+      if (!promptText || !promptText.trim()) {
+        setIsSimulatingInbound(false);
+        return;
+      }
+      const res = await fetch('/api/chat/simulate-inbound', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contactId: contact.id,
+          text: promptText.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Failed to simulate inbound message');
+      }
+      fetchMessages();
+      onRefreshList();
+    } catch (err: any) {
+      setErrorMessage(err.message);
+    } finally {
+      setIsSimulatingInbound(false);
+    }
+  };
+
   const contactName = `${contact?.firstName || ''} ${contact?.lastName || ''}`.trim() || 'Customer';
 
   return (
@@ -350,10 +396,10 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
 
               {/* 24-Hour Active Window Pill */}
               <div className="flex items-center gap-1.5">
-                {isWindowActive ? (
+                {effectiveWindowActive ? (
                   <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    24h Window Active &bull; {hoursRemaining}h {minutesRemaining}m remaining
+                    {isMockMode ? 'Mock Simulation Active (Direct Chat Enabled)' : `24h Window Active • ${hoursRemaining}h ${minutesRemaining}m remaining`}
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
@@ -366,6 +412,17 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleSimulateInbound}
+              disabled={isSimulatingInbound}
+              className="px-3 py-1.5 rounded-xl border border-dashed border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-50"
+              title="Simulate incoming customer message to test two-way communication"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="hidden sm:inline">{isSimulatingInbound ? 'Simulating...' : 'Simulate Reply'}</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setIsTemplatePickerOpen(!isTemplatePickerOpen)}
@@ -639,7 +696,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
               onSendVoiceNote={handleSendVoiceNote}
               onCancel={() => setIsRecordingVoice(false)}
             />
-          ) : !isWindowActive ? (
+          ) : !effectiveWindowActive ? (
             <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <Lock className="w-4 h-4 text-amber-600 shrink-0" />

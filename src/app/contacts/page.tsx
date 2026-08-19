@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Users,
   UserPlus,
@@ -11,6 +12,7 @@ import {
   Edit2,
   Filter,
   Download,
+  MessageSquare,
 } from 'lucide-react';
 import { CsvImportModal } from '@/components/contacts/CsvImportModal';
 import { GroupTagModal } from '@/components/contacts/GroupTagModal';
@@ -18,6 +20,7 @@ import { ContactFormModal } from '@/components/contacts/ContactFormModal';
 import { InfoTooltip, Tooltip } from '@/components/ui/Tooltip';
 
 export default function ContactsPage() {
+  const router = useRouter();
   const [contacts, setContacts] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
   const [tags, setTags] = useState<any[]>([]);
@@ -338,6 +341,13 @@ export default function ContactsPage() {
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => router.push(`/inbox?contactId=${c.id}`)}
+                            className="p-1.5 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
+                            title="Chat in Team Inbox"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                          </button>
                           <button
                             onClick={() => {
                               setEditingContact(c);

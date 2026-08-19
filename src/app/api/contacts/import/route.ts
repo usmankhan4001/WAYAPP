@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     const settings = await prisma.settings.findUnique({ where: { id: 'default' } });
-    const defaultCountry = settings?.defaultCountryCode || '+1';
+    const defaultCountry = settings?.defaultCountryCode || '+971';
 
     let importedCount = 0;
     let skippedCount = 0;

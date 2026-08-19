@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   MessageSquare,
   Search,
@@ -14,12 +15,17 @@ import {
   Filter,
   UserCheck,
   RefreshCw,
+  UserPlus,
 } from 'lucide-react';
 import { ChatWindow } from '@/components/inbox/ChatWindow';
+import { NewChatModal } from '@/components/inbox/NewChatModal';
 import { formatTimeAgo } from '@/lib/utils';
 import { InfoTooltip } from '@/components/ui/Tooltip';
 
-export default function InboxPage() {
+function InboxContent() {
+  const searchParams = useSearchParams();
+  const urlContactId = searchParams.get('contactId');
+
   const [conversations, setConversations] = useState<any[]>([]);
   const [selectedContact, setSelectedContact] = useState<any | null>(null);
   const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
@@ -27,6 +33,7 @@ export default function InboxPage() {
   const [filter, setFilter] = useState<'all' | 'mine' | 'unassigned' | 'resolved' | 'spam'>('all');
   const [loading, setLoading] = useState(true);
   const [assigningRoundRobin, setAssigningRoundRobin] = useState(false);
+  const [isNewChatOpen, setIsNewChatOpen] = useState(false);
 
   const fetchConversations = useCallback(() => {
     const controller = new AbortController();
@@ -37,7 +44,7 @@ export default function InboxPage() {
       .then((data) => {
         const list = Array.isArray(data) ? data : [];
         setConversations(list);
-        if (list.length > 0 && !selectedContact && typeof window !== 'undefined' && window.innerWidth >= 1024) {
+        if (list.length > 0 && !selectedContact && !urlContactId && typeof window !== 'undefined' && window.innerWidth >= 1024) {
           const first = list[0];
           const contactObj = first.contact || first;
           setSelectedContact(contactObj);
@@ -48,11 +55,27 @@ export default function InboxPage() {
       .finally(() => setLoading(false));
 
     return () => controller.abort();
-  }, [filter, search, selectedContact]);
+  }, [filter, search, selectedContact, urlContactId]);
+
+  useEffect(() => {
+    if (urlContactId) {
+      fetch(`/api/contacts?search=`)
+        .then((res) => res.json())
+        .then((list) => {
+          if (Array.isArray(list)) {
+            const found = list.find((c) => c.id === urlContactId);
+            if (found) {
+              setSelectedContact(found);
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [urlContactId]);
 
   useEffect(() => {
     const cancel = fetchConversations();
-    const interval = setInterval(fetchConversations, 5000);
+    const interval = setInterval(fetchConversations, 3000);
     return () => {
       cancel?.();
       clearInterval(interval);
@@ -81,6 +104,16 @@ export default function InboxPage() {
 
   return (
     <div className="space-y-4">
+      {/* New Chat Modal */}
+      <NewChatModal
+        isOpen={isNewChatOpen}
+        onClose={() => setIsNewChatOpen(false)}
+        onSelectContact={(contact) => {
+          setSelectedContact(contact);
+          fetchConversations();
+        }}
+      />
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-1.5">
@@ -92,14 +125,24 @@ export default function InboxPage() {
           </p>
         </div>
 
-        <button
-          onClick={handleRoundRobin}
-          disabled={assigningRoundRobin}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-all self-start sm:self-auto disabled:opacity-50"
-        >
-          <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span>{assigningRoundRobin ? 'Routing...' : 'Round-Robin Assign'}</span>
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={() => setIsNewChatOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm shadow-emerald-600/20 transition-all"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>New Conversation</span>
+          </button>
+
+          <button
+            onClick={handleRoundRobin}
+            disabled={assigningRoundRobin}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-all disabled:opacity-50"
+          >
+            <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>{assigningRoundRobin ? 'Routing...' : 'Round-Robin Assign'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter Tabs */}
@@ -253,3 +296,18 @@ export default function InboxPage() {
     </div>
   );
 }
+
+export default function InboxPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="py-24 flex justify-center">
+          <div className="w-8 h-8 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <InboxContent />
+    </Suspense>
+  );
+}
+
