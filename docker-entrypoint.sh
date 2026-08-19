@@ -7,6 +7,12 @@ chmod -R 777 /app/uploads 2>/dev/null || true
 echo "Regenerating Prisma client for runtime environment..."
 node ./node_modules/prisma/build/index.js generate --schema=./prisma/schema.prisma 2>/dev/null || npx prisma generate --schema=./prisma/schema.prisma 2>/dev/null || true
 
+if [ -d "/app/node_modules/.prisma" ]; then
+  mkdir -p /app/.next/server/node_modules 2>/dev/null || true
+  cp -rf /app/node_modules/.prisma /app/.next/server/node_modules/ 2>/dev/null || true
+  cp -rf /app/node_modules/.prisma /app/node_modules/@prisma/client/ 2>/dev/null || true
+fi
+
 echo "Checking PostgreSQL connection..."
 # Wait for PostgreSQL to become reachable
 for i in $(seq 1 25); do
