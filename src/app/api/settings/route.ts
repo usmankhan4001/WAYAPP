@@ -4,8 +4,10 @@ import { requireRole } from '@/lib/auth/rbac';
 import { WhatsAppClient } from '@/lib/whatsapp/client';
 import { encryptString, decryptString, maskSecret } from '@/lib/crypto';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { ensureDatabaseSchema } from '@/lib/db-init';
 
 export async function GET(request: NextRequest) {
+  await ensureDatabaseSchema();
   // 1. RBAC: Only Admins can view settings
   const authResult = await requireRole(request, ['SUPER_ADMIN', 'ADMIN']);
   if ('response' in authResult) {
@@ -77,6 +79,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  await ensureDatabaseSchema();
   // 1. RBAC: Only Admins can modify settings
   const authResult = await requireRole(request, ['SUPER_ADMIN', 'ADMIN']);
   if ('response' in authResult) {
@@ -298,6 +301,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[Settings API] Error:', error);
-    return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to update settings' }, { status: 500 });
   }
 }
