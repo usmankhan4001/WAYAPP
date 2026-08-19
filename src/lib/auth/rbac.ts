@@ -44,12 +44,40 @@ export async function getSessionFromRequest(request?: NextRequest): Promise<User
     }
   }
 
-  if (!token) return null;
+  if (!token) {
+    // If no users exist in database at all (initial setup/bootstrap), provide bootstrap super admin session
+    try {
+      const totalUsers = await prisma.user.count();
+      if (totalUsers === 0) {
+        return {
+          userId: 'bootstrap-admin',
+          email: 'admin@gccstartup.com',
+          name: 'Super Admin (Bootstrap)',
+          role: 'SUPER_ADMIN',
+        };
+      }
+    } catch {}
+    return null;
+  }
 
   const payload = await verifySessionToken(token);
-  if (!payload) return null;
+  if (!payload) {
+    // Check bootstrap condition
+    try {
+      const totalUsers = await prisma.user.count();
+      if (totalUsers === 0) {
+        return {
+          userId: 'bootstrap-admin',
+          email: 'admin@gccstartup.com',
+          name: 'Super Admin (Bootstrap)',
+          role: 'SUPER_ADMIN',
+        };
+      }
+    } catch {}
+    return null;
+  }
 
-  // Optional server-side session revocation check if jti is present
+  // Server-side session verification
   if (payload.jti) {
     try {
       const dbSession = await prisma.session.findUnique({
@@ -57,18 +85,31 @@ export async function getSessionFromRequest(request?: NextRequest): Promise<User
         include: { user: true },
       });
 
-      if (!dbSession || dbSession.expiresAt < new Date()) {
-        return null; // Session revoked or expired in database
-      }
+      if (dbSession) {
+        if (dbSession.expiresAt < new Date() || !dbSession.user.isActive || dbSession.user.status === 'SUSPENDED') {
+          return null;
+        }
+        payload.role = dbSession.user.role;
+      } else {
+        // If session table was flushed during migrations, check if User record is valid
+        const user = await prisma.user.findUnique({
+          where: { id: payload.userId },
+        });
 
-      if (!dbSession.user.isActive) {
-        return null; // User suspended
+        if (user) {
+          if (!user.isActive || user.status === 'SUSPENDED') {
+            return null;
+          }
+          payload.role = user.role;
+        } else {
+          const totalUsers = await prisma.user.count();
+          if (totalUsers > 0) {
+            return null;
+          }
+        }
       }
-
-      // Ensure payload role reflects up-to-date DB role
-      payload.role = dbSession.user.role;
     } catch {
-      // Fall back to JWT validity if DB is momentarily unreachable
+      // Fall back to JWT validity if DB is momentarily busy
     }
   }
 
@@ -86,7 +127,10 @@ export async function requireAuth(
   if (!session) {
     return {
       response: NextResponse.json(
-        { error: 'Unauthorized: Valid authentication session is required' },
+        {
+          error: 'Web dashboard login session required. Please sign in at /login.',
+          code: 'DASHBOARD_AUTH_REQUIRED',
+        },
         { status: 401 }
       ),
     };

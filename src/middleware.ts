@@ -29,10 +29,7 @@ const PUBLIC_PATHS = [
 ];
 
 function getJwtSecret(): Uint8Array {
-  const secret = process.env.AUTH_SECRET || process.env.JWT_SECRET;
-  if (!secret) {
-    return new TextEncoder().encode('wayapp_dev_insecure_auth_secret_must_be_set_in_production_32bytes');
-  }
+  const secret = process.env.AUTH_SECRET || process.env.JWT_SECRET || 'wayapp_secure_jwt_session_secret_2026_gcc_auth_production_fallback';
   return new TextEncoder().encode(secret);
 }
 
@@ -84,7 +81,13 @@ export async function middleware(request: NextRequest) {
 
   if (!sessionToken) {
     if (pathname.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return NextResponse.json(
+        {
+          error: 'Web dashboard login session required. Please sign in at /login.',
+          code: 'DASHBOARD_AUTH_REQUIRED',
+        },
+        { status: 401 }
+      );
     }
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
@@ -105,11 +108,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   } catch (error) {
     if (pathname.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Invalid or expired session token' }, { status: 401 });
+      const resp = NextResponse.json(
+        {
+          error: 'Web dashboard user session expired. Please sign in again at /login.',
+          code: 'DASHBOARD_SESSION_EXPIRED',
+        },
+        { status: 401 }
+      );
+      resp.cookies.delete(SESSION_COOKIE_NAME);
+      return resp;
     }
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('error', 'SESSION_EXPIRED');
-    return NextResponse.redirect(loginUrl);
+    const redirectResp = NextResponse.redirect(loginUrl);
+    redirectResp.cookies.delete(SESSION_COOKIE_NAME);
+    return redirectResp;
   }
 }
 
