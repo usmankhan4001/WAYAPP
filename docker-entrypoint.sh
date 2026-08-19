@@ -6,6 +6,10 @@ mkdir -p /app/uploads
 chown -R nextjs:nodejs /app/uploads 2>/dev/null || true
 chmod -R 777 /app/uploads 2>/dev/null || true
 
+# Generate Prisma Client to ensure client matches environment database provider
+echo "Generating Prisma Client..."
+su-exec nextjs /app/node_modules/.bin/prisma generate
+
 # Apply database migrations (no-op when already applied).
 # Never `db push` in production — schema is owned by prisma/migrations.
 echo "Applying database migrations..."
