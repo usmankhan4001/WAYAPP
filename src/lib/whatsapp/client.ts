@@ -35,6 +35,9 @@ export class WhatsAppClient {
    * Initializes client by reading current settings from DB
    */
   static async createFromSettings(): Promise<WhatsAppClient> {
+    const { ensureDatabaseSchema } = await import('@/lib/db-init');
+    await ensureDatabaseSchema();
+
     const settings = await prisma.settings.findUnique({
       where: { id: 'default' },
     });
