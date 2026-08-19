@@ -216,16 +216,32 @@ export class WhatsAppClient {
             } catch {}
           }
 
-          return data.data.map((t: any) => ({
-            id: String(t.id),
-            name: t.name,
-            language: t.language || 'en_US',
-            category: t.category || 'MARKETING',
-            status: t.status || 'APPROVED',
-            components: Array.isArray(t.components) ? t.components : [],
-            quality_score: t.quality_score,
-            rejected_reason: t.rejected_reason,
-          })) as MetaTemplateResponse[];
+          return data.data.map((t: any) => {
+            let qualityScoreStr = 'GREEN';
+            if (typeof t.quality_score === 'string') {
+              qualityScoreStr = t.quality_score;
+            } else if (typeof t.quality_score === 'object' && t.quality_score !== null && t.quality_score.score) {
+              qualityScoreStr = String(t.quality_score.score);
+            }
+
+            let rejectedReasonStr: string | null = null;
+            if (typeof t.rejected_reason === 'string') {
+              rejectedReasonStr = t.rejected_reason;
+            } else if (typeof t.rejected_reason === 'object' && t.rejected_reason !== null) {
+              rejectedReasonStr = JSON.stringify(t.rejected_reason);
+            }
+
+            return {
+              id: String(t.id),
+              name: t.name,
+              language: t.language || 'en_US',
+              category: t.category || 'MARKETING',
+              status: t.status || 'APPROVED',
+              components: Array.isArray(t.components) ? t.components : [],
+              quality_score: qualityScoreStr,
+              rejected_reason: rejectedReasonStr,
+            };
+          }) as MetaTemplateResponse[];
         } else if (data.error) {
           lastError = data.error.message;
         }

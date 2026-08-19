@@ -55,4 +55,36 @@ describe('WhatsAppClient Interactive Messages (Meta Graph API v21.0)', () => {
     expect(response.messages).toHaveLength(1);
     expect(response.messages[0].id).toContain('wamid');
   });
+
+  it('should handle template quality_score object gracefully', async () => {
+    const { prisma } = await import('@/lib/prisma');
+    const rawQualityScoreObj = { score: 'UNKNOWN', date: 1787121531 };
+
+    const qScore = typeof rawQualityScoreObj === 'object' && rawQualityScoreObj !== null
+      ? (rawQualityScoreObj as any).score || 'GREEN'
+      : rawQualityScoreObj;
+
+    const tpl = await prisma.template.upsert({
+      where: { metaId: 'test_meta_28687726467485739' },
+      update: {
+        name: 'gcc_initial_qualification_test',
+        language: 'en',
+        category: 'MARKETING',
+        status: 'APPROVED',
+        qualityScore: qScore,
+        components: '[]',
+      },
+      create: {
+        metaId: 'test_meta_28687726467485739',
+        name: 'gcc_initial_qualification_test',
+        language: 'en',
+        category: 'MARKETING',
+        status: 'APPROVED',
+        qualityScore: qScore,
+        components: '[]',
+      },
+    });
+
+    expect(tpl.qualityScore).toBe('UNKNOWN');
+  });
 });

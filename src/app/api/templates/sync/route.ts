@@ -12,6 +12,22 @@ export async function POST() {
     let syncedCount = 0;
 
     for (const tpl of metaTemplates) {
+      const rawQuality = (tpl as any).quality_score || (tpl as any).qualityScore;
+      let qScore = 'GREEN';
+      if (typeof rawQuality === 'string') {
+        qScore = rawQuality;
+      } else if (typeof rawQuality === 'object' && rawQuality !== null && rawQuality.score) {
+        qScore = String(rawQuality.score);
+      }
+
+      const rawReason = (tpl as any).rejected_reason || (tpl as any).rejectedReason;
+      let rReason: string | null = null;
+      if (typeof rawReason === 'string') {
+        rReason = rawReason;
+      } else if (typeof rawReason === 'object' && rawReason !== null) {
+        rReason = JSON.stringify(rawReason);
+      }
+
       await prisma.template.upsert({
         where: { metaId: tpl.id },
         update: {
@@ -19,8 +35,8 @@ export async function POST() {
           language: tpl.language,
           category: tpl.category,
           status: tpl.status,
-          qualityScore: (tpl as any).quality_score || 'GREEN',
-          rejectedReason: (tpl as any).rejected_reason || null,
+          qualityScore: qScore,
+          rejectedReason: rReason,
           components: JSON.stringify(tpl.components),
           rawJson: JSON.stringify(tpl),
           syncedAt: new Date(),
@@ -31,8 +47,8 @@ export async function POST() {
           language: tpl.language,
           category: tpl.category,
           status: tpl.status,
-          qualityScore: (tpl as any).quality_score || 'GREEN',
-          rejectedReason: (tpl as any).rejected_reason || null,
+          qualityScore: qScore,
+          rejectedReason: rReason,
           components: JSON.stringify(tpl.components),
           rawJson: JSON.stringify(tpl),
           syncedAt: new Date(),
