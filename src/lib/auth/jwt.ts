@@ -2,9 +2,23 @@ import { SignJWT, jwtVerify } from 'jose';
 
 export const SESSION_COOKIE_NAME = 'wayapp_session';
 
+/**
+ * Resolves the JWT signing secret. Fail-closed in production:
+ * if AUTH_SECRET / JWT_SECRET is missing the process throws instead
+ * of falling back to a publicly-known constant.
+ */
 function getJwtSecret(): Uint8Array {
-  const secret = process.env.AUTH_SECRET || process.env.JWT_SECRET || 'wayapp_secure_jwt_session_secret_2026_gcc_auth_production_fallback';
-  return new TextEncoder().encode(secret);
+  const secret = process.env.AUTH_SECRET || process.env.JWT_SECRET;
+  if (secret && secret.length >= 16) {
+    return new TextEncoder().encode(secret);
+  }
+  if (process.env.NODE_ENV !== 'production') {
+    // Development/test-only secret. Never used in production (see throw below).
+    return new TextEncoder().encode('wayapp-dev-only-secret-0123456789abcdef');
+  }
+  throw new Error(
+    '[Auth] AUTH_SECRET (or JWT_SECRET) must be set to a value of at least 16 characters in production. Generate one with: openssl rand -base64 48'
+  );
 }
 
 export interface UserSessionPayload {

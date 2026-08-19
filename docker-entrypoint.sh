@@ -1,11 +1,21 @@
 #!/bin/sh
 set -e
 
-# Ensure uploads directory and prisma directories exist with proper read/write permissions
+# Ensure uploads directory exists with proper read/write permissions
 mkdir -p /app/uploads
-mkdir -p /app/prisma
-chown -R nextjs:nodejs /app/uploads /app/prisma 2>/dev/null || true
-chmod -R 777 /app/uploads /app/prisma 2>/dev/null || true
+chown -R nextjs:nodejs /app/uploads 2>/dev/null || true
+chmod -R 777 /app/uploads 2>/dev/null || true
+
+# Apply database migrations (no-op when already applied).
+# Never `db push` in production — schema is owned by prisma/migrations.
+echo "Applying database migrations..."
+su-exec nextjs /app/node_modules/.bin/prisma migrate deploy
+
+# Optional explicit seed on first run (requires ADMIN_PASSWORD + --force in prod)
+if [ "$RUN_SEED" = "true" ]; then
+  echo "Seeding database (RUN_SEED=true)..."
+  su-exec nextjs /app/node_modules/.bin/tsx prisma/seed.ts --force
+fi
 
 # Execute CMD passed to entrypoint or default to node server.js
 if [ "$#" -gt 0 ]; then

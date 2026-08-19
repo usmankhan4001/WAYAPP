@@ -2,21 +2,23 @@ import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 
 /**
- * Validates Meta Webhook SHA256 HMAC signature
- * If appSecret is not yet configured in settings, allows webhook to proceed to avoid Meta disabling the endpoint.
+ * Validates Meta Webhook SHA256 HMAC signature.
+ * Fail-closed: a missing appSecret or signature header rejects the request.
+ * Meta never sends webhooks to an endpoint that is not fully verified, so
+ * there is no legitimate case where a valid webhook lacks these values.
  */
 export function verifyMetaSignature(
   rawBody: string,
   signatureHeader: string | null,
   appSecret: string | null | undefined
 ): boolean {
-  // If app secret is not configured in Settings, allow webhook through with warning log
   if (!appSecret || appSecret.trim() === '') {
-    return true;
+    logger.warn('Meta webhook rejected: appSecret is not configured in Settings');
+    return false;
   }
 
   if (!signatureHeader || !signatureHeader.startsWith('sha256=')) {
-    logger.warn('Meta webhook received without required sha256 signature header');
+    logger.warn('Meta webhook rejected: missing or malformed sha256 signature header');
     return false;
   }
 

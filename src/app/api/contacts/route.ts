@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { normalizePhoneNumber } from '@/lib/utils';
+import { requireAuth } from '@/lib/auth/rbac';
 
 export async function GET(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if ('response' in authResult) return authResult.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search')?.trim() || '';
@@ -62,6 +66,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if ('response' in authResult) return authResult.response;
+
   try {
     const body = await request.json();
     const {
@@ -82,23 +89,34 @@ export async function POST(request: NextRequest) {
     const settings = await prisma.settings.findUnique({ where: { id: 'default' } });
     const normalizedPhone = normalizePhoneNumber(phoneNumber, settings?.defaultCountryCode || '+1');
 
+    // Only update fields the client explicitly sent — partial updates must not
+    // wipe existing name/email/attributes/group/tag assignments
+    const hasField = (key: string) => body[key] !== undefined;
+    const updateData: any = {};
+
+    if (hasField('firstName')) updateData.firstName = firstName?.trim() || null;
+    if (hasField('lastName')) updateData.lastName = lastName?.trim() || null;
+    if (hasField('email')) updateData.email = email?.trim() || null;
+    if (hasField('status')) updateData.status = status;
+    if (hasField('customAttributes')) {
+      updateData.customAttributes = JSON.stringify(customAttributes);
+    }
+    if (hasField('groupIds') && Array.isArray(groupIds)) {
+      updateData.groups = {
+        deleteMany: {},
+        create: groupIds.map((gId: string) => ({ groupId: gId })),
+      };
+    }
+    if (hasField('tagIds') && Array.isArray(tagIds)) {
+      updateData.tags = {
+        deleteMany: {},
+        create: tagIds.map((tId: string) => ({ tagId: tId })),
+      };
+    }
+
     const contact = await prisma.contact.upsert({
       where: { phoneNumber: normalizedPhone },
-      update: {
-        firstName: firstName?.trim() || null,
-        lastName: lastName?.trim() || null,
-        email: email?.trim() || null,
-        status,
-        customAttributes: JSON.stringify(customAttributes),
-        groups: {
-          deleteMany: {},
-          create: groupIds.map((gId: string) => ({ groupId: gId })),
-        },
-        tags: {
-          deleteMany: {},
-          create: tagIds.map((tId: string) => ({ tagId: tId })),
-        },
-      },
+      update: updateData,
       create: {
         phoneNumber: normalizedPhone,
         firstName: firstName?.trim() || null,
@@ -126,6 +144,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if ('response' in authResult) return authResult.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

@@ -23,6 +23,26 @@ The app has a strong feature surface and clean TypeScript, but is **not producti
 
 ---
 
+## Remediation Status (updated 2026-08-19)
+
+| Phase | Scope | Status |
+|---|---|---|
+| 0 | Secrets & deploy (fail-closed JWT/crypto, `.env.example`, compose, seed guards) | ✅ Done — **user still must:** rotate Meta creds, purge git history, rotate secrets on Dokploy |
+| 2 | PostgreSQL + baseline migration `20260819000000_baseline` + entrypoint `migrate deploy` | ✅ Done (migrations generated offline; live apply on deploy) |
+| 1 | Password auth + RBAC + sessions + Meta OAuth state + settings field-pick + encryption at rest | ✅ Done |
+| 3 | WhatsApp layer: `metaFetch` everywhere, fail-closed signature, mock-mode rules, dispatcher/worker split, `queue.ts` deleted | ✅ Done |
+| 4 | Webhook reliability: fail-closed HMAC, wamid idempotency, transition-guarded counters, suppression, 24h window | ✅ Done |
+| 5 | API hardening: `requireAuth` on 14 routes, zod on v1 routes, media allowlists + nosniff, rate limits, settings token preservation | ✅ Done |
+| 6 | Product correctness: worker health server (port 3001), sweeper FAILED/COMPLETED, compose worker healthcheck | ✅ Done |
+| 7 | Frontend robustness: hook-order crash fix, dual-shape chat notifications | ✅ Done |
+| 8 | Ops/observability/tests: health endpoint, vitest suite, CI | 🔶 Partial — vitest baseline 18 pass / 10 fail (DB-dependent); no CI secret-scan job yet |
+| 9 | Docs & config hygiene | ✅ `docs/ERD.md`, `docs/user-flows.md`; README backup/restore section pending |
+| F1–F6 | Feature build (flows, AI bots, inbox, v1 API, mobile) | 🔶 In progress — v1 API + outbound webhook models exist in schema; UI/worker build pending |
+
+**Remaining user actions (blocking):** rotate/revoke Meta credentials burned in git history; purge git history (`git filter-repo`/BFG) + force-push; rotate `AUTH_SECRET`/`ENCRYPTION_KEY`/admin password on Dokploy; start Postgres (`docker compose up -d postgres`) to unblock DB-dependent tests.
+
+---
+
 ## Phase 0 — Emergency Incident Response (hours, do first)
 
 | # | Task | Who |

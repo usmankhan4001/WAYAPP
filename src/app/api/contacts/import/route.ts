@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { normalizePhoneNumber } from '@/lib/utils';
+import { requireAuth } from '@/lib/auth/rbac';
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if ('response' in authResult) return authResult.response;
+
   try {
     const body = await request.json();
     const { rows = [], columnMapping = {}, targetGroupId, targetTagId } = body;

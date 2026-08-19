@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: wayapp
       POSTGRES_USER: wayapp
-      POSTGRES_PASSWORD: wayapp_secure_password_2026
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wayapp_secure_password_2026}
     ports:
       - '5432:5432'
     volumes:
@@ -29,14 +29,21 @@ services:
       - '3000:3000'
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://wayapp:wayapp_secure_password_2026@postgres:5432/wayapp
-      - AUTH_SECRET=wayapp_super_secret_auth_key_replace_in_production_min32chars
+      - DATABASE_URL=postgresql://wayapp:${POSTGRES_PASSWORD:-wayapp_secure_password_2026}@postgres:5432/wayapp
+      - AUTH_SECRET=${AUTH_SECRET:?Set AUTH_SECRET in .env (openssl rand -base64 48)}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
       - PORT=3000
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
       - uploads_data:/app/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   worker:
     build:
@@ -44,16 +51,24 @@ services:
       dockerfile: Dockerfile
     container_name: wayapp-worker
     restart: unless-stopped
-    command: ["node", "src/worker/index.js"]
+    command: ["npx", "tsx", "src/worker/index.ts"]
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://wayapp:wayapp_secure_password_2026@postgres:5432/wayapp
-      - AUTH_SECRET=wayapp_super_secret_auth_key_replace_in_production_min32chars
+      - DATABASE_URL=postgresql://wayapp:${POSTGRES_PASSWORD:-wayapp_secure_password_2026}@postgres:5432/wayapp
+      - AUTH_SECRET=${AUTH_SECRET:?Set AUTH_SECRET in .env (openssl rand -base64 48)}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+      - WORKER_HEALTH_PORT=3001
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
       - uploads_data:/app/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
 volumes:
   pg_data:

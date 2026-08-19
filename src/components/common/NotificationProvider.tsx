@@ -101,10 +101,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         let unread = 0;
         let newestInbound: any = null;
 
-        for (const contact of data) {
-          const lastMsg = contact.chatMessages?.[0];
+        for (const item of data) {
+          // Handle both response shapes: conversation objects { contact, messages }
+          // and the flat contacts fallback { chatMessages }
+          const contact = item.contact || item;
+          const lastMsg = item.messages?.[0] || contact.chatMessages?.[0];
           if (lastMsg && lastMsg.direction === 'INBOUND') {
-            unread++;
+            unread += item.unreadCount ?? 1;
             if (!newestInbound || new Date(lastMsg.timestamp) > new Date(newestInbound.timestamp)) {
               newestInbound = {
                 id: lastMsg.id,

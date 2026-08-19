@@ -5,11 +5,22 @@ const IV_LENGTH = 12; // 96 bits for GCM
 const TAG_LENGTH = 16; // 128 bits auth tag
 
 /**
- * Derives a 32-byte key from AUTH_SECRET or returns a deterministic key
+ * Derives a 32-byte AES key from AUTH_SECRET / ENCRYPTION_KEY.
+ * Fail-closed in production: missing env throws instead of falling back
+ * to a publicly-known key that would make stored tokens decryptable.
  */
 function getEncryptionKey(): Buffer {
-  const secret = process.env.AUTH_SECRET || process.env.ENCRYPTION_KEY || 'wayapp-default-development-encryption-key-32b!';
-  return crypto.createHash('sha256').update(secret).digest();
+  const secret = process.env.AUTH_SECRET || process.env.ENCRYPTION_KEY;
+  if (secret) {
+    return crypto.createHash('sha256').update(secret).digest();
+  }
+  if (process.env.NODE_ENV !== 'production') {
+    // Development/test-only key. Never used in production (see throw below).
+    return crypto.createHash('sha256').update('wayapp-dev-only-secret-0123456789abcdef').digest();
+  }
+  throw new Error(
+    '[Crypto] ENCRYPTION_KEY (or AUTH_SECRET) must be set in production. Generate one with: openssl rand -base64 48'
+  );
 }
 
 /**
@@ -19,9 +30,12 @@ function getEncryptionKey(): Buffer {
 export function encryptString(plaintext: string | null | undefined): string | null {
   if (!plaintext) return null;
 
+  // Key resolution is intentionally OUTSIDE the try/catch so a missing
+  // production ENCRYPTION_KEY fails loudly instead of storing plaintext.
+  const key = getEncryptionKey();
+
   try {
     const iv = crypto.randomBytes(IV_LENGTH);
-    const key = getEncryptionKey();
     const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
 
     let ciphertext = cipher.update(plaintext, 'utf8', 'hex');
@@ -37,6 +51,10 @@ export function encryptString(plaintext: string | null | undefined): string | nu
 
 /**
  * Decrypts an AES-256-GCM encrypted string ("iv:tag:ciphertext")
+ * Legacy plaintext values (no colon-separated iv:tag:ciphertext shape)
+ * are returned as-is for backward compatibility. A value that LOOKS
+ * encrypted but fails GCM authentication returns null (never echoed back),
+ * so callers can distinguish "legacy plaintext" from "corrupted data".
  */
 export function decryptString(encryptedText: string | null | undefined): string | null {
   if (!encryptedText) return null;
@@ -54,7 +72,7 @@ export function decryptString(encryptedText: string | null | undefined): string 
     const key = getEncryptionKey();
 
     if (iv.length !== IV_LENGTH || authTag.length !== TAG_LENGTH) {
-      return encryptedText; // Fallback
+      return null;
     }
 
     const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
@@ -64,8 +82,8 @@ export function decryptString(encryptedText: string | null | undefined): string 
     decrypted += decipher.final('utf8');
     return decrypted;
   } catch (error) {
-    // If decryption fails, might be plaintext or wrong key
-    return encryptedText;
+    // Tampered ciphertext or wrong key — do not echo the ciphertext back.
+    return null;
   }
 }
 

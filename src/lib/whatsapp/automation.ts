@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { WhatsAppClient } from './client';
+import { decryptString } from '@/lib/crypto';
 
 export interface TriggerConfig {
   matchType: 'EXACT' | 'CONTAINS' | 'STARTS_WITH' | 'REGEX' | 'ANY_INBOUND';
@@ -42,7 +43,7 @@ export async function processInboundAutomation(params: {
     const client = new WhatsAppClient({
       wabaId: settings?.wabaId || undefined,
       phoneNumberId: settings?.phoneNumberId || undefined,
-      accessToken: settings?.accessToken || undefined,
+      accessToken: decryptString(settings?.accessToken) || undefined,
       isMockMode: settings?.isMockMode ?? false,
     });
 

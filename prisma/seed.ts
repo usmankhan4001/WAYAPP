@@ -5,6 +5,14 @@ import crypto from 'crypto';
 const prisma = new PrismaClient();
 
 async function main() {
+  // Refuse to seed production without an explicit --force flag
+  const isProduction = process.env.NODE_ENV === 'production';
+  const forced = process.argv.includes('--force');
+  if (isProduction && !forced) {
+    console.error('Refusing to seed in production. Re-run with --force (e.g. npm run db:seed -- --force).');
+    process.exit(1);
+  }
+
   console.log('Seeding WAYAPP database idempotently...');
 
   // Default Production Settings
@@ -37,10 +45,16 @@ async function main() {
     },
   });
 
-  // Default Super Admin User
-  const adminPasswordHash = await bcrypt.hash('Admin@12345', 12);
+  // Default Super Admin User — credentials come from environment, never from source
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@gccstartup.com';
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminPassword || adminPassword === 'change-me-now') {
+    console.error('ADMIN_PASSWORD must be set to a strong value when seeding (ADMIN_EMAIL optional).');
+    process.exit(1);
+  }
+  const adminPasswordHash = await bcrypt.hash(adminPassword, 12);
   await prisma.user.upsert({
-    where: { email: 'admin@gccstartup.com' },
+    where: { email: adminEmail },
     update: {
       passwordHash: adminPasswordHash,
       role: 'SUPER_ADMIN',
@@ -48,7 +62,7 @@ async function main() {
       status: 'ACTIVE',
     },
     create: {
-      email: 'admin@gccstartup.com',
+      email: adminEmail,
       name: 'GCC Super Admin',
       passwordHash: adminPasswordHash,
       role: 'SUPER_ADMIN',

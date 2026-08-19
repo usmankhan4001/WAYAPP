@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { CampaignDispatcher } from '@/lib/whatsapp/queue';
+import { dispatchCampaign, getTargetContacts } from '@/worker/dispatcher';
+import { requireAuth } from '@/lib/auth/rbac';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if ('response' in authResult) return authResult.response;
+
   try {
     const campaigns = await prisma.campaign.findMany({
       include: {
@@ -18,6 +22,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if ('response' in authResult) return authResult.response;
+
   try {
     const body = await request.json();
     const {
@@ -41,7 +48,7 @@ export async function POST(request: NextRequest) {
     const mappingString = typeof variableMappings === 'string' ? variableMappings : JSON.stringify(variableMappings || {});
 
     // Compute matching target contacts
-    const targetContacts = await CampaignDispatcher.getTargetContacts(filterString);
+    const targetContacts = await getTargetContacts(filterString);
 
     const campaign = await prisma.campaign.create({
       data: {
@@ -60,8 +67,9 @@ export async function POST(request: NextRequest) {
     });
 
     if (startImmediately && targetContacts.length > 0) {
-      // Trigger dispatcher in background
-      CampaignDispatcher.startCampaign(campaign.id).catch((err) => {
+      // Trigger dispatcher in background (idempotent — the exclusive lock
+      // guarantees a campaign is only ever dispatched by one runner)
+      dispatchCampaign(campaign.id).catch((err) => {
         console.error('Error starting campaign dispatcher:', err);
       });
     }

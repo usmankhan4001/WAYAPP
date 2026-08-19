@@ -101,8 +101,6 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
     return Array.from(new Set(matches)).map((m) => m.replace(/[{}]/g, ''));
   }, [headerText]);
 
-  if (!isOpen) return null;
-
   // Insert variable into Body
   const handleInsertBodyVar = () => {
     const nextNum = detectedBodyVars.length + 1;
@@ -181,6 +179,9 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
 
     return errs;
   }, [name, bodyText, detectedBodyVars, sampleValues]);
+
+  // Early return AFTER all hooks so hook order stays consistent across renders
+  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

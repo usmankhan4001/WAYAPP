@@ -5,6 +5,7 @@ import { MetaWebhookPayload } from '@/lib/whatsapp/types';
 import { sanitizePhoneNumber } from '@/lib/whatsapp/phone';
 import { decryptString, timingSafeCompare } from '@/lib/crypto';
 import { logger } from '@/lib/logger';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 // Valid status lifecycle ranking to prevent status regression
 const STATUS_RANK: Record<string, number> = {
@@ -50,6 +51,13 @@ export async function GET(request: NextRequest) {
  * POST handler: Ingest delivery receipts, template status approvals & incoming messages from Meta
  */
 export async function POST(request: NextRequest) {
+  const clientIp = getClientIp(request);
+  const rateLimit = checkRateLimit(`webhook:${clientIp}`, { limit: 600, windowSeconds: 60 });
+  if (!rateLimit.success) {
+    logger.warn(`Meta Webhook rate limit exceeded from ${clientIp}`);
+    return NextResponse.json({ error: 'Too many webhook requests' }, { status: 429 });
+  }
+
   try {
     const rawBody = await request.text();
     const signature = request.headers.get('x-hub-signature-256');

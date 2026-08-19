@@ -1,9 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ensureDatabaseSchema } from '@/lib/db-init';
 import { WhatsAppClient } from '@/lib/whatsapp/client';
+import { requireAuth } from '@/lib/auth/rbac';
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if ('response' in authResult) return authResult.response;
+
   try {
     await ensureDatabaseSchema();
     const client = await WhatsAppClient.createFromSettings();

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -23,11 +23,6 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [needsSetup, setNeedsSetup] = useState(false);
-
-  useEffect(() => {
-    // Auth is disabled - redirect immediately to dashboard
-    router.replace('/');
-  }, [router]);
 
   const handleMetaLogin = () => {
     setLoading(true);
@@ -167,19 +162,6 @@ function LoginForm() {
             >
               <span>{loading ? 'Verifying credentials...' : 'Sign In'}</span>
               <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-
-            {/* Quick Fill Default Admin Credentials */}
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('admin@gccstartup.com');
-                setPassword('Admin@12345');
-              }}
-              className="w-full py-2 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-emerald-400 font-semibold text-[11px] border border-slate-700/60 transition-all flex items-center justify-center gap-1.5"
-            >
-              <span>⚡ Use Default Admin:</span>
-              <span className="font-mono text-slate-300">admin@gccstartup.com</span>
             </button>
           </form>
 
