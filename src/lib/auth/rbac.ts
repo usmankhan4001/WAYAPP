@@ -1,7 +1,11 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { UserSessionPayload } from './jwt';
 
 export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'MEMBER' | 'VIEWER';
+
+export type AuthResult =
+  | { session: UserSessionPayload }
+  | { response: NextResponse };
 
 export const DEFAULT_ADMIN_SESSION: UserSessionPayload = {
   userId: 'admin',
@@ -29,7 +33,7 @@ export async function getSessionFromRequest(request?: NextRequest): Promise<User
  */
 export async function requireAuth(
   request: NextRequest
-): Promise<{ session: UserSessionPayload }> {
+): Promise<AuthResult> {
   return { session: DEFAULT_ADMIN_SESSION };
 }
 
@@ -39,6 +43,6 @@ export async function requireAuth(
 export async function requireRole(
   request: NextRequest,
   allowedRoles: UserRole[] | UserRole
-): Promise<{ session: UserSessionPayload }> {
+): Promise<AuthResult> {
   return { session: DEFAULT_ADMIN_SESSION };
 }
