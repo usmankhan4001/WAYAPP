@@ -134,6 +134,9 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error: any) {
     console.error('[Auth API] Login error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error', details: error?.message || String(error) },
+      { status: 500 }
+    );
   }
 }
