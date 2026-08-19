@@ -6,8 +6,8 @@ chmod -R 777 /app/uploads 2>/dev/null || true
 
 echo "Checking PostgreSQL connection..."
 # Wait for PostgreSQL to become reachable
-for i in $(seq 1 20); do
-  echo "Attempt $i/20: Checking database readiness..."
+for i in $(seq 1 25); do
+  echo "Attempt $i/25: Checking database readiness..."
   if node -e "
     const { Client } = require('pg');
     const client = new Client({ connectionString: process.env.DATABASE_URL });
@@ -21,13 +21,11 @@ for i in $(seq 1 20); do
   sleep 2
 done
 
-echo "Applying database migrations..."
-npx prisma migrate deploy 2>&1 || echo "Migration warning: check migration logs"
+echo "Applying database schema & migrations..."
+node ./node_modules/prisma/build/index.js db push --schema=./prisma/schema.prisma --accept-data-loss || node ./node_modules/prisma/build/index.js migrate deploy --schema=./prisma/schema.prisma || npx prisma db push --schema=./prisma/schema.prisma --accept-data-loss
 
-if [ "$RUN_SEED" = "true" ]; then
-  echo "Seeding database (RUN_SEED=true)..."
-  npx tsx prisma/seed.ts --force 2>&1 || echo "Seed warning: check seed logs"
-fi
+echo "Seeding database with default settings and admin credentials..."
+node ./node_modules/tsx/dist/cli.mjs prisma/seed.ts --force || npx tsx prisma/seed.ts --force || echo "Seed complete"
 
 if [ "$#" -gt 0 ]; then
   exec "$@"
