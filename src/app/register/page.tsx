@@ -17,6 +17,11 @@ import {
 
 function RegisterForm() {
   const router = useRouter();
+
+  React.useEffect(() => {
+    router.replace('/');
+  }, [router]);
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

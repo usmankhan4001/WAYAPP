@@ -25,17 +25,9 @@ function LoginForm() {
   const [needsSetup, setNeedsSetup] = useState(false);
 
   useEffect(() => {
-    const errorParam = searchParams.get('error');
-    if (errorParam === 'ACCESS_DENIED_NOT_GCC_USER') {
-      setErrorMsg('Access Denied: Email domain not permitted. Please use your enterprise email.');
-    } else if (errorParam === 'SESSION_EXPIRED') {
-      setErrorMsg('Your session has expired. Please sign in again.');
-    } else if (errorParam === 'META_APP_ID_MISSING') {
-      setErrorMsg('Meta App ID is not configured. Please use email and password to sign in.');
-    } else if (errorParam) {
-      setErrorMsg(decodeURIComponent(errorParam));
-    }
-  }, [searchParams]);
+    // Auth is disabled - redirect immediately to dashboard
+    router.replace('/');
+  }, [router]);
 
   const handleMetaLogin = () => {
     setLoading(true);
