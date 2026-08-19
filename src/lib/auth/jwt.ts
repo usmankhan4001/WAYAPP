@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose';
+import crypto from 'crypto';
 
 export const SESSION_COOKIE_NAME = 'wayapp_session';
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth/rbac';
 import { WhatsAppClient } from '@/lib/whatsapp/client';
