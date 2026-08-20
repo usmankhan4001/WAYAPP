@@ -55,8 +55,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Gatekeeper: If Meta connection is not yet attached & activated, lock the platform and require setup
-  if (!settings?.isConnected) {
+  // Gatekeeper: Only show if NO credentials or mock mode are configured
+  const isPlatformConfigured =
+    settings?.isConnected ||
+    Boolean(settings?.phoneNumberId && settings?.accessTokenMasked) ||
+    Boolean(settings?.wabaId && settings?.phoneNumberId) ||
+    settings?.isMockMode === true;
+
+  if (!isPlatformConfigured) {
     return (
       <InitialSetupGatekeeper
         onActivationSuccess={(updatedSettings) => {

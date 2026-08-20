@@ -50,26 +50,36 @@ export async function GET(request: NextRequest) {
   const rawAppSecret = decryptString(settings.appSecret);
   const rawMetaSecret = decryptString(authConfig?.metaAppSecret);
 
+  const effectiveWabaId = settings.wabaId || process.env.META_WABA_ID || '';
+  const effectivePhoneNumberId = settings.phoneNumberId || process.env.META_PHONE_NUMBER_ID || '';
+  const effectiveAccessToken = rawAccessToken || process.env.META_ACCESS_TOKEN || '';
+  const effectiveAppSecret = rawAppSecret || process.env.META_APP_SECRET || '';
+
+  const isActuallyConnected =
+    settings.isConnected ||
+    Boolean(effectivePhoneNumberId && effectiveAccessToken) ||
+    settings.isMockMode === true;
+
   // Return strictly sanitized fields (NO secret leaks)
   const safeSettings = {
     id: settings.id,
-    wabaId: settings.wabaId,
-    phoneNumberId: settings.phoneNumberId,
-    businessName: settings.businessName,
+    wabaId: effectiveWabaId,
+    phoneNumberId: effectivePhoneNumberId,
+    businessName: settings.businessName || 'My WhatsApp Business',
     businessPhone: settings.businessPhone,
-    defaultCountryCode: settings.defaultCountryCode,
-    rateLimitPerSecond: settings.rateLimitPerSecond,
-    tierDailyLimit: settings.tierDailyLimit,
-    qualityRating: settings.qualityRating,
+    defaultCountryCode: settings.defaultCountryCode || '+971',
+    rateLimitPerSecond: settings.rateLimitPerSecond || 20,
+    tierDailyLimit: settings.tierDailyLimit || 1000,
+    qualityRating: settings.qualityRating || 'GREEN',
     isMockMode: settings.isMockMode,
-    isConnected: settings.isConnected,
+    isConnected: isActuallyConnected,
     marketingMessagesEnabled: settings.marketingMessagesEnabled ?? false,
     marketingMessagesPolicy: settings.marketingMessagesPolicy || 'CLOUD_API_FALLBACK',
     webhookVerifyToken: settings.webhookVerifyToken,
-    accessTokenMasked: rawAccessToken ? maskSecret(rawAccessToken) : null,
-    hasAppSecret: Boolean(rawAppSecret),
-    metaAppId: authConfig?.metaAppId || '',
-    hasMetaAppSecret: Boolean(rawMetaSecret),
+    accessTokenMasked: effectiveAccessToken ? maskSecret(effectiveAccessToken) : null,
+    hasAppSecret: Boolean(effectiveAppSecret),
+    metaAppId: authConfig?.metaAppId || process.env.META_APP_ID || '',
+    hasMetaAppSecret: Boolean(rawMetaSecret || process.env.META_APP_SECRET),
     allowedDomains: authConfig?.allowedDomains || 'gccstartup.com',
     allowedEmails: authConfig?.allowedEmails || '',
     requireAuth: authConfig?.requireAuth ?? true,
@@ -247,6 +257,8 @@ export async function POST(request: NextRequest) {
 
     if (isConnected !== undefined) {
       dataToUpdate.isConnected = Boolean(isConnected);
+    } else if (dataToUpdate.phoneNumberId && (dataToUpdate.accessToken || existing?.accessToken)) {
+      dataToUpdate.isConnected = true;
     }
 
     if (accessToken && !accessToken.includes('••') && !accessToken.includes('...')) {

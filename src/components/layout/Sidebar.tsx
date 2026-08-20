@@ -17,6 +17,8 @@ import {
   LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PWAInstallPrompt } from '@/components/common/PWAInstallPrompt';
+import { DevicePermissionsModal } from '@/components/common/DevicePermissionsModal';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -38,6 +40,7 @@ export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [isPermissionsOpen, setIsPermissionsOpen] = useState(false);
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -128,6 +131,17 @@ export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
 
       {/* User & Footer Info */}
       <div className="p-3 border-t border-slate-800/80 space-y-2">
+        <div className="flex items-center gap-2">
+          <PWAInstallPrompt className="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all" />
+          <button
+            onClick={() => setIsPermissionsOpen(true)}
+            className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition-all shrink-0"
+            title="Device Permissions"
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          </button>
+        </div>
+
         {user && (
           <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-900 border border-slate-800">
             <div className="flex items-center gap-2 min-w-0">
@@ -157,6 +171,11 @@ export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
           <span>Meta Graph v21.0 Ready</span>
         </div>
+
+        <DevicePermissionsModal
+          isOpen={isPermissionsOpen}
+          onClose={() => setIsPermissionsOpen(false)}
+        />
       </div>
     </aside>
   );

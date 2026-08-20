@@ -18,6 +18,7 @@ import {
   Video,
   File as FileIcon,
   Music,
+  Camera,
   X,
   Download,
   ExternalLink,
@@ -64,6 +65,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
   const [isSimulatingInbound, setIsSimulatingInbound] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputTypeRef = useRef<'image' | 'video' | 'audio' | 'document'>('image');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -357,6 +359,22 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
           if (e.target.files && e.target.files[0]) {
             handleFileSelected(e.target.files[0]);
           }
+          e.target.value = '';
+        }}
+      />
+
+      {/* Hidden Camera Capture Input */}
+      <input
+        type="file"
+        ref={cameraInputRef}
+        accept="image/*,video/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            handleFileSelected(e.target.files[0]);
+          }
+          e.target.value = '';
         }}
       />
 
@@ -723,7 +741,24 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
             <div className="relative">
               {/* Attachment Popover Menu */}
               {isAttachmentMenuOpen && (
-                <div className="absolute bottom-14 left-0 bg-white rounded-2xl border border-slate-200 shadow-2xl p-2 z-30 grid grid-cols-2 gap-1.5 min-w-[200px] animate-in fade-in slide-in-from-bottom-2 duration-150">
+                <div className="absolute bottom-14 left-0 bg-white rounded-2xl border border-slate-200 shadow-2xl p-2 z-30 grid grid-cols-2 gap-1.5 min-w-[220px] animate-in fade-in slide-in-from-bottom-2 duration-150">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAttachmentMenuOpen(false);
+                      cameraInputRef.current?.click();
+                    }}
+                    className="p-2 rounded-xl hover:bg-slate-100 flex items-center gap-2 text-xs font-semibold text-slate-700 transition-all col-span-2 bg-emerald-50/50 border border-emerald-200/60"
+                  >
+                    <div className="p-1.5 rounded-lg bg-emerald-600 text-white shadow-sm">
+                      <Camera className="w-4 h-4" />
+                    </div>
+                    <div className="text-left">
+                      <span className="block font-bold text-slate-900">Take Photo / Video</span>
+                      <span className="text-[10px] text-slate-500 block">Capture from camera</span>
+                    </div>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => triggerFileInput('image')}
@@ -754,7 +789,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                     <div className="p-1.5 rounded-lg bg-purple-100 text-purple-700">
                       <FileIcon className="w-4 h-4" />
                     </div>
-                    <span>Document / PDF</span>
+                    <span>Document</span>
                   </button>
 
                   <button
@@ -765,7 +800,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                     <div className="p-1.5 rounded-lg bg-amber-100 text-amber-700">
                       <Music className="w-4 h-4" />
                     </div>
-                    <span>Audio File</span>
+                    <span>Audio</span>
                   </button>
                 </div>
               )}
