@@ -30,6 +30,7 @@ import { InfoTooltip, Tooltip } from '@/components/ui/Tooltip';
 import { AudioVoicePlayer } from './AudioVoicePlayer';
 import { VoiceNoteRecorder } from './VoiceNoteRecorder';
 import { MediaLightbox } from './MediaLightbox';
+import { playOutgoingPop } from '@/lib/notifications/sound';
 
 interface ChatWindowProps {
   contact: any;
@@ -212,6 +213,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
       }
 
       setStagedMedia(null);
+      playOutgoingPop();
       fetchMessages();
       onRefreshList();
     } catch (err: any) {
@@ -258,6 +260,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
       }
 
       setIsRecordingVoice(false);
+      playOutgoingPop();
       fetchMessages();
       onRefreshList();
     } catch (err: any) {
@@ -291,6 +294,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
         }
       } else {
         setText('');
+        playOutgoingPop();
         fetchMessages();
         onRefreshList();
       }
@@ -323,6 +327,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
         setErrorMessage(data.error || 'Failed to dispatch template message');
       } else {
         setIsTemplatePickerOpen(false);
+        playOutgoingPop();
         fetchMessages();
         onRefreshList();
       }
@@ -509,12 +514,12 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
               handleFileSelected(e.dataTransfer.files[0]);
             }
           }}
-          className={`flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-slate-50/50 relative ${
-            isDragging ? 'ring-2 ring-emerald-500 ring-inset bg-emerald-50/30' : ''
+          className={`flex-1 overflow-y-auto p-4 md:p-6 space-y-3.5 bg-[#efeae2]/90 relative ${
+            isDragging ? 'ring-2 ring-emerald-500 ring-inset bg-emerald-50/50' : ''
           }`}
         >
           {isDragging && (
-            <div className="absolute inset-0 bg-emerald-50/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center text-emerald-700 pointer-events-none">
+            <div className="absolute inset-0 bg-emerald-50/90 backdrop-blur-sm z-20 flex flex-col items-center justify-center text-emerald-700 pointer-events-none">
               <ImageIcon className="w-12 h-12 mb-2 animate-bounce" />
               <p className="text-sm font-bold">Drop your image, video, or PDF file to attach</p>
             </div>
@@ -522,10 +527,12 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
 
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-8 text-slate-400 space-y-2">
-              <Sparkles className="w-8 h-8 text-slate-300" />
-              <p className="text-xs font-medium">No messages yet in this conversation</p>
-              <p className="text-[11px] text-slate-400 max-w-xs">
-                Send a pre-approved template or freeform reply to start messaging.
+              <div className="w-12 h-12 rounded-2xl bg-white/80 border border-slate-200/80 flex items-center justify-center shadow-sm">
+                <Sparkles className="w-6 h-6 text-emerald-600" />
+              </div>
+              <p className="text-xs font-bold text-slate-700">No messages yet in this conversation</p>
+              <p className="text-[11px] text-slate-500 max-w-xs">
+                Send an approved WhatsApp template or reply directly to begin chatting.
               </p>
             </div>
           ) : (
@@ -540,10 +547,10 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                   className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'}`}
                 >
                   <div
-                    className={`max-w-[85%] md:max-w-[70%] rounded-2xl p-3 md:p-3.5 shadow-sm space-y-2 ${
+                    className={`max-w-[88%] sm:max-w-[75%] md:max-w-[65%] rounded-2xl p-3 md:p-3.5 shadow-sm space-y-1.5 transition-all ${
                       isOutbound
-                        ? 'bg-emerald-600 text-white rounded-br-none'
-                        : 'bg-white text-slate-900 border border-slate-200 rounded-bl-none'
+                        ? 'bg-[#d9fdd3] text-slate-900 border border-[#c3f4bb] rounded-tr-xs ml-auto'
+                        : 'bg-white text-slate-900 border border-slate-200/90 rounded-tl-xs mr-auto'
                     }`}
                   >
                     {/* Media Type: Image */}
@@ -556,14 +563,14 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                             caption: m.body !== 'Photo' ? m.body : undefined,
                           })
                         }
-                        className="cursor-pointer overflow-hidden rounded-xl bg-slate-950/20 group relative"
+                        className="cursor-pointer overflow-hidden rounded-xl bg-slate-950/10 group relative border border-black/5"
                       >
                         <img
                           src={m.mediaUrl}
                           alt="WhatsApp Image"
-                          className="max-h-60 w-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-200"
+                          className="max-h-64 w-full object-cover rounded-xl group-hover:scale-102 transition-transform duration-200"
                         />
-                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                        <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
                           <ExternalLink className="w-5 h-5" />
                         </div>
                       </div>
@@ -571,7 +578,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
 
                     {/* Media Type: Video */}
                     {msgType === 'video' && hasMedia && (
-                      <div className="overflow-hidden rounded-xl bg-black max-h-64">
+                      <div className="overflow-hidden rounded-xl bg-black max-h-64 border border-black/10">
                         <video
                           src={m.mediaUrl}
                           controls
@@ -590,8 +597,8 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                       <div
                         className={`flex items-center gap-3 p-2.5 rounded-xl border ${
                           isOutbound
-                            ? 'bg-emerald-700/60 border-emerald-500/50 text-white'
-                            : 'bg-slate-50 border-slate-200 text-slate-800'
+                            ? 'bg-[#c3f4bb]/70 border-[#b2e8a9] text-slate-900'
+                            : 'bg-slate-50 border-slate-200 text-slate-900'
                         }`}
                       >
                         <FileIcon className="w-8 h-8 text-rose-500 shrink-0" />
@@ -608,7 +615,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                           rel="noopener noreferrer"
                           className={`p-2 rounded-lg transition-all ${
                             isOutbound
-                              ? 'bg-emerald-800 hover:bg-emerald-900 text-white'
+                              ? 'bg-[#005c4b] hover:bg-[#004739] text-white shadow-sm'
                               : 'bg-slate-200 hover:bg-slate-300 text-slate-800'
                           }`}
                         >
@@ -619,9 +626,9 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
 
                     {/* Media Type: Location */}
                     {msgType === 'location' && (
-                      <div className="flex items-start gap-2.5 p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100">
+                      <div className="flex items-start gap-2.5 p-2 rounded-xl bg-slate-100 text-slate-800 border border-slate-200">
                         <MapPin className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-                        <div className="text-xs">{m.body}</div>
+                        <div className="text-xs font-medium">{m.body}</div>
                       </div>
                     )}
 
@@ -633,26 +640,26 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                       (msgType !== 'video' || m.body !== 'Video') &&
                       (msgType !== 'document' || !hasMedia) &&
                       msgType !== 'location' && (
-                        <p className="text-xs whitespace-pre-wrap leading-relaxed font-sans">
+                        <p className="text-[13px] whitespace-pre-wrap leading-relaxed font-sans text-slate-900">
                           {m.body}
                         </p>
                       )}
 
                     {/* Message Timestamp & Status */}
                     <div
-                      className={`flex items-center justify-end gap-1 text-[10px] mt-1 ${
-                        isOutbound ? 'text-emerald-100' : 'text-slate-400'
+                      className={`flex items-center justify-end gap-1 text-[10px] select-none pt-0.5 ${
+                        isOutbound ? 'text-slate-500' : 'text-slate-400'
                       }`}
                     >
-                      <span>{formatDateTime(m.timestamp)}</span>
+                      <span className="font-mono text-[10px]">{formatDateTime(m.timestamp)}</span>
                       {isOutbound && (
                         <CheckCheck
                           className={`w-3.5 h-3.5 ${
                             m.status === 'READ'
-                              ? 'text-cyan-300'
+                              ? 'text-[#53bdeb] font-bold'
                               : m.status === 'DELIVERED'
-                              ? 'text-white/90'
-                              : 'text-white/60'
+                              ? 'text-slate-500'
+                              : 'text-slate-400'
                           }`}
                         />
                       )}
