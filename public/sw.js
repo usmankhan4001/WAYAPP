@@ -1,5 +1,5 @@
 // WAYAPP Service Worker: Network-First Caching & Real Native Web Push Notifications
-const CACHE_NAME = 'wayapp-cache-v2';
+const CACHE_NAME = 'wayapp-cache-v3';
 const STATIC_ASSETS = [
   '/',
   '/inbox',
@@ -28,24 +28,42 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Network-first fetch handler
+// Safe Network-first fetch handler (strictly same-origin HTTP/HTTPS only)
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET' || event.request.url.includes('/api/')) {
+  const req = event.request;
+  const url = new URL(req.url);
+
+  // 1. Only handle standard HTTP/HTTPS GET requests from our OWN ORIGIN
+  if (req.method !== 'GET' || !req.url.startsWith('http') || url.origin !== self.location.origin) {
     return;
   }
 
+  // 2. Never intercept API calls, webhooks, or dynamic JSON endpoints
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/_next/data/')) {
+    return;
+  }
+
+  // 3. Network first with safe fallback
   event.respondWith(
-    fetch(event.request)
+    fetch(req)
       .then((response) => {
         if (response && response.status === 200 && response.type === 'basic') {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+            cache.put(req, responseToCache).catch(() => {});
+          }).catch(() => {});
         }
         return response;
       })
-      .catch(() => caches.match(event.request))
+      .catch(async () => {
+        const cached = await caches.match(req);
+        if (cached) return cached;
+        if (req.headers.get('accept')?.includes('text/html')) {
+          const fallbackHtml = await caches.match('/');
+          if (fallbackHtml) return fallbackHtml;
+        }
+        return new Response('Network offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
+      })
   );
 });
 

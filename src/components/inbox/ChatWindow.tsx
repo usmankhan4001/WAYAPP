@@ -568,6 +568,9 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                         <img
                           src={m.mediaUrl}
                           alt="WhatsApp Image"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = 'none';
+                          }}
                           className="max-h-64 w-full object-cover rounded-xl group-hover:scale-102 transition-transform duration-200"
                         />
                         <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
