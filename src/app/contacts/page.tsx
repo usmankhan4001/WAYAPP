@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Users,
@@ -13,6 +13,16 @@ import {
   Filter,
   Download,
   MessageSquare,
+  CheckSquare,
+  Square,
+  MinusSquare,
+  CheckCircle2,
+  XCircle,
+  FolderPlus,
+  Tag as TagIcon,
+  X,
+  AlertTriangle,
+  Loader2,
 } from 'lucide-react';
 import { CsvImportModal } from '@/components/contacts/CsvImportModal';
 import { GroupTagModal } from '@/components/contacts/GroupTagModal';
@@ -31,11 +41,20 @@ export default function ContactsPage() {
   const [selectedGroupId, setSelectedGroupId] = useState<string>('ALL');
   const [selectedTagId, setSelectedTagId] = useState<string>('ALL');
 
+  // Bulk Selection State
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkOperating, setIsBulkOperating] = useState(false);
+  const [bulkMessage, setBulkMessage] = useState<string | null>(null);
+
   // Modals
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isGroupTagOpen, setIsGroupTagOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<any | null>(null);
+
+  // Bulk Action Menus
+  const [bulkGroupMenuOpen, setBulkGroupMenuOpen] = useState(false);
+  const [bulkTagMenuOpen, setBulkTagMenuOpen] = useState(false);
 
   const downloadSampleCsv = () => {
     const csvContent =
@@ -88,12 +107,143 @@ export default function ContactsPage() {
     fetchContacts();
   }, [search, selectedGroupId, selectedTagId]);
 
+  // Selection helpers
+  const allSelected = useMemo(() => {
+    return contacts.length > 0 && contacts.every((c) => selectedIds.includes(c.id));
+  }, [contacts, selectedIds]);
+
+  const isIndeterminate = useMemo(() => {
+    return selectedIds.length > 0 && !allSelected;
+  }, [selectedIds, allSelected]);
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(contacts.map((c) => c.id));
+    }
+  };
+
+  const toggleSelectRow = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
   const handleDeleteContact = async (id: string) => {
     if (!confirm('Are you sure you want to delete this contact?')) return;
     try {
       await fetch(`/api/contacts?id=${id}`, { method: 'DELETE' });
+      setSelectedIds((prev) => prev.filter((item) => item !== id));
       fetchContacts();
     } catch {}
+  };
+
+  // Bulk Operations
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (
+      !confirm(
+        `Are you sure you want to permanently delete ${selectedIds.length} selected contact(s)? This will also remove their conversation history.`
+      )
+    )
+      return;
+
+    setIsBulkOperating(true);
+    try {
+      const res = await fetch('/api/contacts', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedIds }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBulkMessage(`Successfully deleted ${selectedIds.length} contacts.`);
+        setSelectedIds([]);
+        fetchContacts();
+        setTimeout(() => setBulkMessage(null), 4000);
+      } else {
+        alert(data.error || 'Failed to delete contacts');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Network error');
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
+
+  const handleBulkAssignGroup = async (groupId: string) => {
+    if (selectedIds.length === 0 || !groupId) return;
+    setIsBulkOperating(true);
+    setBulkGroupMenuOpen(false);
+    try {
+      const res = await fetch('/api/contacts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: selectedIds,
+          addGroupId: groupId,
+        }),
+      });
+      if (res.ok) {
+        setBulkMessage(`Assigned group to ${selectedIds.length} contact(s).`);
+        fetchContacts();
+        setTimeout(() => setBulkMessage(null), 4000);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
+
+  const handleBulkAssignTag = async (tagId: string) => {
+    if (selectedIds.length === 0 || !tagId) return;
+    setIsBulkOperating(true);
+    setBulkTagMenuOpen(false);
+    try {
+      const res = await fetch('/api/contacts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: selectedIds,
+          addTagId: tagId,
+        }),
+      });
+      if (res.ok) {
+        setBulkMessage(`Assigned tag to ${selectedIds.length} contact(s).`);
+        fetchContacts();
+        setTimeout(() => setBulkMessage(null), 4000);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
+
+  const handleBulkStatusChange = async (newStatus: 'ACTIVE' | 'UNSUBSCRIBED') => {
+    if (selectedIds.length === 0) return;
+    setIsBulkOperating(true);
+    try {
+      const res = await fetch('/api/contacts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: selectedIds,
+          status: newStatus,
+        }),
+      });
+      if (res.ok) {
+        setBulkMessage(`Updated status to ${newStatus} for ${selectedIds.length} contact(s).`);
+        fetchContacts();
+        setTimeout(() => setBulkMessage(null), 4000);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsBulkOperating(false);
+    }
   };
 
   return (
@@ -103,10 +253,10 @@ export default function ContactsPage() {
         <div>
           <div className="flex items-center gap-1.5">
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">Contacts & Audience Groups</h1>
-            <InfoTooltip content="Manage individual customer records, normalized E.164 phone numbers, static list groups, and tag taxonomies." />
+            <InfoTooltip content="Manage individual customer records, normalized E.164 phone numbers, static list groups, and tag taxonomies with bulk editing & delete options." />
           </div>
           <p className="text-xs text-slate-500">
-            Categorize your audience into static groups, tags, and dynamic attributes
+            Categorize your audience into static groups, tags, and custom dynamic attributes
           </p>
         </div>
 
@@ -156,6 +306,19 @@ export default function ContactsPage() {
         </div>
       </div>
 
+      {/* Bulk Feedback Banner */}
+      {bulkMessage && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center justify-between animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="font-semibold">{bulkMessage}</span>
+          </div>
+          <button onClick={() => setBulkMessage(null)} className="text-emerald-700 hover:text-emerald-900">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Filter and Search Bar */}
       <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
@@ -196,6 +359,142 @@ export default function ContactsPage() {
         </div>
       </div>
 
+      {/* Floating Bulk Action Bar */}
+      {selectedIds.length > 0 && (
+        <div className="bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl border border-slate-800 flex flex-wrap items-center justify-between gap-3 animate-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center gap-2.5">
+            <span className="px-2.5 py-1 rounded-lg bg-emerald-500 text-slate-950 font-black text-xs">
+              {selectedIds.length} Selected
+            </span>
+            <span className="text-xs text-slate-300 hidden sm:inline">Bulk actions for selected contacts:</span>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Bulk Assign Group Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setBulkGroupMenuOpen(!bulkGroupMenuOpen);
+                  setBulkTagMenuOpen(false);
+                }}
+                disabled={isBulkOperating}
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-all"
+              >
+                <FolderPlus className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Assign Group</span>
+              </button>
+
+              {bulkGroupMenuOpen && (
+                <div className="absolute top-full mt-1.5 left-0 z-30 w-48 bg-white rounded-xl shadow-2xl border border-slate-200 py-1.5 text-slate-800 max-h-48 overflow-y-auto">
+                  <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase">Select Group</div>
+                  {groups.length === 0 ? (
+                    <p className="px-3 py-1.5 text-xs text-slate-400">No groups available</p>
+                  ) : (
+                    groups.map((g) => (
+                      <button
+                        key={g.id}
+                        type="button"
+                        onClick={() => handleBulkAssignGroup(g.id)}
+                        className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-100 flex items-center gap-2 font-medium"
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: g.color }} />
+                        <span className="truncate">{g.name}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Bulk Assign Tag Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setBulkTagMenuOpen(!bulkTagMenuOpen);
+                  setBulkGroupMenuOpen(false);
+                }}
+                disabled={isBulkOperating}
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-all"
+              >
+                <TagIcon className="w-3.5 h-3.5 text-blue-400" />
+                <span>Assign Tag</span>
+              </button>
+
+              {bulkTagMenuOpen && (
+                <div className="absolute top-full mt-1.5 left-0 z-30 w-48 bg-white rounded-xl shadow-2xl border border-slate-200 py-1.5 text-slate-800 max-h-48 overflow-y-auto">
+                  <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase">Select Tag</div>
+                  {tags.length === 0 ? (
+                    <p className="px-3 py-1.5 text-xs text-slate-400">No tags available</p>
+                  ) : (
+                    tags.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => handleBulkAssignTag(t.id)}
+                        className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-100 flex items-center gap-2 font-medium"
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: t.color }} />
+                        <span className="truncate">{t.name}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Bulk Status Update */}
+            <button
+              type="button"
+              onClick={() => handleBulkStatusChange('ACTIVE')}
+              disabled={isBulkOperating}
+              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-semibold flex items-center gap-1.5 transition-all"
+              title="Set selected contacts as Active"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Set Active</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleBulkStatusChange('UNSUBSCRIBED')}
+              disabled={isBulkOperating}
+              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-semibold flex items-center gap-1.5 transition-all"
+              title="Set selected contacts as Unsubscribed"
+            >
+              <XCircle className="w-3.5 h-3.5" />
+              <span>Opt Out</span>
+            </button>
+
+            {/* Bulk Delete Button */}
+            <button
+              type="button"
+              onClick={handleBulkDelete}
+              disabled={isBulkOperating}
+              className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-rose-600/30 transition-all disabled:opacity-50"
+            >
+              {isBulkOperating ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="w-3.5 h-3.5" />
+              )}
+              <span>Delete ({selectedIds.length})</span>
+            </button>
+
+            {/* Clear Selection */}
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              title="Clear selection"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Contacts Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         {loading ? (
@@ -222,6 +521,22 @@ export default function ContactsPage() {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50/70 border-b border-slate-200 text-slate-500 uppercase text-[10px] font-semibold">
+                  <th className="py-3 px-3 w-10 text-center">
+                    <button
+                      type="button"
+                      onClick={toggleSelectAll}
+                      className="text-slate-400 hover:text-emerald-600 focus:outline-none"
+                      title={allSelected ? 'Deselect all' : 'Select all'}
+                    >
+                      {allSelected ? (
+                        <CheckSquare className="w-4 h-4 text-emerald-600" />
+                      ) : isIndeterminate ? (
+                        <MinusSquare className="w-4 h-4 text-emerald-600" />
+                      ) : (
+                        <Square className="w-4 h-4" />
+                      )}
+                    </button>
+                  </th>
                   <th className="py-3 px-4">Contact</th>
                   <th className="py-3 px-4">Phone Number (E.164)</th>
                   <th className="py-3 px-4">Assigned Groups</th>
@@ -234,13 +549,32 @@ export default function ContactsPage() {
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {contacts.map((c) => {
                   const contactName = `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Customer';
+                  const isSelected = selectedIds.includes(c.id);
                   let customAttrs: any = {};
                   try {
                     customAttrs = c.customAttributes ? JSON.parse(c.customAttributes) : {};
                   } catch {}
 
                   return (
-                    <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
+                    <tr
+                      key={c.id}
+                      className={`transition-colors ${
+                        isSelected ? 'bg-emerald-50/60' : 'hover:bg-slate-50/80'
+                      }`}
+                    >
+                      <td className="py-3 px-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => toggleSelectRow(c.id)}
+                          className="text-slate-400 hover:text-emerald-600 focus:outline-none"
+                        >
+                          {isSelected ? (
+                            <CheckSquare className="w-4 h-4 text-emerald-600" />
+                          ) : (
+                            <Square className="w-4 h-4" />
+                          )}
+                        </button>
+                      </td>
                       <td className="py-3 px-4">
                         <p className="font-bold text-slate-900">{contactName}</p>
                         {c.email && <p className="text-[11px] text-slate-400">{c.email}</p>}
@@ -344,7 +678,7 @@ export default function ContactsPage() {
                           <button
                             onClick={() => router.push(`/inbox?contactId=${c.id}`)}
                             className="p-1.5 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
-                            title="Chat in Team Inbox"
+                            title="Direct 1-to-1 Chat"
                           >
                             <MessageSquare className="w-3.5 h-3.5" />
                           </button>

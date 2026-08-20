@@ -110,7 +110,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
     fetchSettings();
     fetchMessages();
     fetchTemplates();
-    const interval = setInterval(fetchMessages, 3000);
+    const interval = setInterval(fetchMessages, 2000);
     return () => clearInterval(interval);
   }, [contact?.id]);
 
@@ -690,30 +690,32 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
             </div>
           )}
 
-          {/* Voice Recorder Overlay */}
+          {/* Informational banner if window is expired */}
+          {!effectiveWindowActive && (
+            <div className="mb-2 p-2.5 rounded-xl bg-amber-50/90 border border-amber-200/80 flex items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span className="text-amber-800 text-[11px] truncate">
+                  24h Window Inactive: Freeform messages may require an approved WhatsApp template.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTemplatePickerOpen(!isTemplatePickerOpen)}
+                className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold shrink-0 flex items-center gap-1 shadow-sm"
+              >
+                <FileText className="w-3 h-3" />
+                <span>Use Template</span>
+              </button>
+            </div>
+          )}
+
+          {/* Voice Recorder Overlay or Active Input Bar */}
           {isRecordingVoice ? (
             <VoiceNoteRecorder
               onSendVoiceNote={handleSendVoiceNote}
               onCancel={() => setIsRecordingVoice(false)}
             />
-          ) : !effectiveWindowActive ? (
-            <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <Lock className="w-4 h-4 text-amber-600 shrink-0" />
-                <p className="text-xs text-amber-800">
-                  <strong>24h Window Expired:</strong> Send a pre-approved WhatsApp template to re-open the conversation window.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsTemplatePickerOpen(!isTemplatePickerOpen)}
-                className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shrink-0 shadow-sm flex items-center gap-1.5"
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>Send Template</span>
-                <ChevronDown className="w-3.5 h-3.5" />
-              </button>
-            </div>
           ) : (
             <div className="relative">
               {/* Attachment Popover Menu */}

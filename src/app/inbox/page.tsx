@@ -7,15 +7,11 @@ import {
   Search,
   ArrowLeft,
   User,
-  Users,
   CheckCircle,
   Clock,
   Sparkles,
-  Zap,
-  Filter,
-  UserCheck,
-  RefreshCw,
   UserPlus,
+  RefreshCw,
 } from 'lucide-react';
 import { ChatWindow } from '@/components/inbox/ChatWindow';
 import { NewChatModal } from '@/components/inbox/NewChatModal';
@@ -30,9 +26,8 @@ function InboxContent() {
   const [selectedContact, setSelectedContact] = useState<any | null>(null);
   const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'mine' | 'unassigned' | 'resolved' | 'spam'>('all');
+  const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [loading, setLoading] = useState(true);
-  const [assigningRoundRobin, setAssigningRoundRobin] = useState(false);
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
 
   const fetchConversations = useCallback(() => {
@@ -75,7 +70,7 @@ function InboxContent() {
 
   useEffect(() => {
     const cancel = fetchConversations();
-    const interval = setInterval(fetchConversations, 3000);
+    const interval = setInterval(fetchConversations, 2500);
     return () => {
       cancel?.();
       clearInterval(interval);
@@ -86,20 +81,6 @@ function InboxContent() {
     const contactObj = conv.contact || conv;
     setSelectedContact(contactObj);
     setSelectedConversation(conv.id ? conv : null);
-  };
-
-  const handleRoundRobin = async () => {
-    setAssigningRoundRobin(true);
-    try {
-      const res = await fetch('/api/chat/round-robin', { method: 'POST' });
-      if (res.ok) {
-        fetchConversations();
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setAssigningRoundRobin(false);
-    }
   };
 
   return (
@@ -117,11 +98,11 @@ function InboxContent() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-1.5">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Team Inbox & Multi-Agent Chat</h1>
-            <InfoTooltip content="Real-time multi-agent customer conversations with assignment routing, internal notes, and 24-hour service compliance." />
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">1-to-1 WhatsApp Live Chat</h1>
+            <InfoTooltip content="Direct two-way customer messaging with instant replies, media sharing, voice notes, and approved template integration." />
           </div>
           <p className="text-xs text-slate-500">
-            Collaborate across team agents, manage unassigned threads, and reply within WhatsApp service windows
+            Real-time one-to-one conversation experience with your WhatsApp contacts
           </p>
         </div>
 
@@ -131,16 +112,7 @@ function InboxContent() {
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm shadow-emerald-600/20 transition-all"
           >
             <UserPlus className="w-3.5 h-3.5" />
-            <span>New Conversation</span>
-          </button>
-
-          <button
-            onClick={handleRoundRobin}
-            disabled={assigningRoundRobin}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-all disabled:opacity-50"
-          >
-            <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>{assigningRoundRobin ? 'Routing...' : 'Round-Robin Assign'}</span>
+            <span>New Chat</span>
           </button>
         </div>
       </div>
@@ -148,10 +120,8 @@ function InboxContent() {
       {/* Filter Tabs */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
         {[
-          { id: 'all', label: 'All Open', icon: MessageSquare },
-          { id: 'mine', label: 'Assigned to Me', icon: User },
-          { id: 'unassigned', label: 'Unassigned', icon: Users },
-          { id: 'resolved', label: 'Resolved', icon: CheckCircle },
+          { id: 'all', label: 'All Chats', icon: MessageSquare },
+          { id: 'unread', label: 'Unread', icon: Sparkles },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = filter === tab.id;
@@ -185,7 +155,7 @@ function InboxContent() {
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search phone or name..."
+                placeholder="Search by contact or phone..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -201,7 +171,7 @@ function InboxContent() {
               </div>
             ) : conversations.length === 0 ? (
               <div className="p-8 text-center text-xs text-slate-400">
-                No active conversations matching this filter
+                No active conversations matching your search
               </div>
             ) : (
               conversations.map((c) => {
@@ -209,7 +179,6 @@ function InboxContent() {
                 const isSelected = selectedContact?.id === contactObj.id;
                 const contactName = `${contactObj.firstName || ''} ${contactObj.lastName || ''}`.trim() || 'Customer';
                 const lastMsg = c.messages?.[0] || c.chatMessages?.[0];
-                const assignee = c.assignedTo;
 
                 return (
                   <div
@@ -233,24 +202,17 @@ function InboxContent() {
                         </span>
                       </div>
 
-                      <p className="text-[11px] text-slate-500 truncate mb-1.5">
+                      <p className="text-[11px] text-slate-500 truncate mb-1">
                         {lastMsg?.body || contactObj.phoneNumber}
                       </p>
 
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {assignee ? (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-semibold">
-                            <User className="w-2.5 h-2.5" />
-                            {assignee.name || assignee.email.split('@')[0]}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-medium">
-                            Unassigned
-                          </span>
-                        )}
+                      <div className="flex items-center gap-1.5 justify-between">
+                        <span className="text-[10px] font-mono text-slate-400 truncate">
+                          {contactObj.phoneNumber}
+                        </span>
 
                         {c.unreadCount > 0 && (
-                          <span className="ml-auto w-4 h-4 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center">
+                          <span className="w-4 h-4 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
                             {c.unreadCount}
                           </span>
                         )}
@@ -287,7 +249,7 @@ function InboxContent() {
               </div>
               <h3 className="text-sm font-bold text-slate-800">Select a conversation</h3>
               <p className="text-xs text-slate-400 max-w-xs">
-                Pick a customer thread from the left panel to begin chatting, send templates, or assign team agents.
+                Pick a customer thread from the left panel to begin chatting, send templates, or share media.
               </p>
             </div>
           )}

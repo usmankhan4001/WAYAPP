@@ -114,6 +114,27 @@ export async function POST(request: NextRequest) {
       };
     }
 
+    const contactId = body.id;
+
+    if (contactId) {
+      // Direct update by contactId
+      const updatePayload: any = {
+        phoneNumber: normalizedPhone,
+        ...updateData,
+      };
+
+      const contact = await prisma.contact.update({
+        where: { id: contactId },
+        data: updatePayload,
+        include: {
+          groups: { include: { group: true } },
+          tags: { include: { tag: true } },
+        },
+      });
+
+      return NextResponse.json({ success: true, contact });
+    }
+
     const contact = await prisma.contact.upsert({
       where: { phoneNumber: normalizedPhone },
       update: updateData,
@@ -143,6 +164,100 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function PATCH(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if ('response' in authResult) return authResult.response;
+
+  try {
+    const body = await request.json();
+    const {
+      ids = [],
+      id,
+      status,
+      addGroupId,
+      removeGroupId,
+      addTagId,
+      removeTagId,
+      customAttributes,
+    } = body;
+
+    const targetIds: string[] = id ? [id] : Array.isArray(ids) ? ids : [];
+    if (targetIds.length === 0) {
+      return NextResponse.json({ error: 'Target contact ID or IDs required' }, { status: 400 });
+    }
+
+    // 1. Bulk Status Change
+    if (status) {
+      await prisma.contact.updateMany({
+        where: { id: { in: targetIds } },
+        data: {
+          status,
+          ...(status === 'UNSUBSCRIBED' ? { optedOutAt: new Date() } : {}),
+        },
+      });
+    }
+
+    // 2. Bulk Add Group
+    if (addGroupId) {
+      for (const cId of targetIds) {
+        await prisma.contactsOnGroups.upsert({
+          where: { contactId_groupId: { contactId: cId, groupId: addGroupId } },
+          update: {},
+          create: { contactId: cId, groupId: addGroupId },
+        }).catch(() => {});
+      }
+    }
+
+    // 3. Bulk Remove Group
+    if (removeGroupId) {
+      await prisma.contactsOnGroups.deleteMany({
+        where: { contactId: { in: targetIds }, groupId: removeGroupId },
+      });
+    }
+
+    // 4. Bulk Add Tag
+    if (addTagId) {
+      for (const cId of targetIds) {
+        await prisma.contactsOnTags.upsert({
+          where: { contactId_tagId: { contactId: cId, tagId: addTagId } },
+          update: {},
+          create: { contactId: cId, tagId: addTagId },
+        }).catch(() => {});
+      }
+    }
+
+    // 5. Bulk Remove Tag
+    if (removeTagId) {
+      await prisma.contactsOnTags.deleteMany({
+        where: { contactId: { in: targetIds }, tagId: removeTagId },
+      });
+    }
+
+    // 6. Custom Attributes Update
+    if (customAttributes && typeof customAttributes === 'object') {
+      for (const cId of targetIds) {
+        const existing = await prisma.contact.findUnique({
+          where: { id: cId },
+          select: { customAttributes: true },
+        });
+        let existingAttrs: any = {};
+        try {
+          if (existing?.customAttributes) existingAttrs = JSON.parse(existing.customAttributes);
+        } catch {}
+        const merged = { ...existingAttrs, ...customAttributes };
+        await prisma.contact.update({
+          where: { id: cId },
+          data: { customAttributes: JSON.stringify(merged) },
+        }).catch(() => {});
+      }
+    }
+
+    return NextResponse.json({ success: true, count: targetIds.length });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   const authResult = await requireAuth(request);
   if ('response' in authResult) return authResult.response;
@@ -150,16 +265,33 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
+    const idsParam = searchParams.get('ids');
 
-    if (!id) {
-      return NextResponse.json({ error: 'Contact ID is required' }, { status: 400 });
+    let idsToDelete: string[] = [];
+    if (id) {
+      idsToDelete.push(id);
+    } else if (idsParam) {
+      idsToDelete = idsParam.split(',').map((s) => s.trim()).filter(Boolean);
+    } else {
+      try {
+        const body = await request.json();
+        if (Array.isArray(body?.ids)) {
+          idsToDelete = body.ids;
+        } else if (body?.id) {
+          idsToDelete = [body.id];
+        }
+      } catch {}
     }
 
-    await prisma.contact.delete({
-      where: { id },
+    if (idsToDelete.length === 0) {
+      return NextResponse.json({ error: 'Contact ID or IDs are required' }, { status: 400 });
+    }
+
+    const result = await prisma.contact.deleteMany({
+      where: { id: { in: idsToDelete } },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, count: result.count });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

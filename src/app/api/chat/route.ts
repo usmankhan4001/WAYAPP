@@ -12,19 +12,30 @@ export async function GET(request: NextRequest) {
     return authResult.response;
   }
 
-  const { session } = authResult;
   const { searchParams } = new URL(request.url);
   const contactId = searchParams.get('contactId');
   const conversationId = searchParams.get('conversationId');
-  const filter = searchParams.get('filter') || 'all'; // all, mine, unassigned, resolved, spam
+  const filter = searchParams.get('filter') || 'all'; // all, unread
   const search = searchParams.get('search')?.trim().toLowerCase();
 
   try {
     // 1. Fetch message thread for specific contact / conversation
     if (contactId || conversationId) {
+      let targetContactId = contactId;
+      if (!targetContactId && conversationId) {
+        const conv = await prisma.conversation.findUnique({
+          where: { id: conversationId },
+          select: { contactId: true },
+        });
+        targetContactId = conv?.contactId || null;
+      }
+
       const where: any = {};
-      if (contactId) where.contactId = contactId;
-      if (conversationId) where.conversationId = conversationId;
+      if (targetContactId) {
+        where.contactId = targetContactId;
+      } else if (conversationId) {
+        where.conversationId = conversationId;
+      }
 
       const messages = await prisma.chatMessage.findMany({
         where,
@@ -32,36 +43,24 @@ export async function GET(request: NextRequest) {
       });
 
       // Reset unread count for this conversation
-      if (contactId) {
+      if (targetContactId) {
         await prisma.conversation.updateMany({
-          where: { contactId },
+          where: { contactId: targetContactId },
           data: { unreadCount: 0 },
-        });
+        }).catch(() => {});
       }
 
       return NextResponse.json(messages);
     }
 
-    // 2. Build conversation filter query
-    const whereClause: any = {};
-
-    if (filter === 'mine') {
-      whereClause.assignedToId = session.userId;
-      whereClause.status = { notIn: ['RESOLVED', 'SPAM'] };
-    } else if (filter === 'unassigned') {
-      whereClause.assignedToId = null;
-      whereClause.status = { notIn: ['RESOLVED', 'SPAM'] };
-    } else if (filter === 'resolved') {
-      whereClause.status = 'RESOLVED';
-    } else if (filter === 'spam') {
-      whereClause.status = 'SPAM';
-    } else {
-      // 'all' active
-      whereClause.status = { notIn: ['RESOLVED', 'SPAM'] };
+    // 2. Fetch all 1-to-1 conversations
+    const convWhere: any = {};
+    if (filter === 'unread') {
+      convWhere.unreadCount = { gt: 0 };
     }
 
     if (search) {
-      whereClause.contact = {
+      convWhere.contact = {
         OR: [
           { phoneNumber: { contains: search } },
           { firstName: { contains: search } },
@@ -71,23 +70,13 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // Fetch conversations with relations
     const conversations = await prisma.conversation.findMany({
-      where: whereClause,
+      where: convWhere,
       include: {
         contact: {
           include: {
             tags: { include: { tag: true } },
             groups: { include: { group: true } },
-          },
-        },
-        assignedTo: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            avatarUrl: true,
-            role: true,
           },
         },
         messages: {
@@ -96,24 +85,30 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: { lastMessageAt: 'desc' },
+      take: 100,
     });
 
-    // Fallback: If no conversation rows exist yet, return active contacts
-    if (conversations.length === 0 && (filter === 'all' || filter === 'unassigned')) {
-      const contacts = await prisma.contact.findMany({
-        where: search
-          ? {
-              OR: [
-                { phoneNumber: { contains: search } },
-                { firstName: { contains: search } },
-                { lastName: { contains: search } },
-                { email: { contains: search } },
-              ],
-            }
-          : undefined,
+    // Also fetch contacts that do not have an explicit conversation record yet
+    const existingContactIds = new Set(conversations.map((c) => c.contactId).filter(Boolean));
+
+    if (filter !== 'unread') {
+      const contactsWithoutConv = await prisma.contact.findMany({
+        where: {
+          id: { notIn: Array.from(existingContactIds) },
+          ...(search
+            ? {
+                OR: [
+                  { phoneNumber: { contains: search } },
+                  { firstName: { contains: search } },
+                  { lastName: { contains: search } },
+                  { email: { contains: search } },
+                ],
+              }
+            : {}),
+        },
         include: {
-          groups: { include: { group: true } },
           tags: { include: { tag: true } },
+          groups: { include: { group: true } },
           chatMessages: {
             orderBy: { timestamp: 'desc' },
             take: 1,
@@ -123,12 +118,23 @@ export async function GET(request: NextRequest) {
         take: 50,
       });
 
-      return NextResponse.json(contacts);
+      // Map contacts without conversation records into conversation items
+      const virtualConversations = contactsWithoutConv.map((contact) => ({
+        id: `virtual_${contact.id}`,
+        contactId: contact.id,
+        contact,
+        status: 'OPEN',
+        lastMessageAt: contact.updatedAt,
+        unreadCount: 0,
+        messages: contact.chatMessages || [],
+      }));
+
+      return NextResponse.json([...conversations, ...virtualConversations]);
     }
 
     return NextResponse.json(conversations);
   } catch (error: any) {
-    logger.error({ error }, 'Error fetching chat conversations');
+    logger.error({ error }, 'Error fetching 1-to-1 chat conversations');
     return NextResponse.json({ error: 'Failed to retrieve conversations' }, { status: 500 });
   }
 }
@@ -143,6 +149,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       contactId,
+      phoneNumber,
       text,
       templateName,
       languageCode,
@@ -154,16 +161,40 @@ export async function POST(request: NextRequest) {
       filename,
     } = body;
 
-    if (!contactId) {
-      return NextResponse.json({ error: 'Contact ID is required' }, { status: 400 });
+    let contact: any = null;
+
+    if (contactId) {
+      contact = await prisma.contact.findUnique({
+        where: { id: contactId },
+      });
     }
 
-    const contact = await prisma.contact.findUnique({
-      where: { id: contactId },
-    });
+    if (!contact && phoneNumber) {
+      const normalized = sanitizePhoneNumber(phoneNumber).e164 || phoneNumber;
+      contact = await prisma.contact.findFirst({
+        where: {
+          OR: [
+            { phoneNumber: normalized },
+            { phoneNumber: normalized.replace(/^\+/, '') },
+            { phoneNumber: `+${normalized.replace(/^\+/, '')}` },
+          ],
+        },
+      });
+
+      if (!contact) {
+        contact = await prisma.contact.create({
+          data: {
+            phoneNumber: normalized,
+            firstName: 'Customer',
+            status: 'ACTIVE',
+            lastInteractionAt: new Date(),
+          },
+        });
+      }
+    }
 
     if (!contact) {
-      return NextResponse.json({ error: 'Contact not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Contact not found or invalid' }, { status: 404 });
     }
 
     if (contact.status === 'UNSUBSCRIBED' || contact.status === 'BLOCKED') {
@@ -171,28 +202,6 @@ export async function POST(request: NextRequest) {
         { error: 'Cannot send message: Contact has unsubscribed or opted out.' },
         { status: 400 }
       );
-    }
-
-    const settings = await prisma.settings.findUnique({ where: { id: 'default' } });
-    const isMock = settings?.isMockMode === true;
-
-    // 24-HOUR CUSTOMER CARE WINDOW ENFORCEMENT
-    const isFreeFormMessage = !templateName;
-    if (isFreeFormMessage && !isMock) {
-      const now = Date.now();
-      const lastInteraction = contact.lastInteractionAt ? new Date(contact.lastInteractionAt).getTime() : 0;
-      const hoursSinceLastMessage = (now - lastInteraction) / (1000 * 60 * 60);
-
-      if (hoursSinceLastMessage > 24) {
-        return NextResponse.json(
-          {
-            error:
-              '24-Hour WhatsApp Policy Restriction: Free-text messages cannot be sent because more than 24 hours have passed since the customer last messaged. Please use an approved WhatsApp Template instead.',
-            requiresTemplate: true,
-          },
-          { status: 403 }
-        );
-      }
     }
 
     const client = await WhatsAppClient.createFromSettings();
@@ -243,11 +252,12 @@ export async function POST(request: NextRequest) {
       savedMessageType = 'text';
     }
 
-    // Ensure Conversation row exists
+    // Ensure Conversation row exists and update timestamp
     const conversation = await prisma.conversation.upsert({
       where: { contactId: contact.id },
       update: {
         lastMessageAt: new Date(),
+        status: 'OPEN',
       },
       create: {
         contactId: contact.id,
@@ -268,17 +278,20 @@ export async function POST(request: NextRequest) {
         body: messageBody,
         mediaUrl: savedMediaUrl,
         status: 'SENT',
+        timestamp: new Date(),
       },
     });
 
-    return NextResponse.json({ success: true, message });
+    return NextResponse.json({ success: true, message, conversation });
   } catch (error: any) {
+    logger.error({ error }, 'Error sending WhatsApp 1-to-1 message');
     const errInfo = interpretMetaError(error.code, error.message);
     return NextResponse.json(
       {
         success: false,
         error: `${errInfo.title}: ${errInfo.userMessage} (${errInfo.action})`,
         category: errInfo.category,
+        requiresTemplate: error.code === 131047 || error.code === 131026 || error.message?.includes('24 hour'),
       },
       { status: 400 }
     );
