@@ -394,9 +394,18 @@ export async function POST(request: NextRequest) {
                 buttonPayload,
                 timestamp: new Date(parseInt(incoming.timestamp, 10) * 1000),
               }).catch((err) => logger.error({ err }, 'Inbound event processing error'));
-            } catch {
-              // Worker fallback
-            }
+            } catch {}
+
+            // Trigger Background Native OS Push Notifications (Even when app is closed)
+            try {
+              const { sendPushNotification } = await import('@/lib/push');
+              const senderDisplayName = `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || profileName || normalizedPhone;
+              sendPushNotification(null, {
+                title: `WhatsApp from ${senderDisplayName}`,
+                body: bodyText || 'Sent an attachment',
+                url: `/inbox?contactId=${contact.id}`,
+              }).catch(() => {});
+            } catch {}
           }
         }
       }

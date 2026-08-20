@@ -31,6 +31,54 @@ const NotificationContext = createContext<NotificationContextType>({
 
 export const useNotifications = () => useContext(NotificationContext);
 
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+async function registerPushSubscription() {
+  if (
+    typeof window === 'undefined' ||
+    !('serviceWorker' in navigator) ||
+    !('PushManager' in window) ||
+    Notification.permission !== 'granted'
+  ) {
+    return;
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let subscription = await reg.pushManager.getSubscription();
+
+    if (!subscription) {
+      const res = await fetch('/api/push/vapid-key');
+      const data = await res.json();
+      if (!data.publicKey) return;
+
+      subscription = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(data.publicKey),
+      });
+    }
+
+    if (subscription) {
+      await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(subscription),
+      });
+    }
+  } catch (err) {
+    console.warn('[Push] Background push subscription registration:', err);
+  }
+}
+
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeToast, setActiveToast] = useState<InboundAlert | null>(null);
@@ -49,6 +97,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
       if ('Notification' in window) {
         setPermissionStatus(Notification.permission);
+        if (Notification.permission === 'granted') {
+          registerPushSubscription();
+        }
       }
     }
   }, []);
@@ -64,6 +115,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       try {
         const res = await Notification.requestPermission();
         setPermissionStatus(res);
+        if (res === 'granted') {
+          await registerPushSubscription();
+        }
         return res;
       } catch {
         return 'denied';
@@ -112,32 +166,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           // Show in-app toast
           setActiveToast(newestInbound);
           setTimeout(() => setActiveToast(null), 8000);
-
-          // Trigger OS Native Desktop & Mobile Notification
-          if ('Notification' in window && Notification.permission === 'granted') {
-            try {
-              if ('serviceWorker' in navigator) {
-                const reg = await navigator.serviceWorker.ready;
-                reg.showNotification(`WhatsApp from ${newestInbound.senderName}`, {
-                  body: newestInbound.body,
-                  icon: '/icon-192.png',
-                  badge: '/icon-192.png',
-                  tag: `msg-${newestInbound.id}`,
-                  data: { url: '/inbox' },
-                });
-              } else {
-                new Notification(`WhatsApp from ${newestInbound.senderName}`, {
-                  body: newestInbound.body,
-                  icon: '/icon-192.png',
-                });
-              }
-            } catch {
-              new Notification(`WhatsApp from ${newestInbound.senderName}`, {
-                body: newestInbound.body,
-                icon: '/icon-192.png',
-              });
-            }
-          }
         }
 
         if (newestInbound) {

@@ -1,12 +1,12 @@
-// WAYAPP Service Worker: Network-First Caching & Real Web Push Notifications
-const CACHE_NAME = 'wayapp-cache-v1';
+// WAYAPP Service Worker: Network-First Caching & Real Native Web Push Notifications
+const CACHE_NAME = 'wayapp-cache-v2';
 const STATIC_ASSETS = [
   '/',
   '/inbox',
-  '/campaigns',
-  '/contacts',
   '/manifest.json',
-  '/icon.svg',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/favicon.svg',
 ];
 
 self.addEventListener('install', (event) => {
@@ -28,9 +28,8 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Network-first fetch handler with offline fallback
+// Network-first fetch handler
 self.addEventListener('fetch', (event) => {
-  // Only handle GET navigation & static requests (never cache API calls or mutating requests)
   if (event.request.method !== 'GET' || event.request.url.includes('/api/')) {
     return;
   }
@@ -50,40 +49,42 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Background Push Notification Listener
+// Background Native Web Push Listener (Fires even when browser / app is completely CLOSED)
 self.addEventListener('push', (event) => {
-  if (!event.data) return;
+  let payload = {
+    title: 'New WhatsApp Message',
+    body: 'You received a new WhatsApp customer message.',
+    url: '/inbox',
+  };
 
-  try {
-    const data = event.data.json();
-    const title = data.title || 'WAYAPP WhatsApp Notification';
-    const options = {
-      body: data.body || 'New customer interaction received.',
-      icon: '/icon.svg',
-      badge: '/icon.svg',
-      vibrate: [100, 50, 100],
-      data: {
-        url: data.url || '/inbox',
-      },
-      actions: [
-        { action: 'open', title: 'Open Inbox' },
-        { action: 'close', title: 'Dismiss' },
-      ],
-    };
-
-    event.waitUntil(self.registration.showNotification(title, options));
-  } catch {
-    const title = 'WAYAPP — New WhatsApp Notification';
-    const options = {
-      body: event.data.text() || 'A new event occurred on your gateway.',
-      icon: '/icon.svg',
-      data: { url: '/inbox' },
-    };
-    event.waitUntil(self.registration.showNotification(title, options));
+  if (event.data) {
+    try {
+      payload = event.data.json();
+    } catch {
+      payload.body = event.data.text() || payload.body;
+    }
   }
+
+  const options = {
+    body: payload.body,
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: payload.tag || `msg-${Date.now()}`,
+    vibrate: [200, 100, 200],
+    renotify: true,
+    data: {
+      url: payload.url || '/inbox',
+    },
+    actions: [
+      { action: 'reply', title: 'Reply Now' },
+      { action: 'close', title: 'Dismiss' },
+    ],
+  };
+
+  event.waitUntil(self.registration.showNotification(payload.title, options));
 });
 
-// Notification Click -> Focus or Navigate to URL
+// Notification Click Handler -> Focus existing window or open new window
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const targetUrl = event.notification.data?.url || '/inbox';

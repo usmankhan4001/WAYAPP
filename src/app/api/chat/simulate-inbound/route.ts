@@ -89,6 +89,17 @@ export async function POST(request: NextRequest) {
       }).catch((err) => logger.error({ err }, 'Simulated inbound event processing error'));
     } catch {}
 
+    // 5. Trigger Native Background Push Notification
+    try {
+      const { sendPushNotification } = await import('@/lib/push');
+      const senderDisplayName = `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || contact.phoneNumber;
+      sendPushNotification(null, {
+        title: `WhatsApp from ${senderDisplayName}`,
+        body: text || 'Sent an attachment',
+        url: `/inbox?contactId=${contact.id}`,
+      }).catch(() => {});
+    } catch {}
+
     return NextResponse.json({
       success: true,
       message: chatMessage,
