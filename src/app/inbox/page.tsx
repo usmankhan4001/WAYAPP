@@ -12,6 +12,9 @@ import {
   Sparkles,
   UserPlus,
   RefreshCw,
+  Filter,
+  CheckCheck,
+  ShieldCheck,
 } from 'lucide-react';
 import { ChatWindow } from '@/components/inbox/ChatWindow';
 import { NewChatModal } from '@/components/inbox/NewChatModal';
@@ -84,7 +87,7 @@ function InboxContent() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="h-full w-full flex overflow-hidden bg-slate-950 text-slate-100">
       {/* New Chat Modal */}
       <NewChatModal
         isOpen={isNewChatOpen}
@@ -95,158 +98,175 @@ function InboxContent() {
         }}
       />
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-1.5">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">1-to-1 WhatsApp Live Chat</h1>
-            <InfoTooltip content="Direct two-way customer messaging with instant replies, media sharing, voice notes, and approved template integration." />
-          </div>
-          <p className="text-xs text-slate-500">
-            Real-time one-to-one conversation experience with your WhatsApp contacts
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <button
-            onClick={() => setIsNewChatOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm shadow-emerald-600/20 transition-all"
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            <span>New Chat</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-        {[
-          { id: 'all', label: 'All Chats', icon: MessageSquare },
-          { id: 'unread', label: 'Unread', icon: Sparkles },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = filter === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setFilter(tab.id as any)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                isActive
-                  ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20'
-                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Side: Conversation List */}
-        <div
-          className={`lg:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[700px] ${
-            selectedContact ? 'hidden lg:flex' : 'flex'
-          }`}
-        >
-          {/* Search Header */}
-          <div className="p-3.5 border-b border-slate-200 bg-slate-50/70">
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search by contact or phone..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-          </div>
-
-          {/* List */}
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
-            {loading ? (
-              <div className="py-16 flex justify-center">
-                <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : conversations.length === 0 ? (
-              <div className="p-8 text-center text-xs text-slate-400">
-                No active conversations matching your search
-              </div>
-            ) : (
-              conversations.map((c) => {
-                const contactObj = c.contact || c;
-                const isSelected = selectedContact?.id === contactObj.id;
-                const contactName = `${contactObj.firstName || ''} ${contactObj.lastName || ''}`.trim() || 'Customer';
-                const lastMsg = c.messages?.[0] || c.chatMessages?.[0];
-
-                return (
-                  <div
-                    key={c.id || contactObj.id}
-                    onClick={() => handleSelect(c)}
-                    className={`p-3.5 cursor-pointer transition-all flex items-start gap-3 ${
-                      isSelected
-                        ? 'bg-emerald-50/80 border-l-4 border-emerald-600'
-                        : 'hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs shrink-0">
-                      {contactName.charAt(0).toUpperCase()}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1 mb-0.5">
-                        <span className="text-xs font-bold text-slate-900 truncate">{contactName}</span>
-                        <span className="text-[10px] text-slate-400 shrink-0">
-                          {c.lastMessageAt ? formatTimeAgo(new Date(c.lastMessageAt)) : ''}
-                        </span>
-                      </div>
-
-                      <p className="text-[11px] text-slate-500 truncate mb-1">
-                        {lastMsg?.body || contactObj.phoneNumber}
-                      </p>
-
-                      <div className="flex items-center gap-1.5 justify-between">
-                        <span className="text-[10px] font-mono text-slate-400 truncate">
-                          {contactObj.phoneNumber}
-                        </span>
-
-                        {c.unreadCount > 0 && (
-                          <span className="w-4 h-4 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
-                            {c.unreadCount}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
+      {/* Left Column: WhatsApp Contact Threads Pane */}
+      <div
+        className={`w-full lg:w-96 lg:min-w-[360px] lg:max-w-[400px] h-full flex flex-col bg-slate-900 border-r border-slate-800 shrink-0 ${
+          selectedContact ? 'hidden lg:flex' : 'flex'
+        }`}
+      >
+        {/* Top Header & New Chat Trigger */}
+        <div className="p-3.5 border-b border-slate-800/80 bg-slate-900/90 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-bold text-white tracking-tight">Chats</h2>
+            {conversations.length > 0 && (
+              <span className="text-[10px] font-bold bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700">
+                {conversations.length}
+              </span>
             )}
           </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setIsNewChatOpen(true)}
+              className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all active:scale-95"
+              title="Start a new WhatsApp chat"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span className="text-xs font-semibold">New Chat</span>
+            </button>
+          </div>
         </div>
 
-        {/* Right Side: Active Chat Window */}
-        <div className={`lg:col-span-8 ${selectedContact ? 'block' : 'hidden lg:block'}`}>
-          {selectedContact ? (
-            <div className="space-y-2">
-              <ChatWindow
-                contact={selectedContact}
-                onRefreshList={() => fetchConversations()}
-                onBackMobile={() => setSelectedContact(null)}
-              />
+        {/* Search & Filter Bar */}
+        <div className="p-3 border-b border-slate-800/80 bg-slate-900/50 space-y-2.5 shrink-0">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search chats or phone..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-950/80 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
+            />
+          </div>
+
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 ${
+                filter === 'all'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setFilter('unread')}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center gap-1 ${
+                filter === 'unread'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Sparkles className="w-3 h-3" />
+              <span>Unread</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Conversation List */}
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-800/60">
+          {loading ? (
+            <div className="py-20 flex justify-center items-center">
+              <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : conversations.length === 0 ? (
+            <div className="p-8 text-center text-xs text-slate-500 space-y-2">
+              <MessageSquare className="w-8 h-8 text-slate-700 mx-auto mb-1" />
+              <p className="font-semibold text-slate-400">No chats found</p>
+              <p className="text-[11px] text-slate-600">Start a new conversation or adjust your search filter.</p>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200 p-16 text-center space-y-3 h-[700px] flex flex-col items-center justify-center">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <MessageSquare className="w-6 h-6" />
-              </div>
-              <h3 className="text-sm font-bold text-slate-800">Select a conversation</h3>
-              <p className="text-xs text-slate-400 max-w-xs">
-                Pick a customer thread from the left panel to begin chatting, send templates, or share media.
-              </p>
-            </div>
+            conversations.map((c) => {
+              const contactObj = c.contact || c;
+              const isSelected = selectedContact?.id === contactObj.id;
+              const contactName = `${contactObj.firstName || ''} ${contactObj.lastName || ''}`.trim() || 'Customer';
+              const lastMsg = c.messages?.[0] || contactObj.chatMessages?.[0];
+              const isOutbound = lastMsg?.direction === 'OUTBOUND';
+
+              return (
+                <div
+                  key={c.id || contactObj.id}
+                  onClick={() => handleSelect(c)}
+                  className={`p-3.5 cursor-pointer transition-all flex items-start gap-3 select-none ${
+                    isSelected
+                      ? 'bg-slate-800/90 border-l-4 border-emerald-500 shadow-inner'
+                      : 'hover:bg-slate-800/50'
+                  }`}
+                >
+                  {/* WhatsApp Profile Avatar */}
+                  <div className="w-11 h-11 rounded-full bg-emerald-700/80 text-white flex items-center justify-center font-bold text-sm shrink-0 ring-1 ring-emerald-500/30 shadow-sm">
+                    {contactName.charAt(0).toUpperCase()}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1 mb-0.5">
+                      <span className="text-xs font-bold text-slate-100 truncate">{contactName}</span>
+                      <span className="text-[10px] text-slate-400 shrink-0 font-mono">
+                        {c.lastMessageAt ? formatTimeAgo(new Date(c.lastMessageAt)) : ''}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1 text-[11px] text-slate-400 truncate mb-1">
+                      {isOutbound && (
+                        <CheckCheck
+                          className={`w-3.5 h-3.5 shrink-0 ${
+                            lastMsg?.status === 'READ'
+                              ? 'text-[#53bdeb]'
+                              : lastMsg?.status === 'DELIVERED'
+                              ? 'text-slate-400'
+                              : 'text-slate-500'
+                          }`}
+                        />
+                      )}
+                      <span className="truncate">{lastMsg?.body || 'Media Attachment'}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-[10px] font-mono text-slate-500 truncate">
+                        {contactObj.phoneNumber}
+                      </span>
+
+                      {c.unreadCount > 0 && (
+                        <span className="min-w-4 h-4 px-1 rounded-full bg-emerald-500 text-slate-950 font-black text-[10px] flex items-center justify-center shrink-0">
+                          {c.unreadCount}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
+      </div>
+
+      {/* Right Column: Full-Height Native Chat Window */}
+      <div className={`flex-1 h-full flex flex-col min-w-0 bg-slate-950 ${selectedContact ? 'flex' : 'hidden lg:flex'}`}>
+        {selectedContact ? (
+          <ChatWindow
+            contact={selectedContact}
+            onRefreshList={() => fetchConversations()}
+            onBackMobile={() => setSelectedContact(null)}
+          />
+        ) : (
+          <div className="h-full w-full flex flex-col items-center justify-center p-8 text-center bg-slate-950 space-y-4">
+            <div className="w-16 h-16 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center text-emerald-500 shadow-2xl">
+              <MessageSquare className="w-8 h-8" />
+            </div>
+            <div className="max-w-sm space-y-1">
+              <h3 className="text-base font-bold text-slate-200">WAYAPP for Web & Desktop</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Select a customer thread from the left panel to begin live 1-to-1 WhatsApp chatting, send templates, or share media files.
+              </p>
+            </div>
+            <div className="pt-4 flex items-center gap-1.5 text-[11px] text-slate-500">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+              <span>End-to-end Meta WhatsApp Cloud API connectivity</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -256,8 +276,8 @@ export default function InboxPage() {
   return (
     <Suspense
       fallback={
-        <div className="py-24 flex justify-center">
-          <div className="w-8 h-8 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+        <div className="h-full w-full flex items-center justify-center bg-slate-950">
+          <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin" />
         </div>
       }
     >
@@ -265,4 +285,3 @@ export default function InboxPage() {
     </Suspense>
   );
 }
-

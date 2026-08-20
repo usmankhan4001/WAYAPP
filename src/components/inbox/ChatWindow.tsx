@@ -374,7 +374,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
   const contactName = `${contact?.firstName || ''} ${contact?.lastName || ''}`.trim() || 'Customer';
 
   return (
-    <div className="flex-1 flex bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-[680px]">
+    <div className="flex-1 h-full w-full flex bg-slate-950 overflow-hidden min-w-0">
       {/* Hidden Global File Input */}
       <input
         type="file"
@@ -414,27 +414,27 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
       )}
 
       {/* Main Chat Thread */}
-      <div className="flex-1 flex flex-col min-w-0 border-r border-slate-200">
+      <div className="flex-1 flex flex-col min-w-0 border-r border-slate-800/80">
         {/* Chat Top Bar */}
-        <div className="h-16 px-4 md:px-6 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
+        <div className="h-16 px-4 md:px-6 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             {onBackMobile && (
               <button
                 type="button"
                 onClick={onBackMobile}
-                className="lg:hidden p-1.5 rounded-lg text-slate-500 hover:bg-slate-200"
+                className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
               >
                 <ArrowLeft className="w-4 h-4" />
               </button>
             )}
 
-            <div className="w-10 h-10 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center shrink-0 shadow-sm">
+            <div className="w-10 h-10 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center shrink-0 shadow-sm ring-1 ring-emerald-500/30">
               {contactName.substring(0, 2).toUpperCase()}
             </div>
 
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-slate-900 truncate">{contactName}</h3>
+                <h3 className="text-sm font-bold text-slate-100 truncate">{contactName}</h3>
                 <span className="text-[10px] font-mono text-slate-400 font-medium">
                   {contact?.phoneNumber}
                 </span>
@@ -443,14 +443,14 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
               {/* 24-Hour Active Window Pill */}
               <div className="flex items-center gap-1.5">
                 {effectiveWindowActive ? (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    {isMockMode ? 'Mock Simulation Active (Direct Chat Enabled)' : `24h Window Active • ${hoursRemaining}h ${minutesRemaining}m remaining`}
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-950/80 border border-emerald-800/60 px-2 py-0.5 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    {isMockMode ? 'Mock Simulation Active' : `24h Active • ${hoursRemaining}h ${minutesRemaining}m`}
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-400 bg-amber-950/80 border border-amber-800/60 px-2 py-0.5 rounded-full">
                     <Lock className="w-2.5 h-2.5" />
-                    24h Window Expired &bull; Template Required
+                    24h Expired &bull; Template Required
                   </span>
                 )}
               </div>
@@ -462,10 +462,10 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
               type="button"
               onClick={handleSimulateInbound}
               disabled={isSimulatingInbound}
-              className="px-3 py-1.5 rounded-xl border border-dashed border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-50"
+              className="px-3 py-1.5 rounded-xl border border-dashed border-emerald-700/80 bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-300 text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-50"
               title="Simulate incoming customer message to test two-way communication"
             >
-              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
               <span className="hidden sm:inline">{isSimulatingInbound ? 'Simulating...' : 'Simulate Reply'}</span>
             </button>
 
@@ -769,30 +769,30 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
             <div className="relative">
               {/* Attachment Popover Menu */}
               {isAttachmentMenuOpen && (
-                <div className="absolute bottom-14 left-0 bg-white rounded-2xl border border-slate-200 shadow-2xl p-2 z-30 grid grid-cols-2 gap-1.5 min-w-[220px] animate-in fade-in slide-in-from-bottom-2 duration-150">
+                <div className="absolute bottom-14 left-0 bg-slate-900 rounded-2xl border border-slate-800 shadow-2xl p-2 z-30 grid grid-cols-2 gap-1.5 min-w-[240px] animate-in fade-in slide-in-from-bottom-2 duration-150">
                   <button
                     type="button"
                     onClick={() => {
                       setIsAttachmentMenuOpen(false);
                       cameraInputRef.current?.click();
                     }}
-                    className="p-2 rounded-xl hover:bg-slate-100 flex items-center gap-2 text-xs font-semibold text-slate-700 transition-all col-span-2 bg-emerald-50/50 border border-emerald-200/60"
+                    className="p-2 rounded-xl hover:bg-slate-800 flex items-center gap-2 text-xs font-semibold text-slate-200 transition-all col-span-2 bg-emerald-950/40 border border-emerald-800/60"
                   >
                     <div className="p-1.5 rounded-lg bg-emerald-600 text-white shadow-sm">
                       <Camera className="w-4 h-4" />
                     </div>
                     <div className="text-left">
-                      <span className="block font-bold text-slate-900">Take Photo / Video</span>
-                      <span className="text-[10px] text-slate-500 block">Capture from camera</span>
+                      <span className="block font-bold text-white">Take Photo / Video</span>
+                      <span className="text-[10px] text-slate-400 block">Capture from camera</span>
                     </div>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => triggerFileInput('image')}
-                    className="p-2 rounded-xl hover:bg-slate-100 flex items-center gap-2 text-xs font-semibold text-slate-700 transition-all"
+                    className="p-2 rounded-xl hover:bg-slate-800 flex items-center gap-2 text-xs font-semibold text-slate-200 transition-all"
                   >
-                    <div className="p-1.5 rounded-lg bg-emerald-100 text-emerald-700">
+                    <div className="p-1.5 rounded-lg bg-emerald-950 text-emerald-400 border border-emerald-800/60">
                       <ImageIcon className="w-4 h-4" />
                     </div>
                     <span>Photo</span>
@@ -801,9 +801,9 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                   <button
                     type="button"
                     onClick={() => triggerFileInput('video')}
-                    className="p-2 rounded-xl hover:bg-slate-100 flex items-center gap-2 text-xs font-semibold text-slate-700 transition-all"
+                    className="p-2 rounded-xl hover:bg-slate-800 flex items-center gap-2 text-xs font-semibold text-slate-200 transition-all"
                   >
-                    <div className="p-1.5 rounded-lg bg-blue-100 text-blue-700">
+                    <div className="p-1.5 rounded-lg bg-blue-950 text-blue-400 border border-blue-800/60">
                       <Video className="w-4 h-4" />
                     </div>
                     <span>Video</span>
@@ -812,9 +812,9 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                   <button
                     type="button"
                     onClick={() => triggerFileInput('document')}
-                    className="p-2 rounded-xl hover:bg-slate-100 flex items-center gap-2 text-xs font-semibold text-slate-700 transition-all"
+                    className="p-2 rounded-xl hover:bg-slate-800 flex items-center gap-2 text-xs font-semibold text-slate-200 transition-all"
                   >
-                    <div className="p-1.5 rounded-lg bg-purple-100 text-purple-700">
+                    <div className="p-1.5 rounded-lg bg-purple-950 text-purple-400 border border-purple-800/60">
                       <FileIcon className="w-4 h-4" />
                     </div>
                     <span>Document</span>
@@ -823,9 +823,9 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                   <button
                     type="button"
                     onClick={() => triggerFileInput('audio')}
-                    className="p-2 rounded-xl hover:bg-slate-100 flex items-center gap-2 text-xs font-semibold text-slate-700 transition-all"
+                    className="p-2 rounded-xl hover:bg-slate-800 flex items-center gap-2 text-xs font-semibold text-slate-200 transition-all"
                   >
-                    <div className="p-1.5 rounded-lg bg-amber-100 text-amber-700">
+                    <div className="p-1.5 rounded-lg bg-amber-950 text-amber-400 border border-amber-800/60">
                       <Music className="w-4 h-4" />
                     </div>
                     <span>Audio</span>
@@ -840,8 +840,8 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                   onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
                   className={`p-2 sm:p-2.5 rounded-xl shrink-0 transition-all ${
                     isAttachmentMenuOpen
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'text-slate-500 hover:bg-slate-200'
+                      ? 'bg-emerald-600 text-white'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
                   }`}
                   title="Attach media"
                 >
@@ -852,7 +852,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                 <button
                   type="button"
                   onClick={() => cameraInputRef.current?.click()}
-                  className="p-2 sm:p-2.5 rounded-xl text-slate-500 hover:text-emerald-600 hover:bg-slate-200 transition-all shrink-0"
+                  className="p-2 sm:p-2.5 rounded-xl text-slate-400 hover:text-emerald-400 hover:bg-slate-800 transition-all shrink-0"
                   title="Take photo from camera"
                 >
                   <Camera className="w-4 h-4" />
@@ -863,7 +863,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                   placeholder="Type your WhatsApp reply..."
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  className="flex-1 min-w-0 px-3 py-2 sm:py-2.5 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="flex-1 min-w-0 px-3.5 py-2 sm:py-2.5 text-xs rounded-xl border border-slate-700 bg-slate-950 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 />
 
                 {/* Voice Note Button */}
@@ -871,7 +871,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                   <button
                     type="button"
                     onClick={() => setIsRecordingVoice(true)}
-                    className="p-2 sm:p-2.5 rounded-xl text-slate-500 hover:text-emerald-600 hover:bg-slate-200 transition-all shrink-0"
+                    className="p-2 sm:p-2.5 rounded-xl text-slate-400 hover:text-emerald-400 hover:bg-slate-800 transition-all shrink-0"
                     title="Record WhatsApp voice note"
                   >
                     <Mic className="w-4 h-4" />
@@ -881,7 +881,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                 <button
                   type="submit"
                   disabled={isSending || !text.trim()}
-                  className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all disabled:opacity-50 shrink-0"
+                  className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/30 flex items-center gap-1.5 transition-all disabled:opacity-50 shrink-0"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Send</span>
@@ -892,37 +892,37 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
 
           {/* Quick Template Picker Drawer */}
           {isTemplatePickerOpen && (
-            <div className="mt-3 p-3.5 bg-white rounded-xl border border-slate-200 shadow-lg space-y-2">
+            <div className="mt-3 p-3.5 bg-slate-900 rounded-2xl border border-slate-800 shadow-2xl space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-800">Select Approved Template to Re-Engage</span>
+                <span className="text-xs font-bold text-white">Select Approved WhatsApp Template</span>
                 <button
                   onClick={() => setIsTemplatePickerOpen(false)}
-                  className="text-xs text-slate-400 hover:text-slate-600"
+                  className="text-xs text-slate-400 hover:text-white"
                 >
                   Close
                 </button>
               </div>
 
               {templates.length === 0 ? (
-                <p className="text-xs text-slate-500 py-2">
+                <p className="text-xs text-slate-400 py-2">
                   No approved templates found. Create or sync templates in the Templates tab.
                 </p>
               ) : (
-                <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
+                <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto">
                   {templates.map((tpl) => (
                     <div
                       key={tpl.id}
-                      className="p-2.5 rounded-lg border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/20 flex items-center justify-between gap-2 cursor-pointer transition-all"
+                      className="p-2.5 rounded-xl border border-slate-800 bg-slate-950/60 hover:border-emerald-500/80 hover:bg-emerald-950/20 flex items-center justify-between gap-2 cursor-pointer transition-all"
                       onClick={() => handleSendTemplate(tpl)}
                     >
                       <div className="min-w-0">
-                        <h5 className="text-xs font-bold text-slate-900 font-mono">{tpl.name}</h5>
-                        <p className="text-[10px] text-slate-500 truncate">{tpl.category} &bull; {tpl.language}</p>
+                        <h5 className="text-xs font-bold text-white font-mono">{tpl.name}</h5>
+                        <p className="text-[10px] text-slate-400 truncate">{tpl.category} &bull; {tpl.language}</p>
                       </div>
                       <button
                         type="button"
                         disabled={isSending}
-                        className="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold shrink-0"
+                        className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold shrink-0"
                       >
                         {isSending ? 'Sending...' : 'Send'}
                       </button>
@@ -936,18 +936,18 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
       </div>
 
       {/* Right Sidebar: Contact Profile */}
-      <div className="w-64 bg-slate-50/70 p-4 overflow-y-auto space-y-4 hidden xl:block shrink-0">
-        <div className="text-center pb-3 border-b border-slate-200">
-          <div className="w-12 h-12 rounded-full bg-emerald-600 text-white font-bold text-base flex items-center justify-center mx-auto mb-2 shadow-sm">
+      <div className="w-64 bg-slate-900 border-l border-slate-800/80 p-4 overflow-y-auto space-y-4 hidden xl:block shrink-0">
+        <div className="text-center pb-3 border-b border-slate-800">
+          <div className="w-12 h-12 rounded-full bg-emerald-600 text-white font-bold text-base flex items-center justify-center mx-auto mb-2 shadow-sm ring-1 ring-emerald-500/30">
             {contactName.substring(0, 2).toUpperCase()}
           </div>
-          <h4 className="text-xs font-bold text-slate-900">{contactName}</h4>
-          <p className="text-[11px] text-slate-500 font-mono">{contact?.phoneNumber}</p>
+          <h4 className="text-xs font-bold text-white">{contactName}</h4>
+          <p className="text-[11px] text-slate-400 font-mono">{contact?.phoneNumber}</p>
         </div>
 
         {/* Groups */}
         <div className="space-y-1.5">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Groups</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Groups</span>
           <div className="flex flex-wrap gap-1">
             {contact?.groups?.length > 0 ? (
               contact.groups.map((g: any) => (
