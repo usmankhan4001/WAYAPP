@@ -1,12 +1,13 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { MessageSquare, X, ArrowRight, Bell, Volume2, VolumeX } from 'lucide-react';
+import { MessageSquare, X, ArrowRight, Bell, Volume2, VolumeX, PhoneCall } from 'lucide-react';
 import Link from 'next/link';
 import { playIncomingChime, setMuteState, getMuteState } from '@/lib/notifications/sound';
 
 interface InboundAlert {
   id: string;
+  contactId?: string;
   senderName: string;
   phoneNumber: string;
   body: string;
@@ -145,6 +146,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             if (!newestInbound || new Date(lastMsg.timestamp) > new Date(newestInbound.timestamp)) {
               newestInbound = {
                 id: lastMsg.id,
+                contactId: contact.id,
                 senderName: `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || 'Customer',
                 phoneNumber: contact.phoneNumber,
                 body: lastMsg.body || 'Media Attachment',
@@ -163,9 +165,37 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             playIncomingChime();
           }
 
-          // Show in-app toast
+          // Vibrate device if supported on mobile
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+            try {
+              navigator.vibrate([200, 100, 200]);
+            } catch {}
+          }
+
+          // Show browser OS notification if tab is backgrounded
+          if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+            try {
+              if ('serviceWorker' in navigator) {
+                const reg = await navigator.serviceWorker.ready;
+                reg.showNotification(`WhatsApp from ${newestInbound.senderName}`, {
+                  body: newestInbound.body,
+                  icon: '/icon-192.png',
+                  badge: '/icon-192.png',
+                  tag: `inbound-${newestInbound.id}`,
+                  data: { url: `/inbox?contactId=${newestInbound.contactId || ''}` },
+                });
+              } else {
+                new Notification(`WhatsApp from ${newestInbound.senderName}`, {
+                  body: newestInbound.body,
+                  icon: '/icon-192.png',
+                });
+              }
+            } catch {}
+          }
+
+          // Show prominent in-app floating banner
           setActiveToast(newestInbound);
-          setTimeout(() => setActiveToast(null), 8000);
+          setTimeout(() => setActiveToast(null), 9000);
         }
 
         if (newestInbound) {
@@ -191,34 +221,36 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     >
       {children}
 
-      {/* Floating In-App Inbound Alert Toast */}
+      {/* Prominent Native WhatsApp Notification Banner (Top of Mobile / Bottom Right of Desktop) */}
       {activeToast && (
-        <div className="fixed bottom-20 md:bottom-6 right-4 z-50 max-w-sm w-full animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="bg-slate-950 text-white rounded-2xl p-4 shadow-2xl border border-slate-800 flex items-start gap-3.5 ring-1 ring-emerald-500/20">
-            <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0 shadow-md ring-2 ring-emerald-400/20">
-              <MessageSquare className="w-5 h-5 text-white" />
+        <div className="fixed top-3 left-3 right-3 sm:top-auto sm:bottom-6 sm:right-6 sm:left-auto sm:max-w-sm z-50 animate-in slide-in-from-top-3 sm:slide-in-from-bottom-4 duration-300">
+          <div className="bg-white text-slate-900 rounded-2xl p-3.5 sm:p-4 shadow-2xl border border-slate-200 flex items-start gap-3 ring-1 ring-emerald-500/30">
+            {/* WhatsApp Emerald Icon */}
+            <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center shrink-0 shadow-md text-white font-bold text-sm ring-2 ring-emerald-100">
+              {activeToast.senderName.charAt(0).toUpperCase()}
             </div>
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-white truncate">{activeToast.senderName}</h4>
+                <h4 className="text-xs font-bold text-slate-900 truncate">{activeToast.senderName}</h4>
                 <button
                   onClick={() => setActiveToast(null)}
-                  className="text-slate-400 hover:text-white p-1 -mr-1 rounded-lg"
+                  className="text-slate-400 hover:text-slate-700 p-1 -mr-1 rounded-lg transition-colors"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-              <p className="text-[10px] text-emerald-400 font-mono font-medium">{activeToast.phoneNumber}</p>
-              <p className="text-xs text-slate-300 mt-1 line-clamp-2 leading-relaxed">
+              <p className="text-[10px] text-emerald-700 font-mono font-medium">{activeToast.phoneNumber}</p>
+              <p className="text-xs text-slate-700 mt-1 line-clamp-2 leading-relaxed font-sans">
                 {activeToast.body}
               </p>
 
-              <div className="mt-2.5 flex justify-end">
+              <div className="mt-2.5 flex items-center justify-between pt-1 border-t border-slate-100">
+                <span className="text-[10px] text-slate-400">WhatsApp Live Alert</span>
                 <Link
-                  href="/inbox"
+                  href={`/inbox?contactId=${activeToast.contactId || ''}`}
                   onClick={() => setActiveToast(null)}
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-800/60 transition-all hover:bg-emerald-900/60"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1 rounded-lg border border-emerald-200 transition-all"
                 >
                   <span>Reply Now</span>
                   <ArrowRight className="w-3 h-3" />
