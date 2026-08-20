@@ -229,17 +229,10 @@ function InboxContent() {
         <div className={`lg:col-span-8 ${selectedContact ? 'block' : 'hidden lg:block'}`}>
           {selectedContact ? (
             <div className="space-y-2">
-              <button
-                onClick={() => setSelectedContact(null)}
-                className="lg:hidden flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 mb-2"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Back to Conversations</span>
-              </button>
-
               <ChatWindow
                 contact={selectedContact}
                 onRefreshList={() => fetchConversations()}
+                onBackMobile={() => setSelectedContact(null)}
               />
             </div>
           ) : (

@@ -67,7 +67,9 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputTypeRef = useRef<'image' | 'video' | 'audio' | 'document'>('image');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+  const isAtBottomRef = useRef(true);
+  const prevMessagesCountRef = useRef(0);
 
   // 24h Window Calculation
   const lastInteraction = contact?.lastInteractionAt ? new Date(contact.lastInteractionAt).getTime() : null;
@@ -108,16 +110,34 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
       .catch(() => {});
   };
 
+  const scrollToBottom = (force = false) => {
+    if (messagesContainerRef.current) {
+      if (force || isAtBottomRef.current) {
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      }
+    }
+  };
+
+  const handleContainerScroll = () => {
+    if (!messagesContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    isAtBottomRef.current = scrollHeight - scrollTop - clientHeight < 100;
+  };
+
   useEffect(() => {
     fetchSettings();
     fetchMessages();
     fetchTemplates();
-    const interval = setInterval(fetchMessages, 2000);
+    const interval = setInterval(fetchMessages, 2500);
     return () => clearInterval(interval);
   }, [contact?.id]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Scroll only on initial load or new message arriving
+    if (messages.length > prevMessagesCountRef.current) {
+      scrollToBottom(prevMessagesCountRef.current === 0);
+    }
+    prevMessagesCountRef.current = messages.length;
   }, [messages]);
 
   const triggerFileInput = (type: 'image' | 'video' | 'audio' | 'document') => {
@@ -475,6 +495,8 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
 
         {/* Chat Messages Timeline */}
         <div
+          ref={messagesContainerRef}
+          onScroll={handleContainerScroll}
           onDragOver={(e) => {
             e.preventDefault();
             setIsDragging(true);
@@ -640,11 +662,10 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
               );
             })
           )}
-          <div ref={messagesEndRef} />
         </div>
 
         {/* Input Bar or Window Expired Template Trigger */}
-        <div className="p-3 md:p-4 bg-slate-50 border-t border-slate-200 relative">
+        <div className="p-3 md:p-4 bg-slate-50 border-t border-slate-200 relative shrink-0">
           {/* Staged Media Preview Drawer */}
           {stagedMedia && (
             <div className="mb-3 p-3 bg-white rounded-2xl border border-slate-200 shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom duration-200">
@@ -717,7 +738,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
               <div className="flex items-center gap-2 min-w-0">
                 <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                 <span className="text-amber-800 text-[11px] truncate">
-                  24h Window Inactive: Freeform messages may require an approved WhatsApp template.
+                  24h Window Inactive: May require an approved WhatsApp template.
                 </span>
               </div>
               <button
@@ -726,7 +747,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                 className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold shrink-0 flex items-center gap-1 shadow-sm"
               >
                 <FileText className="w-3 h-3" />
-                <span>Use Template</span>
+                <span>Templates</span>
               </button>
             </div>
           )}
@@ -805,12 +826,12 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                 </div>
               )}
 
-              <form onSubmit={handleSend} className="flex items-center gap-2 md:gap-3">
+              <form onSubmit={handleSend} className="flex items-center gap-1.5 sm:gap-2">
                 {/* Paperclip Button */}
                 <button
                   type="button"
                   onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
-                  className={`p-2 rounded-xl transition-all ${
+                  className={`p-2 sm:p-2.5 rounded-xl shrink-0 transition-all ${
                     isAttachmentMenuOpen
                       ? 'bg-emerald-100 text-emerald-700'
                       : 'text-slate-500 hover:bg-slate-200'
@@ -820,12 +841,22 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                   <Paperclip className="w-4 h-4" />
                 </button>
 
+                {/* Quick Camera Snap */}
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="p-2 sm:p-2.5 rounded-xl text-slate-500 hover:text-emerald-600 hover:bg-slate-200 transition-all shrink-0"
+                  title="Take photo from camera"
+                >
+                  <Camera className="w-4 h-4" />
+                </button>
+
                 <input
                   type="text"
                   placeholder="Type your WhatsApp reply..."
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="flex-1 min-w-0 px-3 py-2 sm:py-2.5 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
 
                 {/* Voice Note Button */}
@@ -833,7 +864,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                   <button
                     type="button"
                     onClick={() => setIsRecordingVoice(true)}
-                    className="p-2 rounded-xl text-slate-500 hover:text-emerald-600 hover:bg-slate-200 transition-all"
+                    className="p-2 sm:p-2.5 rounded-xl text-slate-500 hover:text-emerald-600 hover:bg-slate-200 transition-all shrink-0"
                     title="Record WhatsApp voice note"
                   >
                     <Mic className="w-4 h-4" />
@@ -843,7 +874,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                 <button
                   type="submit"
                   disabled={isSending || !text.trim()}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all disabled:opacity-50"
+                  className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all disabled:opacity-50 shrink-0"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Send</span>
