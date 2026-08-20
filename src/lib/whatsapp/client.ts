@@ -1,4 +1,4 @@
-﻿import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import {
   MetaSendResponse,
   MetaTemplateResponse,
@@ -961,6 +961,47 @@ export class WhatsAppClient {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Upload binary media directly to Meta Graph API (/v21.0/{phoneNumberId}/media)
+   * Returns the Meta Media ID for reliable sending without relying on public URLs.
+   */
+  async uploadMedia(
+    fileBuffer: Buffer,
+    mimeType: string,
+    filename: string = 'media'
+  ): Promise<{ id: string }> {
+    if (this.isMockMode) {
+      return { id: `mock_media_${Date.now()}` };
+    }
+    this.assertRealConnection('upload media to Meta');
+
+    const formData = new FormData();
+    formData.append('messaging_product', 'whatsapp');
+    formData.append('type', mimeType);
+
+    const blob = new Blob([new Uint8Array(fileBuffer)], { type: mimeType });
+    formData.append('file', blob, filename);
+
+    const response = await metaFetch(`${META_GRAPH_URL}/${this.phoneNumberId}/media`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+      },
+      body: formData,
+    });
+
+    const data = await response.json();
+    if (!response.ok || data.error) {
+      const errorMsg = data.error?.message || response.statusText;
+      const errorCode = data.error?.code || response.status;
+      const err = new Error(`Meta Media Upload Failed: ${errorMsg}`);
+      (err as any).code = errorCode;
+      throw err;
+    }
+
+    return { id: data.id };
   }
 
   /**

@@ -264,6 +264,9 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
       const data = await res.json();
       if (!res.ok || data.error) {
         setErrorMessage(data.error || 'Failed to send message');
+        if (data.requiresTemplate) {
+          setIsTemplatePickerOpen(true);
+        }
       } else {
         setText('');
         fetchMessages();

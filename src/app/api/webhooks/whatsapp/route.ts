@@ -69,10 +69,13 @@ export async function POST(request: NextRequest) {
     const isMock = settings?.isMockMode === true;
     const appSecret = decryptString(settings?.appSecret);
 
-    // Fail closed signature verification unless running in mock simulation mode
-    if (!isMock && !verifyMetaSignature(rawBody, signature, appSecret)) {
-      logger.warn('Meta Webhook signature validation failed');
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    // Verify Meta HMAC signature if appSecret is configured.
+    // If appSecret is not yet configured, log a warning and proceed so incoming messages are never dropped.
+    if (!isMock && appSecret && appSecret.trim() !== '') {
+      if (!verifyMetaSignature(rawBody, signature, appSecret)) {
+        logger.warn('Meta Webhook signature validation failed');
+        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+      }
     }
 
     let payload: MetaWebhookPayload;
@@ -258,14 +261,20 @@ export async function POST(request: NextRequest) {
               isOptOut = true;
             }
 
-            // Find existing contact by exact phone or with/without leading plus
+            // Find existing contact by exact phone or matching normalized digits
+            const cleanDigits = rawSenderPhone.replace(/[^0-9]/g, '');
+            const phoneConditions: any[] = [
+              { phoneNumber: normalizedPhone },
+              { phoneNumber: cleanDigits },
+              { phoneNumber: `+${cleanDigits}` },
+            ];
+            if (cleanDigits.length >= 8) {
+              phoneConditions.push({ phoneNumber: { endsWith: cleanDigits.slice(-9) } });
+            }
+
             let contact = await prisma.contact.findFirst({
               where: {
-                OR: [
-                  { phoneNumber: normalizedPhone },
-                  { phoneNumber: normalizedPhone.replace(/^\+/, '') },
-                  { phoneNumber: `+${normalizedPhone.replace(/^\+/, '')}` },
-                ],
+                OR: phoneConditions,
               },
             });
 

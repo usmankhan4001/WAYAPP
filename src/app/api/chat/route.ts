@@ -5,6 +5,8 @@ import { WhatsAppClient } from '@/lib/whatsapp/client';
 import { interpretMetaError } from '@/lib/whatsapp/errors';
 import { sanitizePhoneNumber } from '@/lib/whatsapp/phone';
 import { logger } from '@/lib/logger';
+import { readFile } from 'fs/promises';
+import path from 'path';
 
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request);
@@ -21,31 +23,44 @@ export async function GET(request: NextRequest) {
   try {
     // 1. Fetch message thread for specific contact / conversation
     if (contactId || conversationId) {
-      let targetContactId = contactId;
-      if (!targetContactId && conversationId) {
+      let targetContact: any = null;
+
+      if (contactId) {
+        targetContact = await prisma.contact.findUnique({
+          where: { id: contactId },
+        });
+      } else if (conversationId) {
         const conv = await prisma.conversation.findUnique({
           where: { id: conversationId },
-          select: { contactId: true },
+          include: { contact: true },
         });
-        targetContactId = conv?.contactId || null;
+        targetContact = conv?.contact || null;
       }
 
-      const where: any = {};
-      if (targetContactId) {
-        where.contactId = targetContactId;
-      } else if (conversationId) {
-        where.conversationId = conversationId;
+      const orConditions: any[] = [];
+      if (contactId) orConditions.push({ contactId });
+      if (conversationId) orConditions.push({ conversationId });
+      if (targetContact?.id) orConditions.push({ contactId: targetContact.id });
+
+      if (targetContact?.phoneNumber) {
+        const rawDigits = targetContact.phoneNumber.replace(/[^0-9]/g, '');
+        orConditions.push({ phoneNumber: targetContact.phoneNumber });
+        orConditions.push({ phoneNumber: `+${rawDigits}` });
+        orConditions.push({ phoneNumber: rawDigits });
+        if (rawDigits.length >= 8) {
+          orConditions.push({ phoneNumber: { endsWith: rawDigits.slice(-9) } });
+        }
       }
 
       const messages = await prisma.chatMessage.findMany({
-        where,
+        where: { OR: orConditions },
         orderBy: { timestamp: 'asc' },
       });
 
       // Reset unread count for this conversation
-      if (targetContactId) {
+      if (targetContact?.id) {
         await prisma.conversation.updateMany({
-          where: { contactId: targetContactId },
+          where: { contactId: targetContact.id },
           data: { unreadCount: 0 },
         }).catch(() => {});
       }
@@ -211,13 +226,39 @@ export async function POST(request: NextRequest) {
     let savedMediaUrl = mediaUrl || null;
 
     if (mediaUrl && mediaType) {
+      let uploadedMediaId: string | null = null;
+
+      // If the media is stored locally in /uploads/, read bytes and upload directly to Meta Graph API
+      if (mediaUrl.startsWith('/uploads/')) {
+        try {
+          const localPath = path.join(process.cwd(), 'public', mediaUrl.replace(/^\//, ''));
+          const fileBuffer = await readFile(localPath);
+
+          const mimeMap: Record<string, string> = {
+            image: 'image/jpeg',
+            video: 'video/mp4',
+            audio: 'audio/ogg',
+            document: 'application/pdf',
+          };
+          const mimeType = mimeMap[mediaType] || 'application/octet-stream';
+
+          const uploadResult = await client.uploadMedia(fileBuffer, mimeType, filename || 'media');
+          if (uploadResult?.id) {
+            uploadedMediaId = uploadResult.id;
+          }
+        } catch (uploadErr) {
+          logger.warn({ uploadErr }, 'Local media direct upload to Meta failed, falling back to public link');
+        }
+      }
+
       const origin = request.nextUrl.origin;
       const absoluteMediaUrl = mediaUrl.startsWith('http') ? mediaUrl : `${origin}${mediaUrl}`;
 
       const sendRes = await client.sendMediaMessage({
         to: contact.phoneNumber,
         type: mediaType as 'image' | 'video' | 'audio' | 'document',
-        mediaUrl: absoluteMediaUrl,
+        mediaId: uploadedMediaId || undefined,
+        mediaUrl: uploadedMediaId ? undefined : absoluteMediaUrl,
         caption: caption?.trim() || text?.trim() || undefined,
         filename: filename || undefined,
       });
@@ -285,13 +326,32 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, message, conversation });
   } catch (error: any) {
     logger.error({ error }, 'Error sending WhatsApp 1-to-1 message');
+    const is24hWindowRestriction =
+      error.code === 131047 ||
+      error.code === 131026 ||
+      error.code === '131047' ||
+      error.code === '131026' ||
+      error.message?.includes('24 hours') ||
+      error.message?.includes('Re-engagement');
+
+    if (is24hWindowRestriction) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'WhatsApp 24-Hour Policy: Freeform text and media messages require an active 24h conversation window. The recipient has not sent a message to your WhatsApp number yet. Please select and send an approved WhatsApp Template to initiate the conversation.',
+          requiresTemplate: true,
+        },
+        { status: 403 }
+      );
+    }
+
     const errInfo = interpretMetaError(error.code, error.message);
     return NextResponse.json(
       {
         success: false,
         error: `${errInfo.title}: ${errInfo.userMessage} (${errInfo.action})`,
         category: errInfo.category,
-        requiresTemplate: error.code === 131047 || error.code === 131026 || error.message?.includes('24 hour'),
       },
       { status: 400 }
     );
