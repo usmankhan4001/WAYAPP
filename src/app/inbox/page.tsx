@@ -5,21 +5,14 @@ import { useSearchParams } from 'next/navigation';
 import {
   MessageSquare,
   Search,
-  ArrowLeft,
-  User,
-  CheckCircle,
-  Clock,
-  Sparkles,
   UserPlus,
-  RefreshCw,
-  Filter,
+  Sparkles,
   CheckCheck,
   ShieldCheck,
 } from 'lucide-react';
 import { ChatWindow } from '@/components/inbox/ChatWindow';
 import { NewChatModal } from '@/components/inbox/NewChatModal';
 import { formatTimeAgo } from '@/lib/utils';
-import { InfoTooltip } from '@/components/ui/Tooltip';
 
 function InboxContent() {
   const searchParams = useSearchParams();
@@ -87,7 +80,7 @@ function InboxContent() {
   };
 
   return (
-    <div className="h-full w-full flex overflow-hidden bg-slate-950 text-slate-100">
+    <div className="h-full w-full flex overflow-hidden bg-[#f0f2f5] text-slate-900">
       {/* New Chat Modal */}
       <NewChatModal
         isOpen={isNewChatOpen}
@@ -100,16 +93,16 @@ function InboxContent() {
 
       {/* Left Column: WhatsApp Contact Threads Pane */}
       <div
-        className={`w-full lg:w-96 lg:min-w-[360px] lg:max-w-[400px] h-full flex flex-col bg-slate-900 border-r border-slate-800 shrink-0 ${
+        className={`w-full lg:w-96 lg:min-w-[360px] lg:max-w-[400px] h-full flex flex-col bg-white border-r border-slate-200 shrink-0 ${
           selectedContact ? 'hidden lg:flex' : 'flex'
         }`}
       >
         {/* Top Header & New Chat Trigger */}
-        <div className="p-3.5 border-b border-slate-800/80 bg-slate-900/90 flex items-center justify-between shrink-0">
+        <div className="p-3.5 border-b border-slate-200 bg-[#f0f2f5] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold text-white tracking-tight">Chats</h2>
+            <h2 className="text-base font-bold text-slate-900 tracking-tight">Chats</h2>
             {conversations.length > 0 && (
-              <span className="text-[10px] font-bold bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700">
+              <span className="text-[10px] font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">
                 {conversations.length}
               </span>
             )}
@@ -118,7 +111,7 @@ function InboxContent() {
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setIsNewChatOpen(true)}
-              className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all active:scale-95"
+              className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 transition-all active:scale-95"
               title="Start a new WhatsApp chat"
             >
               <UserPlus className="w-4 h-4" />
@@ -128,15 +121,15 @@ function InboxContent() {
         </div>
 
         {/* Search & Filter Bar */}
-        <div className="p-3 border-b border-slate-800/80 bg-slate-900/50 space-y-2.5 shrink-0">
+        <div className="p-3 border-b border-slate-200 bg-white space-y-2.5 shrink-0">
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search chats or phone..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-700 bg-slate-950/80 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
+              className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-[#f0f2f5] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
             />
           </div>
 
@@ -146,7 +139,7 @@ function InboxContent() {
               className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 ${
                 filter === 'all'
                   ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
               All
@@ -156,7 +149,7 @@ function InboxContent() {
               className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center gap-1 ${
                 filter === 'unread'
                   ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
               <Sparkles className="w-3 h-3" />
@@ -166,16 +159,16 @@ function InboxContent() {
         </div>
 
         {/* Conversation List */}
-        <div className="flex-1 overflow-y-auto divide-y divide-slate-800/60">
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
           {loading ? (
             <div className="py-20 flex justify-center items-center">
-              <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : conversations.length === 0 ? (
-            <div className="p-8 text-center text-xs text-slate-500 space-y-2">
-              <MessageSquare className="w-8 h-8 text-slate-700 mx-auto mb-1" />
-              <p className="font-semibold text-slate-400">No chats found</p>
-              <p className="text-[11px] text-slate-600">Start a new conversation or adjust your search filter.</p>
+            <div className="p-8 text-center text-xs text-slate-400 space-y-2">
+              <MessageSquare className="w-8 h-8 text-slate-300 mx-auto mb-1" />
+              <p className="font-semibold text-slate-700">No chats found</p>
+              <p className="text-[11px] text-slate-400">Start a new conversation or adjust your search filter.</p>
             </div>
           ) : (
             conversations.map((c) => {
@@ -191,24 +184,24 @@ function InboxContent() {
                   onClick={() => handleSelect(c)}
                   className={`p-3.5 cursor-pointer transition-all flex items-start gap-3 select-none ${
                     isSelected
-                      ? 'bg-slate-800/90 border-l-4 border-emerald-500 shadow-inner'
-                      : 'hover:bg-slate-800/50'
+                      ? 'bg-[#f0f2f5] border-l-4 border-emerald-600'
+                      : 'hover:bg-slate-50'
                   }`}
                 >
                   {/* WhatsApp Profile Avatar */}
-                  <div className="w-11 h-11 rounded-full bg-emerald-700/80 text-white flex items-center justify-center font-bold text-sm shrink-0 ring-1 ring-emerald-500/30 shadow-sm">
+                  <div className="w-11 h-11 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
                     {contactName.charAt(0).toUpperCase()}
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1 mb-0.5">
-                      <span className="text-xs font-bold text-slate-100 truncate">{contactName}</span>
+                      <span className="text-xs font-bold text-slate-900 truncate">{contactName}</span>
                       <span className="text-[10px] text-slate-400 shrink-0 font-mono">
                         {c.lastMessageAt ? formatTimeAgo(new Date(c.lastMessageAt)) : ''}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1 text-[11px] text-slate-400 truncate mb-1">
+                    <div className="flex items-center gap-1 text-[11px] text-slate-500 truncate mb-1">
                       {isOutbound && (
                         <CheckCheck
                           className={`w-3.5 h-3.5 shrink-0 ${
@@ -216,7 +209,7 @@ function InboxContent() {
                               ? 'text-[#53bdeb]'
                               : lastMsg?.status === 'DELIVERED'
                               ? 'text-slate-400'
-                              : 'text-slate-500'
+                              : 'text-slate-300'
                           }`}
                         />
                       )}
@@ -224,12 +217,12 @@ function InboxContent() {
                     </div>
 
                     <div className="flex items-center justify-between gap-1">
-                      <span className="text-[10px] font-mono text-slate-500 truncate">
+                      <span className="text-[10px] font-mono text-slate-400 truncate">
                         {contactObj.phoneNumber}
                       </span>
 
                       {c.unreadCount > 0 && (
-                        <span className="min-w-4 h-4 px-1 rounded-full bg-emerald-500 text-slate-950 font-black text-[10px] flex items-center justify-center shrink-0">
+                        <span className="min-w-4 h-4 px-1 rounded-full bg-emerald-600 text-white font-black text-[10px] flex items-center justify-center shrink-0">
                           {c.unreadCount}
                         </span>
                       )}
@@ -242,8 +235,8 @@ function InboxContent() {
         </div>
       </div>
 
-      {/* Right Column: Full-Height Native Chat Window */}
-      <div className={`flex-1 h-full flex flex-col min-w-0 bg-slate-950 ${selectedContact ? 'flex' : 'hidden lg:flex'}`}>
+      {/* Right Column: Full-Height Native WhatsApp Chat Window */}
+      <div className={`flex-1 h-full flex flex-col min-w-0 bg-[#efeae2] ${selectedContact ? 'flex' : 'hidden lg:flex'}`}>
         {selectedContact ? (
           <ChatWindow
             contact={selectedContact}
@@ -251,18 +244,18 @@ function InboxContent() {
             onBackMobile={() => setSelectedContact(null)}
           />
         ) : (
-          <div className="h-full w-full flex flex-col items-center justify-center p-8 text-center bg-slate-950 space-y-4">
-            <div className="w-16 h-16 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center text-emerald-500 shadow-2xl">
+          <div className="h-full w-full flex flex-col items-center justify-center p-8 text-center bg-[#f0f2f5] space-y-4">
+            <div className="w-16 h-16 rounded-3xl bg-white border border-slate-200 flex items-center justify-center text-emerald-600 shadow-lg">
               <MessageSquare className="w-8 h-8" />
             </div>
             <div className="max-w-sm space-y-1">
-              <h3 className="text-base font-bold text-slate-200">WAYAPP for Web & Desktop</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <h3 className="text-base font-bold text-slate-800">WAYAPP for Web & Desktop</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
                 Select a customer thread from the left panel to begin live 1-to-1 WhatsApp chatting, send templates, or share media files.
               </p>
             </div>
-            <div className="pt-4 flex items-center gap-1.5 text-[11px] text-slate-500">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+            <div className="pt-4 flex items-center gap-1.5 text-[11px] text-slate-400">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
               <span>End-to-end Meta WhatsApp Cloud API connectivity</span>
             </div>
           </div>
@@ -276,8 +269,8 @@ export default function InboxPage() {
   return (
     <Suspense
       fallback={
-        <div className="h-full w-full flex items-center justify-center bg-slate-950">
-          <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <div className="h-full w-full flex items-center justify-center bg-slate-50">
+          <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin" />
         </div>
       }
     >

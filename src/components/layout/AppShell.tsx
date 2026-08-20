@@ -49,8 +49,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="h-screen h-[100dvh] w-screen bg-slate-950 flex items-center justify-center">
-        <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      <div className="h-screen h-[100dvh] w-screen bg-slate-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -77,7 +77,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Full Active Native App Shell Workspace
   return (
     <NotificationProvider>
-      <div className="h-screen h-[100dvh] w-screen flex bg-slate-950 text-slate-100 overflow-hidden select-none safe-top safe-bottom">
+      <div className="h-screen h-[100dvh] w-screen flex bg-slate-100/70 text-slate-900 overflow-hidden select-none safe-top">
         {/* Sidebar (Desktop + Sliding Mobile Drawer) */}
         <Sidebar
           isMobileOpen={isMobileMenuOpen}
@@ -104,7 +104,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </main>
         </div>
 
-        {/* WhatsApp Mobile App Bottom Navigation */}
+        {/* WhatsApp Mobile App Bottom Navigation (Hidden on /inbox to keep typing bar unobstructed) */}
         <BottomNav />
 
         {/* Meta WhatsApp Cloud API Setup & Go-Live Guide Modal */}

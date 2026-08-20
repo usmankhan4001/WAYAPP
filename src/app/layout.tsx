@@ -11,7 +11,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  themeColor: '#0f172a',
+  themeColor: '#10b981',
 };
 
 export const metadata: Metadata = {
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black-translucent',
+    statusBarStyle: 'default',
     title: 'WAYAPP',
   },
   applicationName: 'WAYAPP',
@@ -43,7 +43,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full bg-slate-950">
+    <html lang="en" className="h-full bg-slate-50">
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
@@ -51,9 +51,9 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
-      <body className={`${inter.variable} font-sans antialiased h-full w-full bg-slate-950 text-slate-100 overflow-hidden select-none`}>
+      <body className={`${inter.variable} font-sans antialiased h-full w-full bg-slate-50 text-slate-900 overflow-hidden`}>
         <AppShell>
           {children}
         </AppShell>
