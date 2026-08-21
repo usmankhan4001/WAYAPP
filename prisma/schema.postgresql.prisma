@@ -111,6 +111,10 @@ model Contact {
   firstName          String?
   lastName           String?
   email              String?
+  company            String?
+  city               String?
+  leadStage          String              @default("NEW_LEAD") // NEW_LEAD, CONTACTED, QUALIFIED, PROPOSAL_SENT, WON, LOST
+  dealValue          Float?              @default(0)
   customAttributes   String?             // JSON string: { "company": "Acme", "city": "Dubai", "vip": true, ... }
   status             String              @default("ACTIVE") // ACTIVE, UNSUBSCRIBED, BOUNCED, BLOCKED
   optedOutAt         DateTime?
@@ -131,6 +135,7 @@ model Contact {
 
   @@index([status])
   @@index([phoneNumber])
+  @@index([leadStage])
 }
 
 model ContactGroup {
@@ -580,4 +585,35 @@ model ConversionEvent {
   @@index([contactId])
   @@index([campaignId])
 }
+
+// -------------------------------------------------------------
+// APP SWITCHBOARD & PLUG-AND-PLAY MODULES
+// -------------------------------------------------------------
+model AppModule {
+  id          String   @id // ai_copilot, canned_snippets, lead_crm, campaigns, flows, ai_bots, multichannel, ecommerce, webhooks_api, whatsapp_flows
+  name        String
+  description String
+  category    String   // SALES_AI, SALES_TOOLS, ENGAGEMENT, AUTOMATION, CHANNELS, INTEGRATIONS, DEVELOPER
+  icon        String?  // Lucide icon name
+  isEnabled   Boolean  @default(true)
+  configJson  String?  @default("{}") // Optional JSON configuration per module
+  updatedAt   DateTime @updatedAt
+}
+
+// -------------------------------------------------------------
+// CANNED SNIPPETS & QUICK ACTIONS
+// -------------------------------------------------------------
+model CannedSnippet {
+  id          String   @id @default(cuid())
+  shortcut    String   @unique // e.g. "/pricing", "/location", "/brochure"
+  title       String   // e.g. "Pricing & Packages List"
+  content     String   // The text payload to insert
+  category    String   @default("GENERAL") // GENERAL, PRICING, SUPPORT, CLOSING
+  usageCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([shortcut])
+}
+
 

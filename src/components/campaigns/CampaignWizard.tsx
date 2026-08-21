@@ -617,11 +617,11 @@ export function CampaignWizard({ templates = [], groups = [], tags = [] }: Campa
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Campaign</span>
-              <p className="text-sm font-bold text-slate-900 mt-1">{campaignName}</p>
-              <p className="text-xs text-slate-500 mt-0.5 font-mono">Template: {selectedTemplate?.name}</p>
+              <p className="text-sm font-bold text-slate-900 mt-1 truncate">{campaignName}</p>
+              <p className="text-xs text-slate-500 mt-0.5 font-mono truncate">Template: {selectedTemplate?.name}</p>
             </div>
 
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
@@ -631,9 +631,17 @@ export function CampaignWizard({ templates = [], groups = [], tags = [] }: Campa
             </div>
 
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Throttled Duration</span>
-              <p className="text-sm font-bold text-slate-900 mt-1">~ {Math.max(1, Math.ceil((audienceCount || 1) / 20))} seconds</p>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Est. Duration</span>
+              <p className="text-sm font-bold text-slate-900 mt-1">~ {Math.max(1, Math.ceil((audienceCount || 1) / 20))}s</p>
               <p className="text-xs text-slate-500 mt-0.5">Rate: 20 msgs/sec</p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-emerald-50/80 border border-emerald-200">
+              <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">0% Markup Meta Cost</span>
+              <p className="text-lg font-bold text-emerald-900 mt-1 font-mono">
+                ${((audienceCount || 0) * 0.045).toFixed(2)} USD
+              </p>
+              <p className="text-[10px] text-emerald-700 mt-0.5">Official Meta Rate (0% Surcharge)</p>
             </div>
           </div>
 

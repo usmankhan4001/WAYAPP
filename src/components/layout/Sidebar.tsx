@@ -18,15 +18,15 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const NAV_ITEMS = [
-  { label: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { label: 'Campaigns', href: '/campaigns', icon: Send },
-  { label: 'Automations', href: '/automations', icon: Zap },
-  { label: 'Templates', href: '/templates', icon: FileText },
-  { label: 'Contacts & Groups', href: '/contacts', icon: Users },
-  { label: 'Live Inbox', href: '/inbox', icon: MessageSquare },
-  { label: 'Analytics & Funnel', href: '/analytics', icon: BarChart3 },
-  { label: 'API & Settings', href: '/settings', icon: Settings },
+const BASE_NAV_ITEMS = [
+  { id: 'dashboard', label: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { id: 'inbox', label: 'Live Inbox', href: '/inbox', icon: MessageSquare },
+  { id: 'campaigns', label: 'Campaigns', href: '/campaigns', icon: Send, moduleId: 'campaigns' },
+  { id: 'automations', label: 'Automations', href: '/automations', icon: Zap, moduleIds: ['flows', 'ai_bots'] },
+  { id: 'templates', label: 'Templates', href: '/templates', icon: FileText },
+  { id: 'contacts', label: 'Contacts & CRM', href: '/contacts', icon: Users },
+  { id: 'analytics', label: 'Analytics & Funnel', href: '/analytics', icon: BarChart3 },
+  { id: 'settings', label: 'Settings & Modules', href: '/settings', icon: Settings },
 ];
 
 interface SidebarProps {
@@ -38,6 +38,7 @@ export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [enabledModules, setEnabledModules] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -48,7 +49,30 @@ export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
         }
       })
       .catch(() => {});
+
+    fetch('/api/modules')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data?.modules)) {
+          const map: Record<string, boolean> = {};
+          data.modules.forEach((m: any) => {
+            map[m.id] = m.isEnabled;
+          });
+          setEnabledModules(map);
+        }
+      })
+      .catch(() => {});
   }, [pathname]);
+
+  const navItems = BASE_NAV_ITEMS.filter((item: any) => {
+    if (item.moduleId) {
+      return enabledModules[item.moduleId] !== false;
+    }
+    if (item.moduleIds && Array.isArray(item.moduleIds)) {
+      return item.moduleIds.some((id: string) => enabledModules[id] !== false);
+    }
+    return true;
+  });
 
   const handleLogout = async () => {
     try {
@@ -95,7 +119,7 @@ export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
         <div className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
           Navigation
         </div>
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
 

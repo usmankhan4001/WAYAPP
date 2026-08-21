@@ -227,72 +227,121 @@ export default function AutomationsPage() {
         </div>
       </div>
 
-      {/* Pre-Built Recipes Starter Banner */}
+      {/* Pre-Built Industry Recipes Starter Banner */}
       <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl p-5 shadow-sm space-y-3">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-emerald-400" />
-          <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-            Quick-Start Automation Recipes
-          </h3>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-emerald-400" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+              1-Click Pre-Built Industry Sales Recipes
+            </h3>
+          </div>
+          <span className="text-[10px] text-slate-400">Click any recipe to activate</span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
           <button
             onClick={() =>
               handleOpenCreate({
-                name: 'Instant Price List Auto-Responder',
-                desc: 'Sends our official pricing sheet whenever a customer asks about price or cost',
+                name: '🏢 Real Estate Viewing Scheduler',
+                desc: 'Captures property inquiries, shares brochure, and schedules site visits',
                 matchType: 'CONTAINS',
-                keywords: 'price, pricing, cost, rate, quote, fees',
+                keywords: 'property, villa, apartment, rent, buy, viewing',
                 actionType: 'SEND_TEXT',
                 actionText:
-                  'Hello! Here is our official pricing overview: https://gccstartup.com/pricing. Reply with 1 to speak with an advisor.',
+                  'Hello! Thank you for inquiring about our luxury properties. 🏢 You can view our available listings and brochure here: https://gccstartup.com/properties.pdf. Would you like to schedule a private site viewing this week?',
+                tagName: 'Real Estate Lead',
               })
             }
-            className="p-3 bg-slate-800/80 hover:bg-slate-800 border border-slate-700 rounded-xl text-left transition-all group"
+            className="p-3 bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 hover:border-emerald-500 rounded-xl text-left transition-all group shadow-2xs"
           >
-            <h4 className="text-xs font-bold text-white group-hover:text-emerald-400">
-              🏷️ Price & Quote Auto-Reply
+            <h4 className="text-xs font-bold text-white group-hover:text-emerald-400 truncate">
+              🏢 Real Estate
             </h4>
-            <p className="text-[11px] text-slate-400 mt-1">Triggers when message has &ldquo;price&rdquo; or &ldquo;quote&rdquo;.</p>
+            <p className="text-[10px] text-slate-400 mt-1 line-clamp-2">Site viewing and brochure dispatch</p>
           </button>
 
           <button
             onClick={() =>
               handleOpenCreate({
-                name: 'Welcome New Inbound Leads',
-                desc: 'Sends warm greeting and company overview on any first inbound message',
-                matchType: 'ANY_INBOUND',
-                keywords: '',
+                name: '🛍️ E-Commerce Cart & COD Recovery',
+                desc: 'Re-engages abandoned carts and confirms Cash on Delivery orders',
+                matchType: 'CONTAINS',
+                keywords: 'cart, order, cod, checkout, delivery',
                 actionType: 'SEND_TEXT',
                 actionText:
-                  'Welcome to WAYAPP & GCC Startup! How can our support team assist you today?',
+                  'Hi there! 🛍️ We noticed you left items in your cart. Complete your order in the next 2 hours with coupon SAVE10 for an extra 10% discount: https://gccstartup.com/checkout',
+                tagName: 'E-Commerce Cart Lead',
               })
             }
-            className="p-3 bg-slate-800/80 hover:bg-slate-800 border border-slate-700 rounded-xl text-left transition-all group"
+            className="p-3 bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 hover:border-emerald-500 rounded-xl text-left transition-all group shadow-2xs"
           >
-            <h4 className="text-xs font-bold text-white group-hover:text-emerald-400">
-              👋 24/7 Welcome Auto-Responder
+            <h4 className="text-xs font-bold text-white group-hover:text-emerald-400 truncate">
+              🛍️ E-Commerce
             </h4>
-            <p className="text-[11px] text-slate-400 mt-1">Greets every new inbound customer instantly.</p>
+            <p className="text-[10px] text-slate-400 mt-1 line-clamp-2">Abandoned cart recovery & COD</p>
           </button>
 
           <button
             onClick={() =>
               handleOpenCreate({
-                name: 'Auto-Tag High-Value VIP Leads',
-                desc: 'Automatically tags customers inquiring about VIP enterprise packages',
+                name: '🚗 Automotive Test Drive Booking',
+                desc: 'Qualifies vehicle interest and books showroom test drives',
                 matchType: 'CONTAINS',
-                keywords: 'vip, enterprise, custom, bulk, corporate',
-                actionType: 'ADD_TAG',
-                tagName: 'VIP Corporate Lead',
+                keywords: 'test drive, car, showroom, suv, sedan, service',
+                actionType: 'SEND_TEXT',
+                actionText:
+                  'Hello! 🚗 Thank you for your interest in our latest vehicle models. Which model would you like to experience? Reply with 1 for SUV, 2 for Sedan, or 3 to speak with a showroom specialist.',
+                tagName: 'Auto Test Drive Lead',
               })
             }
-            className="p-3 bg-slate-800/80 hover:bg-slate-800 border border-slate-700 rounded-xl text-left transition-all group"
+            className="p-3 bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 hover:border-emerald-500 rounded-xl text-left transition-all group shadow-2xs"
           >
-            <h4 className="text-xs font-bold text-white group-hover:text-emerald-400">
-              ⭐ VIP Lead Auto-Tagger
+            <h4 className="text-xs font-bold text-white group-hover:text-emerald-400 truncate">
+              🚗 Automotive
             </h4>
-            <p className="text-[11px] text-slate-400 mt-1">Tags contacts as &ldquo;VIP Corporate Lead&rdquo; automatically.</p>
+            <p className="text-[10px] text-slate-400 mt-1 line-clamp-2">Test drive and showroom booking</p>
+          </button>
+
+          <button
+            onClick={() =>
+              handleOpenCreate({
+                name: '🏥 Clinic Appointment Booking',
+                desc: 'Assists patients with doctor consultation scheduling and clinic timings',
+                matchType: 'CONTAINS',
+                keywords: 'doctor, appointment, clinic, consultation, dentist',
+                actionType: 'SEND_TEXT',
+                actionText:
+                  'Welcome to our medical center! 🏥 Our clinic hours are Mon–Sat 9AM–8PM. To book a consultation with our specialist, please reply with your preferred date and time.',
+                tagName: 'Patient Appointment Lead',
+              })
+            }
+            className="p-3 bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 hover:border-emerald-500 rounded-xl text-left transition-all group shadow-2xs"
+          >
+            <h4 className="text-xs font-bold text-white group-hover:text-emerald-400 truncate">
+              🏥 Clinic & Health
+            </h4>
+            <p className="text-[10px] text-slate-400 mt-1 line-clamp-2">Doctor consultation & reminder</p>
+          </button>
+
+          <button
+            onClick={() =>
+              handleOpenCreate({
+                name: '💼 B2B Lead Gen & Demo Booking',
+                desc: 'Captures business inquiries and books consultation call',
+                matchType: 'CONTAINS',
+                keywords: 'price, pricing, cost, quote, enterprise, demo',
+                actionType: 'SEND_TEXT',
+                actionText:
+                  'Hello! 💼 Thank you for your inquiry. Our enterprise packages start at $29/mo with 0% markup. You can book a 1-on-1 walkthrough here: https://calendly.com/gccstartup/demo',
+                tagName: 'B2B Qualified Lead',
+              })
+            }
+            className="p-3 bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 hover:border-emerald-500 rounded-xl text-left transition-all group shadow-2xs"
+          >
+            <h4 className="text-xs font-bold text-white group-hover:text-emerald-400 truncate">
+              💼 B2B Lead Gen
+            </h4>
+            <p className="text-[10px] text-slate-400 mt-1 line-clamp-2">Price quote & Calendly demo</p>
           </button>
         </div>
       </div>
