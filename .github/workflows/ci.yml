@@ -1,34 +1,63 @@
-name: CI
+name: CI / Quality Assurance
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, feat/**, fix/** ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, feat/** ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate:
-    name: Build & Typecheck
+    name: Build, Typecheck & Vitest (${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [ 20.x, 22.x ]
 
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: npm ci
 
-      - name: Generate Prisma Client
-        run: npx prisma generate
+      - name: Generate Prisma Client (SQLite & Postgres)
+        run: |
+          npx prisma generate
+        env:
+          DATABASE_URL: "file:./dev.db"
 
-      - name: Build Next.js Application
+      - name: TypeScript Typecheck
+        run: npx tsc --noEmit
+
+      - name: Run Vitest Unit & Integration Tests
+        run: npx vitest run --coverage
+        env:
+          DATABASE_URL: "file:./dev.db"
+          AUTH_SECRET: "ci-test-secret-min32chars-0123456789abcdef"
+          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+
+      - name: Next.js Production Build
         run: npm run build
         env:
           DATABASE_URL: "file:./dev.db"
+          AUTH_SECRET: "ci-test-secret-min32chars-0123456789abcdef"
           NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+
+      - name: Upload Build Artifacts
+        if: matrix.node-version == '20.x'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build-output
+          path: .next
+          retention-days: 7

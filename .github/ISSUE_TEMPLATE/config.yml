@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📖 Meta WhatsApp Cloud API Documentation
+    url: https://developers.facebook.com/docs/whatsapp/cloud-api
+    about: Official Meta Cloud API documentation and developer guides.
+  - name: 🚀 WAYAPP Enterprise Documentation
+    url: https://github.com/usmankhan4001/WAYAPP/tree/main/docs
+    about: Architecture specifications, milestone roadmap, and feature documentation.
+  - name: 💬 Ask Questions in GitHub Discussions
+    url: https://github.com/usmankhan4001/WAYAPP/discussions
+    about: Ask questions, share ideas, and connect with other developers.

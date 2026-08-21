@@ -1,27 +1,33 @@
 ## Description
-<!-- Provide a concise description of the changes made in this pull request -->
+<!-- Provide a clear, concise summary of the changes introduced in this PR. -->
 
-## Type of Change
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Performance improvement
-- [ ] UI / UX refinement
-- [ ] Documentation update
-- [ ] Security fix
+### Type of Change
+- [ ] 🚀 New Feature / Module
+- [ ] 🐛 Bug Fix
+- [ ] 🛡️ Meta API Compliance / Security Fix
+- [ ] ⚡ Performance Optimization
+- [ ] 📝 Documentation Update
+- [ ] 🧪 Tests / CI/CD Pipeline
 
-## Areas Affected
-- [ ] Meta Graph API v21.0 Client / Signature
-- [ ] Broadcast Dispatcher & Throttled Queue
-- [ ] Live 2-Way Inbox & Webhooks
-- [ ] Template Studio & Mockup Preview
-- [ ] Contacts, CSV Import & Segmentation
-- [ ] Docker / Dokploy Deployment
+---
 
-## Testing & Verification
-<!-- Describe testing steps taken or include screenshots / screen recordings -->
-- [ ] Tested locally with Meta Test Number or Simulator
-- [ ] Verified `npm run build` succeeds cleanly
-- [ ] Checked responsive mobile layout
+## Affected Components & Modules
+- [ ] Meta Cloud API v21.0 Direct Connector
+- [ ] Shared Team Inbox & Live Chat
+- [ ] AI Sales Co-Pilot & Canned Snippets
+- [ ] Contacts CRM & Sales Pipeline Kanban
+- [ ] Bulk Broadcast Campaigns & Rate Calculator
+- [ ] No-Code Flow Builder & Stateful Bot Journeys
+- [ ] Multi-Channel Connectors (Instagram / Messenger)
+- [ ] E-Commerce Connectors (Shopify / WooCommerce)
+- [ ] Developer REST v1 API & Webhooks
+- [ ] Native WhatsApp Flows 3.0
 
-## Related Issues
-<!-- Link related issues e.g. Fixes #12 -->
+---
+
+## Pre-Flight Quality & Testing Checklist
+- [ ] My code follows the code style and naming conventions of this project.
+- [ ] I have executed `npx tsc --noEmit` and confirmed zero TypeScript errors.
+- [ ] I have executed `npx vitest run` and all automated tests pass.
+- [ ] I have verified 100% Meta Graph API v21.0 compliance (character constraints, 24h window, E.164 phone normalization).
+- [ ] Database schema migrations (`prisma db push`) have been executed if models were updated.

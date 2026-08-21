@@ -1,22 +1,51 @@
-name: Feature Request
-description: Suggest an idea or enhancement for WAYAPP
+name: 💡 Feature Request / Enhancement
+description: Suggest a new feature, sales tool, or enhancement for WAYAPP Enterprise
 title: "[FEATURE]: "
-labels: ["enhancement"]
+labels: ["type:feature", "triage"]
 body:
   - type: markdown
     attributes:
-      value: We appreciate suggestions to make WAYAPP better!
+      value: |
+        Have an idea to make WAYAPP Enterprise even more powerful and user-friendly? We'd love to hear it!
+
+  - type: input
+    id: feature_title
+    attributes:
+      label: Feature Title
+      description: Clear, concise summary of the requested feature
+      placeholder: e.g. Add 1-click Tap Payments link generator in live chat
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Module Category
+      options:
+        - Sales AI & Co-Pilot
+        - Sales Tools & Lead CRM
+        - Campaigns & Broadcasts
+        - Automation & Flow Builder
+        - Social Channels (IG/Messenger/Telegram)
+        - E-Commerce & Payment Gateways
+        - Developer API & Webhooks
+    validations:
+      required: true
+
   - type: textarea
     id: problem
     attributes:
-      label: Is your feature request related to a problem?
-      description: A clear description of the use case or limitation.
+      label: Problem / Use Case
+      description: What problem does this solve for your sales or operations team?
+      placeholder: Our sales team spends time manually copying payment links from another tab...
     validations:
       required: true
+
   - type: textarea
-    id: solution
+    id: proposed_solution
     attributes:
-      label: Proposed Solution
-      description: Describe what you would like to happen and how it should work.
+      label: Proposed Solution & UX
+      description: How should this feature work from the user's perspective?
+      placeholder: A button in the sales action bar that generates Tap payment links directly in chat.
     validations:
       required: true

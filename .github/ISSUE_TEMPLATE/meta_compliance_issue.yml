@@ -1,0 +1,46 @@
+name: 🛡️ Meta API Compliance & Template Issue
+description: Report Meta WhatsApp Business API policy, template rejection, or quality score issues
+title: "[META-COMPLIANCE]: "
+labels: ["meta:api-v21", "compliance"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for reporting issues relating to Meta Cloud API v21.0 policy, template submission rejections, quality score fluctuations, or messaging tier limits.
+
+  - type: input
+    id: template_name
+    attributes:
+      label: Template Name / Meta Element Name
+      placeholder: e.g. seasonal_promo_discount_v2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: meta_issue_type
+    attributes:
+      label: Issue Classification
+      options:
+        - Template Rejection by Meta Review
+        - Quality Rating Drop (Green -> Yellow / Red)
+        - Messaging Tier Rate Limit Issue
+        - 24-Hour Service Window Policy Enforcement
+        - Meta System User Access Token Expiry / Scope Error
+    validations:
+      required: true
+
+  - type: textarea
+    id: rejection_reason
+    attributes:
+      label: Meta Rejection Reason or Error Response
+      description: Copy-paste the exact message or rejection reason returned by Meta Graph API
+      placeholder: e.g. "INVALID_FORMAT: Positional parameter {{1}} contains invalid character sequences..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: template_body
+    attributes:
+      label: Template Content & Components
+      description: Include header, body, footer, and button configurations
+      placeholder: Body: "Hi {{1}}, thank you for contacting {{2}}..."

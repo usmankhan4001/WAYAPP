@@ -1,34 +1,74 @@
-name: Bug Report
-description: Report an issue or unexpected behavior in WAYAPP
+name: 🐛 Bug Report
+description: Report an issue, unexpected behavior, or error in WAYAPP Enterprise
 title: "[BUG]: "
-labels: ["bug"]
+labels: ["type:bug", "triage"]
 body:
   - type: markdown
     attributes:
-      value: Thank you for taking the time to report an issue!
-  - type: textarea
-    id: description
+      value: |
+        Thank you for reporting a bug! Please fill out the form below with as much detail as possible to help us reproduce and resolve the issue quickly.
+
+  - type: input
+    id: summary
     attributes:
-      label: Bug Description
-      description: A clear and concise description of the bug.
+      label: Summary
+      description: Brief one-line description of the bug
+      placeholder: e.g. Inbound WhatsApp voice notes fail to decode in team inbox
     validations:
       required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component / Module
+      options:
+        - Meta Cloud API Direct Connector (v21.0)
+        - Shared Team Inbox & Chat
+        - AI Sales Co-Pilot
+        - Canned Snippets & Actions
+        - Contacts & Sales Pipeline Kanban
+        - Bulk Broadcast Campaigns
+        - No-Code Flow Builder
+        - AI & Knowledge-Base Bots
+        - Multi-Channel Social (IG / Messenger)
+        - E-Commerce Webhooks (Shopify / WooCommerce)
+        - Outbound Webhooks & REST v1 API
+        - Native WhatsApp Flows 3.0
+    validations:
+      required: true
+
+  - type: input
+    id: meta_error_code
+    attributes:
+      label: Meta Graph API Error Code (if applicable)
+      description: Meta error code if logged (e.g. 130472, 131026, 131047, 130429, 190)
+      placeholder: e.g. 131047 (Re-engagement message window expired)
+
   - type: textarea
-    id: reproduction
+    id: steps
     attributes:
       label: Steps to Reproduce
-      description: Step-by-step instructions to reproduce the issue.
+      description: Provide step-by-step instructions to reproduce the issue
       placeholder: |
-        1. Go to '...'
-        2. Click on '....'
-        3. See error
+        1. Navigate to '/inbox'
+        2. Select contact with expired 24h window
+        3. Click 'Suggest Reply'
+        4. See error...
     validations:
       required: true
-  - type: input
-    id: environment
+
+  - type: textarea
+    id: expected
     attributes:
-      label: Environment
-      description: Node version, Docker environment, or Meta Graph API version.
-      placeholder: "Node v20.x, Docker on Dokploy, Meta Graph API v21.0"
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: The template picker should prompt to re-open the window safely.
     validations:
-      required: false
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Logs / Screenshots
+      description: Attach relevant server logs, browser console output, or screenshots
+      render: shell

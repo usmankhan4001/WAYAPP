@@ -1,0 +1,39 @@
+name: 🔌 Connector & Integration Request
+description: Request a direct integration for a CRM, Payment Gateway, or E-Commerce platform
+title: "[CONNECTOR]: "
+labels: ["module:integrations", "type:feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Request a direct first-party connector (e.g. HubSpot, Salesforce, Stripe, Tap, Paymob, Zoho, Salla, Zid).
+
+  - type: input
+    id: platform_name
+    attributes:
+      label: Third-Party Platform Name
+      placeholder: e.g. HubSpot CRM / Tap Payments / Salla E-Commerce
+    validations:
+      required: true
+
+  - type: dropdown
+    id: integration_type
+    attributes:
+      label: Integration Type
+      options:
+        - Inbound Webhook (e.g. Order Created, Lead Submitted)
+        - Bi-directional Contact & Deal Sync
+        - Payment Gateway Link Generator (In-Chat Invoicing)
+        - E-Commerce Catalog & Inventory Sync
+        - Custom REST / OAuth Connector
+    validations:
+      required: true
+
+  - type: textarea
+    id: desired_workflow
+    attributes:
+      label: Desired Workflow
+      description: Describe what should happen automatically when an event occurs
+      placeholder: When a deal is marked 'Won' in HubSpot, automatically send a WhatsApp onboarding welcome message to the customer...
+    validations:
+      required: true
