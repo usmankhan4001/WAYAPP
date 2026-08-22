@@ -58,6 +58,10 @@ export async function GET(request: NextRequest) {
     } else {
       // 'all' active
       whereClause.status = { notIn: ['RESOLVED', 'SPAM'] };
+      // SECURITY: Enforce RBAC. Only Admins can see ALL active chats.
+      if (session.role === 'MEMBER') {
+        whereClause.assignedToId = session.userId; // Force 'mine' filter for standard members
+      }
     }
 
     if (search) {

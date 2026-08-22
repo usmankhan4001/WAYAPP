@@ -296,6 +296,12 @@ export async function POST(request: NextRequest) {
                 unreadCount: 1,
               },
             });
+            
+            // Auto-Route if unassigned
+            if (!conversation.assignedToId) {
+              const { AssignmentEngine } = await import('@/lib/whatsapp/routing');
+              await AssignmentEngine.routeConversation(conversation.id);
+            }
 
             // Idempotent ChatMessage upsert by wamid
             await prisma.chatMessage.upsert({

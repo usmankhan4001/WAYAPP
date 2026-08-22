@@ -207,8 +207,25 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
     setAiSuggestions([]);
     setSummaryText(null);
 
-    const interval = setInterval(fetchMessages, 3000);
-    return () => clearInterval(interval);
+    // Initialize Server-Sent Events (SSE) for Real-Time Messages
+    const sse = new EventSource(`/api/chat/stream?contactId=${contact.id}`);
+    sse.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.type === 'new_messages' && Array.isArray(payload.data)) {
+          // Append new messages, avoiding duplicates by ID
+          setMessages((prev) => {
+            const existingIds = new Set(prev.map(m => m.id));
+            const newMsgs = payload.data.filter((m: any) => !existingIds.has(m.id));
+            return [...prev, ...newMsgs];
+          });
+        }
+      } catch (err) {}
+    };
+
+    return () => {
+      sse.close();
+    };
   }, [contact?.id]);
 
   useEffect(() => {
