@@ -21,6 +21,7 @@
 ## Table of Contents
 
 - [Overview](#overview)
+- [Master Project Handover Guide](#master-project-handover-guide)
 - [Non-Technical Quick Start](#non-technical-quick-start)
 - [Why WAYAPP vs Commercial SaaS](#why-wayapp-vs-commercial-saas)
 - [Core Features & Modules](#core-features--modules)
@@ -44,6 +45,19 @@
 ## Overview
 
 **WAYAPP** is a complete, self-hosted enterprise WhatsApp Cloud API Gateway and Marketing Automation Suite. Built on **Meta WhatsApp Business Cloud API (Graph API v21.0)**, WAYAPP empowers businesses to broadcast personalized campaigns to millions of contacts, construct visual drag-and-drop conversational funnels, train 24/7 AI agents on internal knowledge bases, and collaborate across agent teams with zero monthly SaaS markup.
+
+---
+
+## Master Project Handover Guide
+
+Handing over this repository to a client, agency, DevOps engineer, or development team?
+Read the comprehensive **[HANDOVER.md](HANDOVER.md)** for:
+- System Architecture & Topology
+- Production Credentials & R2 Backup Configuration
+- Database Resilience & Disaster Recovery
+- Background Worker & Dispatch Rate Limiting
+- Meta Webhook Setup & Service Window Compliance
+- Complete Developer Onboarding & Troubleshooting Reference
 
 ---
 
