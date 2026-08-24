@@ -1,0 +1,11 @@
+# Cursor AI Rules for WAYAPP
+
+- Framework: Next.js 15 App Router (TypeScript)
+- Database: Prisma with PostgreSQL 18
+- Styling: Tailwind CSS only (NO inline styles)
+- Auth: Require `requireAuth` on internal APIs, SHA-256 API key on `/api/v1/*`
+- Error Handling: Never use empty `.catch(() => {})`. Always log errors with `@/lib/logger`
+- Database Safety: Never run destructive schema drops or `--accept-data-loss`
+- WhatsApp Guard: Respect 24-hour customer window (use approved templates when expired)
+- Worker: Run all background tasks, broadcasts, and webhooks inside `src/worker/`
+- Verification: Run `npx tsc --noEmit` and `npm test` before concluding tasks
