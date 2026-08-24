@@ -25,13 +25,14 @@ RUN npm run build
 
 # Stage 3: Runner
 FROM node:20-alpine AS runner
-RUN apk add --no-cache libc6-compat openssl su-exec
+RUN apk add --no-cache libc6-compat openssl su-exec wget
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS="--max-old-space-size=1536"
 
 # Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs && \

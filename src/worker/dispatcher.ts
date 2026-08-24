@@ -79,7 +79,14 @@ export async function dispatchCampaign(campaignId: string): Promise<{ success: b
     let audienceFilter: any = {};
     try {
       audienceFilter = JSON.parse(campaign.audienceFilter || '{}');
-    } catch {}
+    } catch (parseErr) {
+      logger.error({ campaignId, audienceFilter: campaign.audienceFilter }, '[Dispatcher] Invalid audienceFilter JSON — aborting to prevent accidental broadcast to all contacts');
+      await prisma.campaign.update({
+        where: { id: campaignId },
+        data: { status: 'FAILED' },
+      });
+      return { success: false, error: 'Invalid audience filter configuration' };
+    }
 
     const contactWhere: any = {
       status: 'ACTIVE', // Enforce suppression
@@ -117,15 +124,19 @@ export async function dispatchCampaign(campaignId: string): Promise<{ success: b
             },
             update: {},
             create: row,
-          }).catch(() => {});
+          }).catch((err) => {
+            logger.warn({ error: err.message, campaignId: row.campaignId, contactId: row.contactId }, '[Dispatcher] Failed to upsert campaign message row');
+          });
         }
       }
 
-      // Update totalContacts count
-      await prisma.campaign.update({
-        where: { id: campaign.id },
-        data: { totalContacts: targetContacts.length },
-      });
+      // Update totalContacts count — preserve original count on resume
+      if (campaign.totalContacts === 0 || targetContacts.length > campaign.totalContacts) {
+        await prisma.campaign.update({
+          where: { id: campaign.id },
+          data: { totalContacts: targetContacts.length },
+        });
+      }
     }
 
     // 6. Fetch pending messages to dispatch (Resumes only PENDING messages)
@@ -235,6 +246,36 @@ export async function dispatchCampaign(campaignId: string): Promise<{ success: b
             where: { id: campaign.id },
             data: { sentCount: { increment: 1 } },
           });
+
+          // Mirror to ChatMessage table for inbox visibility
+          if (msg.contactId) {
+            try {
+              const conversation = await prisma.conversation.upsert({
+                where: { contactId: msg.contactId },
+                update: { lastMessageAt: new Date() },
+                create: {
+                  contactId: msg.contactId,
+                  status: 'OPEN',
+                  lastMessageAt: new Date(),
+                  unreadCount: 0,
+                },
+              });
+              await prisma.chatMessage.create({
+                data: {
+                  contactId: msg.contactId,
+                  conversationId: conversation.id,
+                  phoneNumber: msg.phoneNumber,
+                  direction: 'OUTBOUND',
+                  wamid,
+                  messageType: 'template',
+                  body: `[Campaign: ${campaign.name}] Template: ${campaign.template.name}`,
+                  status: 'SENT',
+                },
+              });
+            } catch (chatErr: any) {
+              logger.warn({ error: chatErr.message, phone: msg.phoneNumber }, '[Dispatcher] Failed to mirror message to ChatMessage table');
+            }
+          }
         } else {
           throw new Error('No message ID returned from Meta API');
         }

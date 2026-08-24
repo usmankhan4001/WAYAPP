@@ -14,10 +14,12 @@ import {
   Filter,
   UserCheck,
   RefreshCw,
+  AlertCircle,
 } from 'lucide-react';
 import { ChatWindow } from '@/components/inbox/ChatWindow';
 import { formatTimeAgo } from '@/lib/utils';
 import { InfoTooltip } from '@/components/ui/Tooltip';
+import { SkeletonConversation } from '@/components/ui/Skeleton';
 
 export default function InboxPage() {
   const [conversations, setConversations] = useState<any[]>([]);
@@ -27,10 +29,11 @@ export default function InboxPage() {
   const [filter, setFilter] = useState<'all' | 'mine' | 'unassigned' | 'resolved' | 'spam'>('all');
   const [loading, setLoading] = useState(true);
   const [assigningRoundRobin, setAssigningRoundRobin] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchConversations = useCallback(() => {
     const controller = new AbortController();
-    const url = `/api/chat?filter=${filter}${search ? `&search=${encodeURIComponent(search)}` : ''}`;
+    const url = `/api/chat?filter=${filter}&limit=50${search ? `&search=${encodeURIComponent(search)}` : ''}`;
 
     fetch(url, { signal: controller.signal })
       .then((res) => res.json())
@@ -44,7 +47,7 @@ export default function InboxPage() {
           setSelectedConversation(first.id ? first : null);
         }
       })
-      .catch(() => {})
+      .catch((err) => { if (err.name !== 'AbortError') setError('Failed to load conversations. Please check your connection.'); })
       .finally(() => setLoading(false));
 
     return () => controller.abort();
@@ -153,8 +156,23 @@ export default function InboxPage() {
           {/* List */}
           <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
             {loading ? (
-              <div className="py-16 flex justify-center">
-                <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+              <div className="divide-y divide-slate-100">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <SkeletonConversation key={i} />
+                ))}
+              </div>
+            ) : error ? (
+              <div className="p-8 text-center space-y-3">
+                <div className="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <p className="text-xs text-red-600 font-medium">{error}</p>
+                <button
+                  onClick={() => { setError(null); fetchConversations(); }}
+                  className="text-xs text-emerald-600 font-bold hover:underline"
+                >
+                  Retry
+                </button>
               </div>
             ) : conversations.length === 0 ? (
               <div className="p-8 text-center text-xs text-slate-400">

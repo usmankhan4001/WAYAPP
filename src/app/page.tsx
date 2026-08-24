@@ -18,11 +18,13 @@ import { ConversionFunnelChart } from '@/components/analytics/ConversionFunnelCh
 import { VolumeTrendsChart } from '@/components/analytics/VolumeTrendsChart';
 import { SetupWalkthrough } from '@/components/common/SetupWalkthrough';
 import { formatDateTime } from '@/lib/utils';
+import { SkeletonCard, SkeletonChart } from '@/components/ui/Skeleton';
 
 export default function DashboardPage() {
   const [data, setData] = useState<any>(null);
   const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -33,14 +35,42 @@ export default function DashboardPage() {
         setData(analyticsData);
         setSettings(settingsData);
       })
-      .catch(() => {})
+      .catch(() => setError('Unable to load dashboard data. Please check your connection.'))
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <SkeletonChart />
+          <SkeletonChart />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-[400px] flex items-center justify-center p-8">
+        <div className="max-w-md w-full text-center space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-7 h-7" />
+          </div>
+          <h2 className="text-lg font-bold text-slate-900">Dashboard Unavailable</h2>
+          <p className="text-sm text-slate-500">{error}</p>
+          <button
+            onClick={() => { setError(null); setLoading(true); window.location.reload(); }}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-sm transition-all"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }

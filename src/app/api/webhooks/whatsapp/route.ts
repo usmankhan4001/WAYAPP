@@ -122,11 +122,24 @@ export async function POST(request: NextRequest) {
               ? new Date(parseInt(statusObj.timestamp, 10) * 1000)
               : new Date();
 
-            // Update ChatMessage receipts if applicable
-            await prisma.chatMessage.updateMany({
+            // Update ChatMessage receipts with forward-progression guard
+            const existingChat = await prisma.chatMessage.findFirst({
               where: { wamid },
-              data: { status: newStatus },
-            }).catch(() => {});
+              select: { id: true, status: true },
+            });
+            if (existingChat) {
+              const CHAT_STATUS_RANK: Record<string, number> = {
+                SENT: 1, DELIVERED: 2, READ: 3, FAILED: 99,
+              };
+              const currentChatRank = CHAT_STATUS_RANK[existingChat.status] || 0;
+              const nextChatRank = CHAT_STATUS_RANK[newStatus] || 0;
+              if (nextChatRank > currentChatRank || newStatus === 'FAILED') {
+                await prisma.chatMessage.update({
+                  where: { id: existingChat.id },
+                  data: { status: newStatus },
+                }).catch((err) => logger.warn({ err, wamid }, 'Failed to update ChatMessage status'));
+              }
+            }
 
             // Update CampaignMessage with idempotency and transition guard
             const existingMsg = await prisma.campaignMessage.findUnique({

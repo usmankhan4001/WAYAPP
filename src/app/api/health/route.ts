@@ -15,12 +15,20 @@ export async function GET() {
   }
 
   const isHealthy = dbStatus === 'healthy';
-
+  
+  const memoryUsage = process.memoryUsage();
+  
   return NextResponse.json(
     {
       status: isHealthy ? 'ok' : 'degraded',
       timestamp: new Date().toISOString(),
+      uptimeSeconds: Math.floor(process.uptime()),
       latencyMs: Date.now() - startTime,
+      memory: {
+        rssMB: Math.round(memoryUsage.rss / 1024 / 1024),
+        heapTotalMB: Math.round(memoryUsage.heapTotal / 1024 / 1024),
+        heapUsedMB: Math.round(memoryUsage.heapUsed / 1024 / 1024),
+      },
       services: {
         database: {
           status: dbStatus,

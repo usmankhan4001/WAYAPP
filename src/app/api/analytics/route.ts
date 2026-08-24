@@ -59,9 +59,9 @@ export async function GET(request: NextRequest) {
     let totalReplied = 0;
 
     messages.forEach((m) => {
-      if (m.status === 'SENT' || m.status === 'DELIVERED' || m.status === 'READ') totalSent++;
-      if (m.status === 'DELIVERED' || m.status === 'READ') totalDelivered++;
-      if (m.status === 'READ') totalRead++;
+      if (['SENT', 'DELIVERED', 'READ', 'REPLIED'].includes(m.status)) totalSent++;
+      if (['DELIVERED', 'READ', 'REPLIED'].includes(m.status)) totalDelivered++;
+      if (['READ', 'REPLIED'].includes(m.status)) totalRead++;
       if (m.status === 'FAILED') totalFailed++;
     });
 
@@ -110,9 +110,9 @@ export async function GET(request: NextRequest) {
       messages.forEach((m) => {
         const mDate = m.createdAt.toISOString().split('T')[0];
         if (mDate === dateKey) {
-          if (m.status === 'SENT' || m.status === 'DELIVERED' || m.status === 'READ') daySent++;
-          if (m.status === 'DELIVERED' || m.status === 'READ') dayDelivered++;
-          if (m.status === 'READ') dayRead++;
+          if (['SENT', 'DELIVERED', 'READ', 'REPLIED'].includes(m.status)) daySent++;
+          if (['DELIVERED', 'READ', 'REPLIED'].includes(m.status)) dayDelivered++;
+          if (['READ', 'REPLIED'].includes(m.status)) dayRead++;
           if (m.status === 'FAILED') dayFailed++;
         }
       });

@@ -2,11 +2,22 @@ import { pollScheduledCampaigns } from './scheduler';
 import { sweepStuckCampaigns, reconcileCampaignCounters } from './sweeper';
 import { processOutboundWebhooks } from './outbound-webhooks';
 import { logger } from '@/lib/logger';
+import { setupGracefulShutdown } from '@/lib/graceful-shutdown';
 
 let isRunning = true;
 
 async function startWorker() {
+  setupGracefulShutdown();
   logger.info('🚀 WAYAPP Background Worker Started');
+
+  // Liveness heartbeat & memory check (every 60s)
+  setInterval(() => {
+    const memoryUsage = process.memoryUsage();
+    const heapUsedMB = Math.round(memoryUsage.heapUsed / 1024 / 1024);
+    if (heapUsedMB > 400) {
+      logger.warn({ heapUsedMB }, '⚠️ Worker memory usage is high (over 400MB)');
+    }
+  }, 60000);
 
   // Initial recovery sweeper on boot
   await sweepStuckCampaigns();

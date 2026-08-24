@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       while (!isClosed) {
         try {
           // Poll the database efficiently for new messages for this specific user or conversation
-          const whereClause: any = { createdAt: { gt: lastChecked } };
+          const whereClause: any = { timestamp: { gt: lastChecked } };
           
           if (contactId) {
             whereClause.contactId = contactId;
@@ -44,11 +44,11 @@ export async function GET(request: NextRequest) {
           const newMessages = await prisma.chatMessage.findMany({
             where: whereClause,
             include: { conversation: { select: { unreadCount: true, status: true, contactId: true } } },
-            orderBy: { createdAt: 'asc' },
+            orderBy: { timestamp: 'asc' },
           });
 
           if (newMessages.length > 0) {
-            lastChecked = newMessages[newMessages.length - 1].createdAt;
+            lastChecked = newMessages[newMessages.length - 1].timestamp;
             controller.enqueue(
               new TextEncoder().encode(`data: ${JSON.stringify({ type: 'new_messages', data: newMessages })}\n\n`)
             );

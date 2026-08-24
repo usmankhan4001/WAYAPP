@@ -21,6 +21,7 @@
 ## Table of Contents
 
 - [Overview](#overview)
+- [Non-Technical Quick Start](#non-technical-quick-start)
 - [Why WAYAPP vs Commercial SaaS](#why-wayapp-vs-commercial-saas)
 - [Core Features & Modules](#core-features--modules)
   - [1. Visual Flow Builder (No-Code Funnels)](#1-visual-flow-builder-no-code-funnels)
@@ -31,6 +32,7 @@
   - [6. Public REST API v1 & Outbound Webhooks](#6-public-rest-api-v1--outbound-webhooks)
   - [7. Cross-Platform Expo Native Mobile App](#7-cross-platform-expo-native-mobile-app)
 - [Security & Architecture](#security--architecture)
+- [Dokploy Deployment](#dokploy-deployment)
 - [Docker Compose Deployment (Postgres + Web + Worker)](#docker-compose-deployment-postgres--web--worker)
 - [API Reference & OpenAPI Specification](#api-reference--openapi-specification)
 - [Database Backups & Disaster Recovery](#database-backups--disaster-recovery)
@@ -42,6 +44,13 @@
 ## Overview
 
 **WAYAPP** is a complete, self-hosted enterprise WhatsApp Cloud API Gateway and Marketing Automation Suite. Built on **Meta WhatsApp Business Cloud API (Graph API v21.0)**, WAYAPP empowers businesses to broadcast personalized campaigns to millions of contacts, construct visual drag-and-drop conversational funnels, train 24/7 AI agents on internal knowledge bases, and collaborate across agent teams with zero monthly SaaS markup.
+
+---
+
+## Non-Technical Quick Start
+
+Are you a marketer or business owner looking to get up and running quickly?
+Check out our **[Getting Started Guide](docs/GETTING_STARTED.md)** for a simple, jargon-free walkthrough on connecting WhatsApp, syncing templates, and sending your first campaign. We also have a **[Troubleshooting FAQ](docs/TROUBLESHOOTING.md)** if you run into common issues.
 
 ---
 
@@ -97,6 +106,12 @@
 ### 7. Cross-Platform Expo Native Mobile App
 - Native iOS and Android application located in `mobile/` built on Expo SDK 52.
 - Secure token storage, real-time push notifications, and live 2-way chat with 24-hour service status.
+
+---
+
+## Dokploy Deployment
+
+For seamless deployment on PaaS platforms like Dokploy, complete with zero-downtime health checks and automated R2 backups, please read our **[Dokploy Deployment Guide](docs/DEPLOYMENT_GUIDE.md)**.
 
 ---
 

@@ -31,6 +31,17 @@ const PUBLIC_PATHS = [
 function getJwtSecret(): Uint8Array {
   const secret = process.env.AUTH_SECRET || process.env.JWT_SECRET;
   if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        '[WAYAPP FATAL] AUTH_SECRET environment variable is required in production. ' +
+        'Generate one with: openssl rand -base64 48'
+      );
+    }
+    // Development-only fallback with prominent warning
+    console.warn(
+      '\n⚠️  [WAYAPP] AUTH_SECRET is not set — using insecure development fallback.\n' +
+      '   Set AUTH_SECRET in .env before deploying to production.\n'
+    );
     return new TextEncoder().encode('wayapp_dev_insecure_auth_secret_must_be_set_in_production_32bytes');
   }
   return new TextEncoder().encode(secret);

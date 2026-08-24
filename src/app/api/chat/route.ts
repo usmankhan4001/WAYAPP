@@ -18,6 +18,9 @@ export async function GET(request: NextRequest) {
   const conversationId = searchParams.get('conversationId');
   const filter = searchParams.get('filter') || 'all'; // all, mine, unassigned, resolved, spam
   const search = searchParams.get('search')?.trim().toLowerCase();
+  const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 200);
+  const cursor = searchParams.get('cursor') || undefined;
+  const messageLimit = Math.min(parseInt(searchParams.get('messageLimit') || '100', 10), 500);
 
   try {
     // 1. Fetch message thread for specific contact / conversation
@@ -29,6 +32,7 @@ export async function GET(request: NextRequest) {
       const messages = await prisma.chatMessage.findMany({
         where,
         orderBy: { timestamp: 'asc' },
+        take: messageLimit,
       });
 
       // Reset unread count for this conversation
@@ -78,6 +82,8 @@ export async function GET(request: NextRequest) {
     // Fetch conversations with relations
     const conversations = await prisma.conversation.findMany({
       where: whereClause,
+      take: limit + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       include: {
         contact: {
           include: {
@@ -102,6 +108,13 @@ export async function GET(request: NextRequest) {
       orderBy: { lastMessageAt: 'desc' },
     });
 
+    // Pagination: detect if there's a next page
+    let nextCursor: string | null = null;
+    if (conversations.length > limit) {
+      const lastItem = conversations.pop();
+      nextCursor = lastItem?.id || null;
+    }
+
     // Fallback: If no conversation rows exist yet, return contacts with chats
     if (conversations.length === 0 && filter === 'all' && !search) {
       const contactsWithChats = await prisma.contact.findMany({
@@ -122,7 +135,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(contactsWithChats);
     }
 
-    return NextResponse.json(conversations);
+    return NextResponse.json({ conversations, nextCursor });
   } catch (error: any) {
     logger.error({ error }, 'Error fetching chat conversations');
     return NextResponse.json({ error: 'Failed to retrieve conversations' }, { status: 500 });
