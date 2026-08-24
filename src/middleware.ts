@@ -1,134 +1,57 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
-
-const SESSION_COOKIE_NAME = 'wayapp_session';
+import { SESSION_COOKIE_NAME } from '@/lib/auth/jwt';
 
 /**
- * Public routes that do not require authentication
+ * Edge-safe secret resolver (mirrors src/lib/auth/jwt.ts; cannot import
+ * non-edge code here). Fail-closed in production.
  */
-const PUBLIC_PATHS = [
-  '/login',
-  '/register',
-  '/api/auth/login',
-  '/api/auth/register',
-  '/api/auth/logout',
-  '/api/auth/me',
-  '/api/auth/meta',
-  '/api/auth/meta/callback',
-  '/api/webhooks/whatsapp',
-  '/api/v1/auth/token',
-  '/api/v1/docs',
-  '/api/health',
-  '/openapi.json',
-  '/manifest.json',
-  '/favicon.ico',
-  '/favicon.svg',
-  '/icon.svg',
-  '/sw.js',
-];
-
 function getJwtSecret(): Uint8Array {
   const secret = process.env.AUTH_SECRET || process.env.JWT_SECRET;
-  if (!secret) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error(
-        '[WAYAPP FATAL] AUTH_SECRET environment variable is required in production. ' +
-        'Generate one with: openssl rand -base64 48'
-      );
-    }
-    // Development-only fallback with prominent warning
-    console.warn(
-      '\n⚠️  [WAYAPP] AUTH_SECRET is not set — using insecure development fallback.\n' +
-      '   Set AUTH_SECRET in .env before deploying to production.\n'
-    );
-    return new TextEncoder().encode('wayapp_dev_insecure_auth_secret_must_be_set_in_production_32bytes');
+  if (secret && secret.length >= 16) {
+    return new TextEncoder().encode(secret);
   }
-  return new TextEncoder().encode(secret);
+  if (process.env.NODE_ENV !== 'production') {
+    return new TextEncoder().encode('wayapp-dev-only-secret-0123456789abcdef');
+  }
+  throw new Error(
+    '[Auth] AUTH_SECRET (or JWT_SECRET) must be set to a value of at least 16 characters in production.'
+  );
 }
 
+/**
+ * Middleware: stateless page protection.
+ * Pages require a valid signed session cookie; otherwise redirect to /login.
+ * (API routes perform their own DB-backed auth via requireAuth/requireRole;
+ * /api is excluded here so they can return proper 401/403 JSON responses.)
+ */
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
 
-  // 1. Allow public static assets and system routes
-  if (
-    pathname.startsWith('/_next/') ||
-    pathname.startsWith('/static/') ||
-    PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))
-  ) {
-    return NextResponse.next();
-  }
-
-  // Allow public public assets explicitly
-  if (
-    pathname.endsWith('.png') ||
-    pathname.endsWith('.jpg') ||
-    pathname.endsWith('.jpeg') ||
-    pathname.endsWith('.svg') ||
-    pathname.endsWith('.ico') ||
-    pathname.endsWith('.json') ||
-    pathname.endsWith('.js') ||
-    pathname.endsWith('.css')
-  ) {
-    // Check if it is under uploads or protected media
-    if (!pathname.startsWith('/api/media/') && !pathname.startsWith('/uploads/')) {
-      return NextResponse.next();
+  let valid = false;
+  if (token) {
+    try {
+      const secret = getJwtSecret();
+      const { payload } = await jwtVerify(token, secret, { algorithms: ['HS256'] });
+      valid = Boolean(payload.userId && payload.email);
+    } catch {
+      valid = false;
     }
   }
 
-  // 2. Allow API Key authentication for /api/v1 routes
-  if (pathname.startsWith('/api/v1')) {
-    const apiKeyHeader = request.headers.get('x-api-key');
-    if (apiKeyHeader) {
-      return NextResponse.next(); // Route handler will do SHA-256 validation against database
-    }
+  if (!valid) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    url.search = '';
+    return NextResponse.redirect(url);
   }
 
-  // 3. Extract session token from cookie or Authorization header
-  let sessionToken = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!sessionToken) {
-    const authHeader = request.headers.get('authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      sessionToken = authHeader.substring(7).trim();
-    }
-  }
-
-  if (!sessionToken) {
-    if (pathname.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    }
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  // 4. Verify JWT token signature with jose
-  try {
-    const secret = getJwtSecret();
-    const { payload } = await jwtVerify(sessionToken, secret, {
-      algorithms: ['HS256'],
-    });
-
-    if (!payload.userId || !payload.email) {
-      throw new Error('Invalid JWT payload');
-    }
-
-    return NextResponse.next();
-  } catch (error) {
-    if (pathname.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Invalid or expired session token' }, { status: 401 });
-    }
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('error', 'SESSION_EXPIRED');
-    return NextResponse.redirect(loginUrl);
-  }
+  return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for Next.js internal static assets
-     */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|json|js)|manifest.json|manifest.webmanifest|sw.js|uploads|api|login|register).*)',
   ],
 };

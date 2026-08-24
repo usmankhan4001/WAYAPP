@@ -13,9 +13,13 @@ import {
   LogOut,
   User,
   ShieldCheck,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { InfoTooltip } from '@/components/ui/Tooltip';
 import { PWAInstallPrompt } from '@/components/common/PWAInstallPrompt';
+import { DevicePermissionsModal } from '@/components/common/DevicePermissionsModal';
+import { useNotifications } from '@/components/common/NotificationProvider';
 
 interface HeaderProps {
   onToggleMobileMenu?: () => void;
@@ -24,9 +28,11 @@ interface HeaderProps {
 
 export function Header({ onToggleMobileMenu, onOpenMetaGuide }: HeaderProps) {
   const router = useRouter();
+  const { isMuted, toggleMute } = useNotifications();
   const [settings, setSettings] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
   const [isTesting, setIsTesting] = useState(false);
+  const [isPermissionsOpen, setIsPermissionsOpen] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
   useEffect(() => {
@@ -150,14 +156,44 @@ export function Header({ onToggleMobileMenu, onOpenMetaGuide }: HeaderProps) {
           <span>{isTesting ? 'Testing...' : 'Test API'}</span>
         </button>
 
+        {/* Sound Chime Toggle */}
+        <button
+          onClick={toggleMute}
+          className="btn-secondary h-8 px-2 text-xs inline-flex items-center gap-1.5 shrink-0"
+          title={isMuted ? 'Notification Sound is Muted (Click to Unmute)' : 'Notification Sound is ON (Click to Mute)'}
+        >
+          {isMuted ? (
+            <VolumeX className="w-3.5 h-3.5 text-rose-500" />
+          ) : (
+            <Volume2 className="w-3.5 h-3.5 text-emerald-600" />
+          )}
+          <span className="hidden lg:inline">{isMuted ? 'Muted' : 'Sound'}</span>
+        </button>
+
+        {/* Device Permissions Trigger */}
+        <button
+          onClick={() => setIsPermissionsOpen(true)}
+          className="btn-secondary h-8 px-2.5 text-xs inline-flex items-center gap-1.5 shrink-0"
+          title="Manage Notification, Mic & Camera Permissions"
+        >
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+          <span className="hidden md:inline">Permissions</span>
+        </button>
+
         {/* PWA 1-Click Install Button */}
         <PWAInstallPrompt />
 
         {/* New Campaign Broadcast Button */}
-        <Link href="/campaigns/new" className="btn-primary h-8 px-3 text-xs">
+        <Link href="/campaigns/new" className="btn-primary h-8 px-3 text-xs shrink-0">
           <Send className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">New Broadcast</span>
         </Link>
+
+        {/* Device Permissions Modal */}
+        <DevicePermissionsModal
+          isOpen={isPermissionsOpen}
+          onClose={() => setIsPermissionsOpen(false)}
+        />
 
         {/* User Profile & Logout */}
         {user && (

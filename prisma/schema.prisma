@@ -1,5 +1,5 @@
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -16,7 +16,7 @@ model Settings {
   phoneNumberId         String?
   accessToken           String?
   accessTokenMasked     String?
-  webhookVerifyToken    String?  @default("whatsapp_wati_webhook_secret_2026")
+  webhookVerifyToken    String?  // Random value generated at first boot (see db-bootstrap)
   appSecret             String?
   businessName          String?  @default("My WhatsApp Business")
   businessPhone         String?  @default("")

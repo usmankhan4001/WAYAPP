@@ -36,16 +36,82 @@ class TokenBucket {
 }
 
 /**
+ * Resolves target contacts for a campaign based on inclusion/exclusion filter.
+ * Supports sendToAll, include/exclude groups & tags.
+ */
+export async function getTargetContacts(audienceFilterJson: string) {
+  let filter: {
+    sendToAll?: boolean;
+    includeGroups?: string[];
+    includeTags?: string[];
+    excludeGroups?: string[];
+    excludeTags?: string[];
+  } = {};
+
+  try {
+    filter = JSON.parse(audienceFilterJson || '{}');
+  } catch {
+    filter = { sendToAll: true };
+  }
+
+  const allActiveContacts = await prisma.contact.findMany({
+    where: { status: 'ACTIVE' },
+    include: {
+      groups: true,
+      tags: true,
+    },
+  });
+
+  if (filter.sendToAll) {
+    return allActiveContacts.filter((c) => {
+      const cGroupIds = c.groups.map((g) => g.groupId);
+      const cTagIds = c.tags.map((t) => t.tagId);
+
+      const isExcludedByGroup =
+        filter.excludeGroups && filter.excludeGroups.some((gId) => cGroupIds.includes(gId));
+      const isExcludedByTag =
+        filter.excludeTags && filter.excludeTags.some((tId) => cTagIds.includes(tId));
+
+      return !isExcludedByGroup && !isExcludedByTag;
+    });
+  }
+
+  const includeGroupSet = new Set(filter.includeGroups || []);
+  const includeTagSet = new Set(filter.includeTags || []);
+  const excludeGroupSet = new Set(filter.excludeGroups || []);
+  const excludeTagSet = new Set(filter.excludeTags || []);
+
+  return allActiveContacts.filter((c) => {
+    const cGroupIds = c.groups.map((g) => g.groupId);
+    const cTagIds = c.tags.map((t) => t.tagId);
+
+    const matchesGroup = cGroupIds.some((gId) => includeGroupSet.has(gId));
+    const matchesTag = cTagIds.some((tId) => includeTagSet.has(tId));
+    const isIncluded = (includeGroupSet.size === 0 && includeTagSet.size === 0) || matchesGroup || matchesTag;
+
+    if (!isIncluded) return false;
+
+    const isExcluded =
+      cGroupIds.some((gId) => excludeGroupSet.has(gId)) ||
+      cTagIds.some((tId) => excludeTagSet.has(tId));
+
+    return !isExcluded;
+  });
+}
+
+/**
  * Executes or resumes a campaign dispatch job
  */
 export async function dispatchCampaign(campaignId: string): Promise<{ success: boolean; error?: string }> {
   logger.info({ campaignId }, '[Dispatcher] Starting campaign dispatch');
 
-  // 1. Atomic state machine lock: transition from DRAFT/QUEUED/PAUSED/SCHEDULED to RUNNING
+  // 1. Atomic state machine lock: transition from DRAFT/QUEUED/PAUSED/SCHEDULED to RUNNING.
+  //    RUNNING is intentionally NOT in the where list — a campaign that is already
+  //    running can never be locked again, so concurrent dispatch attempts fail here.
   const lockResult = await prisma.campaign.updateMany({
     where: {
       id: campaignId,
-      status: { in: ['DRAFT', 'QUEUED', 'PAUSED', 'SCHEDULED', 'RUNNING'] },
+      status: { in: ['DRAFT', 'QUEUED', 'PAUSED', 'SCHEDULED'] },
     },
     data: {
       status: 'RUNNING',
@@ -222,12 +288,22 @@ export async function dispatchCampaign(campaignId: string): Promise<{ success: b
         bodyParameters.push(val || 'Valued Customer');
       }
 
+      // Build header text-variable parameters (mappings keyed header_1..header_3)
+      const headerParameters: string[] = [];
+      for (let i = 1; i <= 3; i++) {
+        const fieldName = variableMappings[`header_${i}`];
+        if (!fieldName) break;
+        const val = contactData[fieldName] !== undefined ? String(contactData[fieldName]) : '';
+        headerParameters.push(val || 'Valued Customer');
+      }
+
       try {
         const sendResult = await client.sendTemplateMessage({
           to: msg.phoneNumber,
           templateName: campaign.template.name,
           languageCode: campaign.template.language || 'en_US',
           headerMediaUrl: campaign.headerMediaUrl || undefined,
+          headerVariables: headerParameters.length > 0 ? headerParameters : undefined,
           bodyVariables: bodyParameters,
           templateComponents: campaign.template.components,
         });

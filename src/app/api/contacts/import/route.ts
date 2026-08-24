@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { normalizePhoneNumber } from '@/lib/utils';
+import { requireAuth } from '@/lib/auth/rbac';
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if ('response' in authResult) return authResult.response;
+
   try {
     const body = await request.json();
     const { rows = [], columnMapping = {}, targetGroupId, targetTagId } = body;
@@ -12,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     const settings = await prisma.settings.findUnique({ where: { id: 'default' } });
-    const defaultCountry = settings?.defaultCountryCode || '+1';
+    const defaultCountry = settings?.defaultCountryCode || '+971';
 
     let importedCount = 0;
     let skippedCount = 0;

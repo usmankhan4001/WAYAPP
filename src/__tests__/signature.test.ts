@@ -32,4 +32,11 @@ describe('Meta Webhook HMAC SHA-256 Signature Verification', () => {
     expect(verifyMetaSignature(body, 'invalid_format', secret)).toBe(false);
     expect(verifyMetaSignature(body, 'sha256=123', secret)).toBe(false);
   });
+
+  it('rejects requests when appSecret is not configured (fail-closed)', () => {
+    expect(verifyMetaSignature(body, 'sha256=anything', '')).toBe(false);
+    expect(verifyMetaSignature(body, 'sha256=anything', null)).toBe(false);
+    expect(verifyMetaSignature(body, 'sha256=anything', undefined)).toBe(false);
+    expect(verifyMetaSignature(body, 'sha256=anything', '   ')).toBe(false);
+  });
 });

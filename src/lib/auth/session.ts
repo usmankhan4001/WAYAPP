@@ -1,75 +1,70 @@
+import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
-import { getSessionFromRequest, requireAuth, requireRole, UserRole } from './rbac';
-import { UserSessionPayload } from './jwt';
+import { verifySessionToken, UserSessionPayload, SESSION_COOKIE_NAME } from './jwt';
+import { requireAuth, requireRole, getSessionFromRequest, hasMinimumRole } from './rbac';
+import type { UserRole } from './rbac';
 
-export { requireAuth, requireRole };
+export { requireAuth, requireRole, getSessionFromRequest, hasMinimumRole };
 export type { UserRole };
 
 /**
- * Checks if a given email is authorized under GCC Business policy
+ * Checks if a given email is allowed to use this instance, based on the
+ * AuthConfig allow-list (allowedDomains suffix match / allowedEmails exact match).
+ * Empty allow-lists mean "no restrictions".
  */
 export async function isAllowedGccUser(email: string | undefined | null): Promise<boolean> {
   if (!email) return false;
-  const cleanEmail = email.trim().toLowerCase();
 
-  // If first user in database, allow registration as initial admin
-  const userCount = await prisma.user.count();
-  if (userCount === 0) {
-    return true;
-  }
-
-  // Fetch AuthConfig from DB
-  const config = await prisma.authConfig.findUnique({
-    where: { id: 'default' },
-  });
-
-  if (!config) {
-    return true;
-  }
-
-  // If auth is not required, allow
-  if (!config.requireAuth) return true;
-
-  // Check if user already exists as an ACTIVE user
-  const existingUser = await prisma.user.findUnique({
-    where: { email: cleanEmail },
-  });
-
-  if (existingUser) {
-    return existingUser.isActive && existingUser.status !== 'SUSPENDED';
-  }
-
-  // Check Allowed Domains
-  if (config.allowedDomains) {
-    const domains = config.allowedDomains
+  try {
+    const authConfig = await prisma.authConfig.findUnique({ where: { id: 'default' } });
+    const allowedDomains = (authConfig?.allowedDomains || '')
       .split(',')
-      .map((d) => d.trim().toLowerCase())
+      .map((d) => d.trim().toLowerCase().replace(/^@/, ''))
       .filter(Boolean);
-
-    const emailDomain = cleanEmail.split('@')[1];
-    if (emailDomain && (domains.includes(emailDomain) || domains.includes('*'))) {
-      return true;
-    }
-  }
-
-  // Check Explicit Whitelisted Emails
-  if (config.allowedEmails) {
-    const explicitEmails = config.allowedEmails
+    const allowedEmails = (authConfig?.allowedEmails || '')
       .split(',')
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean);
 
-    if (explicitEmails.includes(cleanEmail)) {
-      return true;
-    }
-  }
+    if (allowedDomains.length === 0 && allowedEmails.length === 0) return true;
 
-  return false;
+    const lowerEmail = email.toLowerCase();
+    if (allowedEmails.includes(lowerEmail)) return true;
+
+    const emailDomain = lowerEmail.split('@')[1] || '';
+    return allowedDomains.includes(emailDomain);
+  } catch {
+    // DB unavailable — fail closed
+    return false;
+  }
 }
 
 /**
- * Gets current authenticated user session
+ * Gets the current authenticated user session from the request cookies.
+ * For use in Server Components / Server Actions.
  */
 export async function getAuthSession(): Promise<UserSessionPayload | null> {
-  return getSessionFromRequest();
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+    if (!token) return null;
+
+    const payload = await verifySessionToken(token);
+    if (!payload) return null;
+
+    // Revocation check
+    const [dbSession, user] = await Promise.all([
+      payload.jti
+        ? prisma.session.findUnique({ where: { id: payload.jti } })
+        : Promise.resolve(null),
+      prisma.user.findUnique({ where: { id: payload.userId } }),
+    ]);
+
+    if (!user || !user.isActive || user.status === 'SUSPENDED') return null;
+    if (payload.jti && (!dbSession || dbSession.expiresAt < new Date())) return null;
+
+    return payload;
+  } catch {
+    return null;
+  }
 }

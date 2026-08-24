@@ -6,6 +6,7 @@ import { WhatsAppClient } from '@/lib/whatsapp/client';
 import { sanitizePhoneNumber } from '@/lib/whatsapp/phone';
 import { interpretMetaError } from '@/lib/whatsapp/errors';
 import { logger } from '@/lib/logger';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 const MessageSendSchema = z.object({
   to: z.string().min(6),
@@ -22,6 +23,12 @@ const MessageSendSchema = z.object({
 export async function POST(request: NextRequest) {
   const authResult = await authenticateApiRequest(request, 'messages:send');
   if ('response' in authResult) return authResult.response;
+
+  const rateLimitKey = authResult.auth.type === 'API_KEY' ? `v1:${authResult.auth.keyId}` : `v1:${getClientIp(request)}`;
+  const rateLimit = checkRateLimit(rateLimitKey, { limit: 120, windowSeconds: 60 });
+  if (!rateLimit.success) {
+    return NextResponse.json({ error: 'Too many message requests' }, { status: 429 });
+  }
 
   try {
     const body = await request.json().catch(() => ({}));
@@ -113,9 +120,28 @@ export async function POST(request: NextRequest) {
     }
 
     // Save ChatMessage
+    const conversation = await prisma.conversation.upsert({
+      where: { contactId: contact.id },
+      update: {
+        lastMessageAt: new Date(),
+        status: 'OPEN',
+      },
+      create: {
+        contactId: contact.id,
+        status: 'OPEN',
+        lastMessageAt: new Date(),
+      },
+    });
+
+    await prisma.contact.update({
+      where: { id: contact.id },
+      data: { lastInteractionAt: new Date() },
+    });
+
     const message = await prisma.chatMessage.create({
       data: {
         contactId: contact.id,
+        conversationId: conversation.id,
         phoneNumber: phoneResult.e164,
         direction: 'OUTBOUND',
         wamid,

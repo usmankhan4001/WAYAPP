@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -23,19 +23,6 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [needsSetup, setNeedsSetup] = useState(false);
-
-  useEffect(() => {
-    const errorParam = searchParams.get('error');
-    if (errorParam === 'ACCESS_DENIED_NOT_GCC_USER') {
-      setErrorMsg('Access Denied: Email domain not permitted. Please use your enterprise email.');
-    } else if (errorParam === 'SESSION_EXPIRED') {
-      setErrorMsg('Your session has expired. Please sign in again.');
-    } else if (errorParam === 'META_APP_ID_MISSING') {
-      setErrorMsg('Meta App ID is not configured. Please use email and password to sign in.');
-    } else if (errorParam) {
-      setErrorMsg(decodeURIComponent(errorParam));
-    }
-  }, [searchParams]);
 
   const handleMetaLogin = () => {
     setLoading(true);

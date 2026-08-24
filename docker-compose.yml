@@ -35,6 +35,7 @@ services:
       - NODE_ENV=production
       - DATABASE_URL=${DATABASE_URL:-postgresql://wayapp:wayapp_secure_password_2026@postgres:5432/wayapp}
       - AUTH_SECRET=${AUTH_SECRET:-wayapp_super_secret_auth_key_replace_in_production_min32chars}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
       - PORT=3000
     depends_on:
       postgres:
@@ -58,11 +59,13 @@ services:
       dockerfile: Dockerfile
     container_name: wayapp-worker
     restart: always
-    command: ["node", "src/worker/index.js"]
+    command: ["npx", "tsx", "src/worker/index.ts"]
     environment:
       - NODE_ENV=production
       - DATABASE_URL=${DATABASE_URL:-postgresql://wayapp:wayapp_secure_password_2026@postgres:5432/wayapp}
       - AUTH_SECRET=${AUTH_SECRET:-wayapp_super_secret_auth_key_replace_in_production_min32chars}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+      - WORKER_HEALTH_PORT=3001
     depends_on:
       postgres:
         condition: service_healthy

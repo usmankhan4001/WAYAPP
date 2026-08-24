@@ -10,6 +10,15 @@ import {
 
 const META_GRAPH_VERSION = 'v21.0';
 const META_GRAPH_URL = `https://graph.facebook.com/${META_GRAPH_VERSION}`;
+const FETCH_TIMEOUT_MS = 15_000;
+
+/** fetch wrapper that always aborts after FETCH_TIMEOUT_MS */
+async function metaFetch(url: string, init?: RequestInit): Promise<Response> {
+  return fetch(url, {
+    ...init,
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
+}
 
 export class WhatsAppClient {
   private wabaId: string | null = null;
@@ -32,7 +41,27 @@ export class WhatsAppClient {
   }
 
   /**
-   * Initializes client by reading current settings from DB
+   * Throws when a real (non-mock) Meta call is attempted without configured
+   * credentials. Removes the silent fail-open that previously faked success
+   * for unconfigured instances.
+   */
+  private assertRealConnection(action: string): void {
+    if (!this.accessToken) {
+      throw new Error(
+        `[WhatsApp] Cannot ${action}: Meta access token is not configured. Open API & Settings and connect your WhatsApp Business Account.`
+      );
+    }
+    if (!this.phoneNumberId) {
+      throw new Error(
+        `[WhatsApp] Cannot ${action}: Phone Number ID is not configured. Open API & Settings and connect your WhatsApp Business Account.`
+      );
+    }
+  }
+
+  /**
+   * Initializes client by reading current settings from DB.
+   * (Bootstrap/migrations are owned by the entrypoint + settings route; this
+   * path only reads settings and never runs DDL.)
    */
   static async createFromSettings(): Promise<WhatsAppClient> {
     const settings = await prisma.settings.findUnique({
@@ -61,7 +90,7 @@ export class WhatsAppClient {
     wabaDetails?: any;
     permissions?: string[];
   }> {
-    if (this.isMockMode || !this.accessToken || !this.phoneNumberId) {
+    if (this.isMockMode) {
       return {
         success: true,
         message: 'Mock Mode Active: Virtual WhatsApp Cloud connection simulated successfully.',
@@ -79,10 +108,11 @@ export class WhatsAppClient {
         },
       };
     }
+    this.assertRealConnection('test the connection');
 
     try {
       // 1. Check Phone Number info
-      const phoneRes = await fetch(
+      const phoneRes = await metaFetch(
         `${META_GRAPH_URL}/${this.phoneNumberId}?fields=display_phone_number,verified_name,quality_rating,code_verification_status,status,name_status`,
         {
           headers: {
@@ -103,7 +133,7 @@ export class WhatsAppClient {
       let wabaData: any = null;
       if (this.wabaId) {
         try {
-          const wabaRes = await fetch(
+          const wabaRes = await metaFetch(
             `${META_GRAPH_URL}/${this.wabaId}?fields=name,timezone_id,currency,account_review_status`,
             {
               headers: {
@@ -133,15 +163,16 @@ export class WhatsAppClient {
    * 1-Click Phone Number 2FA Registration on Meta Cloud API
    */
   async registerPhoneNumber(pin: string = '123456'): Promise<{ success: boolean; message: string }> {
-    if (this.isMockMode || !this.accessToken || !this.phoneNumberId) {
+    if (this.isMockMode) {
       return {
         success: true,
         message: 'Mock Mode: Phone number registration simulated successfully.',
       };
     }
+    this.assertRealConnection('register the phone number');
 
     try {
-      const response = await fetch(`${META_GRAPH_URL}/${this.phoneNumberId}/register`, {
+      const response = await metaFetch(`${META_GRAPH_URL}/${this.phoneNumberId}/register`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${this.accessToken}`,
@@ -168,7 +199,7 @@ export class WhatsAppClient {
   }
 
   /**
-   * Fetch approved/pending message templates from Meta WABA
+   * Fetch approved/pending message templates from Meta WABA (paginated)
    */
   async fetchTemplates(): Promise<MetaTemplateResponse[]> {
     if (!this.accessToken) {
@@ -180,67 +211,79 @@ export class WhatsAppClient {
       );
     }
 
-    const candidateIds = [this.wabaId?.trim(), this.phoneNumberId?.trim()].filter(Boolean) as string[];
-    if (candidateIds.length === 0) {
+    const wabaId = this.wabaId?.trim();
+    if (!wabaId) {
       if (this.isMockMode) return this.getMockTemplates();
-      throw new Error('Meta credentials missing: WABA ID is required to fetch templates.');
-    }
-
-    let lastError: string = '';
-
-    for (const testId of candidateIds) {
-      try {
-        const response = await fetch(
-          `${META_GRAPH_URL}/${testId}/message_templates?fields=name,status,category,language,components,id,quality_score,rejected_reason&limit=250`,
-          {
-            headers: {
-              Authorization: `Bearer ${this.accessToken.trim()}`,
-            },
-            cache: 'no-store',
-          }
-        );
-
-        const data = await response.json();
-        if (response.ok && !data.error && Array.isArray(data.data)) {
-          // If candidate was swapped with phoneNumberId, auto-heal Settings in DB
-          if (testId !== this.wabaId?.trim()) {
-            try {
-              await prisma.settings.update({
-                where: { id: 'default' },
-                data: {
-                  wabaId: testId,
-                  phoneNumberId: this.wabaId,
-                },
-              });
-              this.wabaId = testId;
-            } catch {}
-          }
-
-          return data.data.map((t: any) => ({
-            id: String(t.id),
-            name: t.name,
-            language: t.language || 'en_US',
-            category: t.category || 'MARKETING',
-            status: t.status || 'APPROVED',
-            components: Array.isArray(t.components) ? t.components : [],
-            quality_score: t.quality_score,
-            rejected_reason: t.rejected_reason,
-          })) as MetaTemplateResponse[];
-        } else if (data.error) {
-          lastError = data.error.message;
-        }
-      } catch (err: any) {
-        lastError = err.message;
-      }
-    }
-
-    if (lastError.includes('message_templates') || lastError.includes('nonexisting field')) {
       throw new Error(
-        `WABA ID Mismatch: The ID '${this.wabaId}' is a Phone Number ID or App ID, not a WhatsApp Business Account (WABA) ID. Please open Meta Developer Portal -> WhatsApp -> API Setup, copy the 'WhatsApp Business Account ID', and paste it in API & Settings.`
+        'Meta credentials missing: WhatsApp Business Account (WABA) ID is required to fetch templates. Open Meta Developer Portal -> WhatsApp -> API Setup and paste the WABA ID in API & Settings.'
       );
     }
 
-    throw new Error(`Meta Template Sync Failed: ${lastError || 'Failed to fetch templates'}`);
+    const templates: MetaTemplateResponse[] = [];
+    let nextUrl: string | null = `${META_GRAPH_URL}/${wabaId}/message_templates?fields=name,status,category,language,components,id,quality_score,rejected_reason&limit=250`;
+    let lastError: string = '';
+
+    while (nextUrl) {
+      try {
+        const response = await metaFetch(nextUrl, {
+          headers: {
+            Authorization: `Bearer ${this.accessToken.trim()}`,
+          },
+          cache: 'no-store',
+        });
+
+        const data = await response.json();
+        if (!response.ok || data.error) {
+          lastError = data.error?.message || response.statusText;
+          break;
+        }
+
+        if (Array.isArray(data.data)) {
+          templates.push(...data.data.map((t: any) => {
+            let qualityScoreStr = 'GREEN';
+            if (typeof t.quality_score === 'string') {
+              qualityScoreStr = t.quality_score;
+            } else if (typeof t.quality_score === 'object' && t.quality_score !== null && t.quality_score.score) {
+              qualityScoreStr = String(t.quality_score.score);
+            }
+
+            let rejectedReasonStr: string | null = null;
+            if (typeof t.rejected_reason === 'string') {
+              rejectedReasonStr = t.rejected_reason;
+            } else if (typeof t.rejected_reason === 'object' && t.rejected_reason !== null) {
+              rejectedReasonStr = JSON.stringify(t.rejected_reason);
+            }
+
+            return {
+              id: String(t.id),
+              name: t.name,
+              language: t.language || 'en_US',
+              category: t.category || 'MARKETING',
+              status: t.status || 'APPROVED',
+              components: Array.isArray(t.components) ? t.components : [],
+              quality_score: qualityScoreStr,
+              rejected_reason: rejectedReasonStr,
+            };
+          }) as MetaTemplateResponse[]);
+        }
+
+        nextUrl = typeof data.paging?.next === 'string' ? data.paging.next : null;
+      } catch (err: any) {
+        lastError = err.message;
+        break;
+      }
+    }
+
+    if (lastError && templates.length === 0) {
+      if (lastError.includes('message_templates') || lastError.includes('nonexisting field')) {
+        throw new Error(
+          `WABA ID Mismatch: The ID '${wabaId}' is not a WhatsApp Business Account (WABA) ID. Please open Meta Developer Portal -> WhatsApp -> API Setup, copy the 'WhatsApp Business Account ID', and paste it in API & Settings.`
+        );
+      }
+      throw new Error(`Meta Template Sync Failed: ${lastError || 'Failed to fetch templates'}`);
+    }
+
+    return templates;
   }
 
   /**
@@ -382,8 +425,8 @@ export class WhatsAppClient {
       throw new Error('Permanent Access Token is required to create templates on Meta.');
     }
 
-    const candidateIds = [this.wabaId?.trim(), this.phoneNumberId?.trim()].filter(Boolean) as string[];
-    if (candidateIds.length === 0) {
+    const wabaId = this.wabaId?.trim();
+    if (!wabaId) {
       if (this.isMockMode) {
         return { id: `mock_tpl_${Date.now()}`, status: 'APPROVED' };
       }
@@ -477,38 +520,26 @@ export class WhatsAppClient {
 
     let lastError: string = '';
 
-    for (const testId of candidateIds) {
-      try {
-        const response = await fetch(`${META_GRAPH_URL}/${testId}/message_templates`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${this.accessToken.trim()}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        });
+    try {
+      const response = await metaFetch(`${META_GRAPH_URL}/${wabaId}/message_templates`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.accessToken.trim()}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
 
-        const data = await response.json();
-        if (response.ok && !data.error && data.id) {
-          if (testId !== this.wabaId?.trim()) {
-            try {
-              await prisma.settings.update({
-                where: { id: 'default' },
-                data: { wabaId: testId, phoneNumberId: this.wabaId },
-              });
-              this.wabaId = testId;
-            } catch {}
-          }
-          return {
-            id: String(data.id),
-            status: data.status || 'PENDING',
-          };
-        } else if (data.error) {
-          lastError = data.error.message;
-        }
-      } catch (err: any) {
-        lastError = err.message;
+      const data = await response.json();
+      if (response.ok && !data.error && data.id) {
+        return {
+          id: String(data.id),
+          status: data.status || 'PENDING',
+        };
       }
+      lastError = data.error?.message || response.statusText;
+    } catch (err: any) {
+      lastError = err.message;
     }
 
     throw new Error(`Meta Template Creation Failed: ${lastError || 'Invalid parameter'}`);
@@ -520,7 +551,7 @@ export class WhatsAppClient {
   async sendTemplateMessage(params: SendTemplateMessageParams): Promise<MetaSendResponse> {
     const cleanPhone = params.to.replace(/[^0-9]/g, '');
 
-    if (this.isMockMode || !this.accessToken || !this.phoneNumberId) {
+    if (this.isMockMode) {
       // Realistic simulated Meta Cloud API Response
       const fakeWamid = `wamid.HBgL${Date.now()}X${Math.random().toString(36).substring(2, 9).toUpperCase()}A`;
       return {
@@ -529,6 +560,7 @@ export class WhatsAppClient {
         messages: [{ id: fakeWamid, message_status: 'accepted' }],
       };
     }
+    this.assertRealConnection('send a template message');
 
     const componentsPayload: any[] = [];
 
@@ -617,7 +649,7 @@ export class WhatsAppClient {
       },
     };
 
-    const response = await fetch(`${META_GRAPH_URL}/${this.phoneNumberId}/messages`, {
+    const response = await metaFetch(`${META_GRAPH_URL}/${this.phoneNumberId}/messages`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.accessToken}`,
@@ -650,7 +682,7 @@ export class WhatsAppClient {
     const text = typeof toOrParams === 'string' ? (optionalText || '') : toOrParams.text;
     const cleanPhone = to.replace(/[^0-9]/g, '');
 
-    if (this.isMockMode || !this.accessToken || !this.phoneNumberId) {
+    if (this.isMockMode) {
       const fakeWamid = `wamid.HBgL${Date.now()}X${Math.random().toString(36).substring(2, 9).toUpperCase()}A`;
       return {
         messaging_product: 'whatsapp',
@@ -658,6 +690,7 @@ export class WhatsAppClient {
         messages: [{ id: fakeWamid, message_status: 'accepted' }],
       };
     }
+    this.assertRealConnection('send a text message');
 
     const payload = {
       messaging_product: 'whatsapp',
@@ -670,7 +703,7 @@ export class WhatsAppClient {
       },
     };
 
-    const response = await fetch(`${META_GRAPH_URL}/${this.phoneNumberId}/messages`, {
+    const response = await metaFetch(`${META_GRAPH_URL}/${this.phoneNumberId}/messages`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.accessToken}`,
@@ -697,7 +730,7 @@ export class WhatsAppClient {
   async sendMediaMessage(params: SendMediaMessageParams): Promise<MetaSendResponse> {
     const cleanPhone = params.to.replace(/[^0-9]/g, '');
 
-    if (this.isMockMode || !this.accessToken || !this.phoneNumberId) {
+    if (this.isMockMode) {
       const fakeWamid = `wamid.HBgL${Date.now()}M${Math.random().toString(36).substring(2, 9).toUpperCase()}A`;
       return {
         messaging_product: 'whatsapp',
@@ -705,6 +738,7 @@ export class WhatsAppClient {
         messages: [{ id: fakeWamid, message_status: 'accepted' }],
       };
     }
+    this.assertRealConnection('send a media message');
 
     const mediaObject: Record<string, any> = {};
     if (params.mediaId) {
@@ -729,7 +763,7 @@ export class WhatsAppClient {
       [params.type]: mediaObject,
     };
 
-    const response = await fetch(`${META_GRAPH_URL}/${this.phoneNumberId}/messages`, {
+    const response = await metaFetch(`${META_GRAPH_URL}/${this.phoneNumberId}/messages`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.accessToken}`,
@@ -756,7 +790,7 @@ export class WhatsAppClient {
   async sendListMessage(params: SendListMessageParams): Promise<MetaSendResponse> {
     const cleanPhone = params.to.replace(/[^0-9]/g, '');
 
-    if (this.isMockMode || !this.accessToken || !this.phoneNumberId) {
+    if (this.isMockMode) {
       const fakeWamid = `wamid.HBgL${Date.now()}L${Math.random().toString(36).substring(2, 9).toUpperCase()}A`;
       return {
         messaging_product: 'whatsapp',
@@ -764,6 +798,7 @@ export class WhatsAppClient {
         messages: [{ id: fakeWamid, message_status: 'accepted' }],
       };
     }
+    this.assertRealConnection('send a list message');
 
     const interactivePayload: Record<string, any> = {
       type: 'list',
@@ -804,7 +839,7 @@ export class WhatsAppClient {
       interactive: interactivePayload,
     };
 
-    const response = await fetch(`${META_GRAPH_URL}/${this.phoneNumberId}/messages`, {
+    const response = await metaFetch(`${META_GRAPH_URL}/${this.phoneNumberId}/messages`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.accessToken}`,
@@ -831,7 +866,7 @@ export class WhatsAppClient {
   async sendReplyButtons(params: SendButtonMessageParams): Promise<MetaSendResponse> {
     const cleanPhone = params.to.replace(/[^0-9]/g, '');
 
-    if (this.isMockMode || !this.accessToken || !this.phoneNumberId) {
+    if (this.isMockMode) {
       const fakeWamid = `wamid.HBgL${Date.now()}B${Math.random().toString(36).substring(2, 9).toUpperCase()}A`;
       return {
         messaging_product: 'whatsapp',
@@ -839,6 +874,7 @@ export class WhatsAppClient {
         messages: [{ id: fakeWamid, message_status: 'accepted' }],
       };
     }
+    this.assertRealConnection('send reply buttons');
 
     const formattedButtons = params.buttons.slice(0, 3).map((btn) => ({
       type: 'reply',
@@ -879,7 +915,7 @@ export class WhatsAppClient {
       interactive: interactivePayload,
     };
 
-    const response = await fetch(`${META_GRAPH_URL}/${this.phoneNumberId}/messages`, {
+    const response = await metaFetch(`${META_GRAPH_URL}/${this.phoneNumberId}/messages`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.accessToken}`,
@@ -909,7 +945,7 @@ export class WhatsAppClient {
     if (!this.accessToken || !mediaId) return null;
 
     try {
-      const response = await fetch(`${META_GRAPH_URL}/${mediaId}`, {
+      const response = await metaFetch(`${META_GRAPH_URL}/${mediaId}`, {
         headers: {
           Authorization: `Bearer ${this.accessToken}`,
         },
@@ -928,6 +964,47 @@ export class WhatsAppClient {
   }
 
   /**
+   * Upload binary media directly to Meta Graph API (/v21.0/{phoneNumberId}/media)
+   * Returns the Meta Media ID for reliable sending without relying on public URLs.
+   */
+  async uploadMedia(
+    fileBuffer: Buffer,
+    mimeType: string,
+    filename: string = 'media'
+  ): Promise<{ id: string }> {
+    if (this.isMockMode) {
+      return { id: `mock_media_${Date.now()}` };
+    }
+    this.assertRealConnection('upload media to Meta');
+
+    const formData = new FormData();
+    formData.append('messaging_product', 'whatsapp');
+    formData.append('type', mimeType);
+
+    const blob = new Blob([new Uint8Array(fileBuffer)], { type: mimeType });
+    formData.append('file', blob, filename);
+
+    const response = await metaFetch(`${META_GRAPH_URL}/${this.phoneNumberId}/media`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+      },
+      body: formData,
+    });
+
+    const data = await response.json();
+    if (!response.ok || data.error) {
+      const errorMsg = data.error?.message || response.statusText;
+      const errorCode = data.error?.code || response.status;
+      const err = new Error(`Meta Media Upload Failed: ${errorMsg}`);
+      (err as any).code = errorCode;
+      throw err;
+    }
+
+    return { id: data.id };
+  }
+
+  /**
    * Download binary media stream from Meta CDN with Authorization header
    */
   async downloadMediaStream(
@@ -936,7 +1013,7 @@ export class WhatsAppClient {
     if (!this.accessToken || !mediaUrl) return null;
 
     try {
-      const response = await fetch(mediaUrl, {
+      const response = await metaFetch(mediaUrl, {
         headers: {
           Authorization: `Bearer ${this.accessToken}`,
         },

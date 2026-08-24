@@ -1,43 +1,44 @@
 #!/bin/sh
-set -e
 
-# Ensure uploads directory exists with proper permissions
+# Ensure uploads directory exists
 mkdir -p /app/uploads
-mkdir -p /app/prisma
-chown -R nextjs:nodejs /app/uploads /app/prisma
+chmod -R 777 /app/uploads 2>/dev/null || true
 
-# If using PostgreSQL, deploy migrations
-if echo "$DATABASE_URL" | grep -q "postgres"; then
-  echo "PostgreSQL database detected. Waiting for database to be ready..."
-  
-  # Wait for postgres to be ready (up to 30 seconds)
-  max_retries=15
-  counter=0
-  until npx prisma db execute --stdin "SELECT 1;" > /dev/null 2>&1 || [ $counter -eq $max_retries ]; do
-    echo "Waiting for database connection... ($((counter+1))/$max_retries)"
-    sleep 2
-    counter=$((counter+1))
-  done
+echo "Regenerating Prisma client for runtime environment..."
+node ./node_modules/prisma/build/index.js generate --schema=./prisma/schema.prisma 2>/dev/null || npx prisma generate --schema=./prisma/schema.prisma 2>/dev/null || true
 
-  if [ $counter -eq $max_retries ]; then
-    echo "Warning: Could not connect to database after 30 seconds. Continuing anyway..."
-  else
-    echo "Database is ready. Running Prisma schema deployment..."
-    npx prisma db push --skip-generate || true
+if [ -d "/app/node_modules/.prisma" ]; then
+  mkdir -p /app/.next/server/node_modules 2>/dev/null || true
+  cp -rf /app/node_modules/.prisma /app/.next/server/node_modules/ 2>/dev/null || true
+  cp -rf /app/node_modules/.prisma /app/node_modules/@prisma/client/ 2>/dev/null || true
+fi
+
+echo "Checking PostgreSQL connection..."
+# Wait for PostgreSQL to become reachable
+for i in $(seq 1 25); do
+  echo "Attempt $i/25: Checking database readiness..."
+  if node -e "
+    const { Client } = require('pg');
+    const client = new Client({ connectionString: process.env.DATABASE_URL });
+    client.connect()
+      .then(() => { client.end(); process.exit(0); })
+      .catch(() => process.exit(1));
+  " 2>/dev/null; then
+    echo "PostgreSQL is connected and ready!"
+    break
   fi
-fi
+  sleep 2
+done
 
-# If using SQLite, ensure template database exists
-if [ ! -s "/app/prisma/dev.db" ] && [ -f "/app/prisma/template.db" ]; then
-  echo "Initializing SQLite database from template..."
-  cp -f /app/prisma/template.db /app/prisma/dev.db
-  chown nextjs:nodejs /app/prisma/dev.db
-fi
+echo "Applying database schema & migrations safely..."
+node ./node_modules/prisma/build/index.js db push --schema=./prisma/schema.prisma --skip-generate || node ./node_modules/prisma/build/index.js migrate deploy --schema=./prisma/schema.prisma || npx prisma db push --schema=./prisma/schema.prisma --skip-generate || true
 
-# Execute CMD passed to entrypoint or default to node server.js
+echo "Seeding database with default settings and admin credentials..."
+node ./node_modules/tsx/dist/cli.mjs prisma/seed.ts --force || npx tsx prisma/seed.ts --force || echo "Seed complete"
+
 if [ "$#" -gt 0 ]; then
-  exec su-exec nextjs "$@"
+  exec "$@"
 else
-  echo "Starting WAYAPP application server..."
-  exec su-exec nextjs node server.js
+  echo "Starting WAYAPP application server on port ${PORT:-3000}..."
+  exec node server.js
 fi

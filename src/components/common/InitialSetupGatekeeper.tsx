@@ -33,7 +33,7 @@ export function InitialSetupGatekeeper({ onActivationSuccess }: InitialSetupGate
   const [accessToken, setAccessToken] = useState('');
   const [isMockMode, setIsMockMode] = useState(false);
   const [businessName, setBusinessName] = useState('My WhatsApp Business');
-  const [defaultCountryCode, setDefaultCountryCode] = useState('+1');
+  const [defaultCountryCode, setDefaultCountryCode] = useState('+971');
   const [webhookVerifyToken, setWebhookVerifyToken] = useState('whatsapp_cloud_webhook_token_2026');
 
   // Verification & Activation State

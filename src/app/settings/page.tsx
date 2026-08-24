@@ -55,7 +55,7 @@ export default function SettingsPage() {
     appSecret: '',
     businessName: 'My WhatsApp Business',
     businessPhone: '',
-    defaultCountryCode: '+1',
+    defaultCountryCode: '+971',
     rateLimitPerSecond: 20,
     tierDailyLimit: 1000,
     isMockMode: false,

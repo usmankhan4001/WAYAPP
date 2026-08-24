@@ -43,20 +43,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   // Bypass shell completely on login page
-  if (pathname === '/login') {
+  if (pathname === '/login' || pathname === '/register') {
     return <>{children}</>;
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+      <div className="h-screen h-[100dvh] w-screen bg-slate-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
-  // Gatekeeper: If Meta connection is not yet attached & activated, lock the platform and require setup
-  if (!settings?.isConnected) {
+  // Gatekeeper: Only show if NO credentials or mock mode are configured
+  const isPlatformConfigured =
+    settings?.isConnected ||
+    Boolean(settings?.phoneNumberId && settings?.accessTokenMasked) ||
+    Boolean(settings?.wabaId && settings?.phoneNumberId) ||
+    settings?.isMockMode === true;
+
+  if (!isPlatformConfigured) {
     return (
       <InitialSetupGatekeeper
         onActivationSuccess={(updatedSettings) => {
@@ -66,28 +72,39 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Full Active Workspace
+  const isInboxPage = pathname === '/inbox' || pathname.startsWith('/inbox/');
+
+  // Full Active Native App Shell Workspace
   return (
     <NotificationProvider>
-      <div className="flex min-h-screen bg-slate-50">
-        {/* Sidebar (Desktop + Mobile Drawer) */}
+      <div className="h-screen h-[100dvh] w-screen flex bg-slate-100/70 text-slate-900 overflow-hidden select-none safe-top">
+        {/* Sidebar (Desktop + Sliding Mobile Drawer) */}
         <Sidebar
           isMobileOpen={isMobileMenuOpen}
           onCloseMobile={() => setIsMobileMenuOpen(false)}
         />
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
+        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
           <Header
             onToggleMobileMenu={() => setIsMobileMenuOpen((prev) => !prev)}
             onOpenMetaGuide={() => setIsGuideOpen(true)}
           />
-          <main className="flex-1 p-4 md:p-6 max-w-7xl w-full mx-auto">
-            {children}
+
+          <main className={`flex-1 min-h-0 w-full h-full overflow-hidden flex flex-col ${
+            isInboxPage ? 'p-0' : 'overflow-y-auto p-3.5 sm:p-5 md:p-6 pb-20 md:pb-6'
+          }`}>
+            {isInboxPage ? (
+              children
+            ) : (
+              <div className="w-full max-w-7xl mx-auto flex-1 flex flex-col space-y-4">
+                {children}
+              </div>
+            )}
           </main>
         </div>
 
-        {/* WhatsApp Mobile App Bottom Navigation */}
+        {/* WhatsApp Mobile App Bottom Navigation (Hidden on /inbox to keep typing bar unobstructed) */}
         <BottomNav />
 
         {/* Meta WhatsApp Cloud API Setup & Go-Live Guide Modal */}

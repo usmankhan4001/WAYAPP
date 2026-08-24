@@ -18,6 +18,7 @@ import {
   Video,
   File as FileIcon,
   Music,
+  Camera,
   X,
   Download,
   ExternalLink,
@@ -43,6 +44,7 @@ import { InfoTooltip, Tooltip } from '@/components/ui/Tooltip';
 import { AudioVoicePlayer } from './AudioVoicePlayer';
 import { VoiceNoteRecorder } from './VoiceNoteRecorder';
 import { MediaLightbox } from './MediaLightbox';
+import { playOutgoingPop } from '@/lib/notifications/sound';
 
 interface ChatWindowProps {
   contact: any;
@@ -83,6 +85,8 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
     caption?: string;
   } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isMockMode, setIsMockMode] = useState(false);
+  const [isSimulatingInbound, setIsSimulatingInbound] = useState(false);
 
   // Active Modules State
   const [modules, setModules] = useState<{
@@ -123,9 +127,12 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
   const [isSavingCrm, setIsSavingCrm] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputTypeRef = useRef<'image' | 'video' | 'audio' | 'document'>('image');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const textInputRef = useRef<HTMLInputElement | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+  const isAtBottomRef = useRef(true);
+  const prevMessagesCountRef = useRef(0);
 
   // 24h Window Calculation
   const lastInteraction = contact?.lastInteractionAt ? new Date(contact.lastInteractionAt).getTime() : null;
@@ -134,6 +141,16 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
   const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
   const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
   const isWindowActive = msRemaining > 0;
+  const effectiveWindowActive = isMockMode || isWindowActive;
+
+  const fetchSettings = () => {
+    fetch('/api/settings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.isMockMode) setIsMockMode(true);
+      })
+      .catch(() => {});
+  };
 
   // Load modules
   useEffect(() => {
@@ -199,7 +216,22 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
       .catch(() => {});
   };
 
+  const scrollToBottom = (force = false) => {
+    if (messagesContainerRef.current) {
+      if (force || isAtBottomRef.current) {
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      }
+    }
+  };
+
+  const handleContainerScroll = () => {
+    if (!messagesContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    isAtBottomRef.current = scrollHeight - scrollTop - clientHeight < 100;
+  };
+
   useEffect(() => {
+    fetchSettings();
     fetchMessages();
     fetchTemplates();
     fetchSnippets();
@@ -207,29 +239,16 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
     setAiSuggestions([]);
     setSummaryText(null);
 
-    // Initialize Server-Sent Events (SSE) for Real-Time Messages
-    const sse = new EventSource(`/api/chat/stream?contactId=${contact.id}`);
-    sse.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if (payload.type === 'new_messages' && Array.isArray(payload.data)) {
-          // Append new messages, avoiding duplicates by ID
-          setMessages((prev) => {
-            const existingIds = new Set(prev.map(m => m.id));
-            const newMsgs = payload.data.filter((m: any) => !existingIds.has(m.id));
-            return [...prev, ...newMsgs];
-          });
-        }
-      } catch (err) {}
-    };
-
-    return () => {
-      sse.close();
-    };
+    const interval = setInterval(fetchMessages, 2500);
+    return () => clearInterval(interval);
   }, [contact?.id]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Scroll only on initial load or new message arriving
+    if (messages.length > prevMessagesCountRef.current) {
+      scrollToBottom(prevMessagesCountRef.current === 0);
+    }
+    prevMessagesCountRef.current = messages.length;
   }, [messages]);
 
   // Handle snippet trigger on '/'
@@ -473,6 +492,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
       }
 
       setStagedMedia(null);
+      playOutgoingPop();
       fetchMessages();
       onRefreshList();
     } catch (err: any) {
@@ -517,6 +537,8 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
         throw new Error(data.error || 'Failed to dispatch voice message.');
       }
 
+      setIsRecordingVoice(false);
+      playOutgoingPop();
       fetchMessages();
       onRefreshList();
     } catch (err: any) {
@@ -545,14 +567,18 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
         }),
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to send message.');
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setErrorMessage(data.error || 'Failed to send message');
+        if (data.requiresTemplate) {
+          setIsTemplatePickerOpen(true);
+        }
+      } else {
+        setText('');
+        playOutgoingPop();
+        fetchMessages();
+        onRefreshList();
       }
-
-      setText('');
-      fetchMessages();
-      onRefreshList();
     } catch (err: any) {
       setErrorMessage(err.message || 'Error dispatching message.');
     } finally {
@@ -580,13 +606,15 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
         }),
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to send template message.');
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setErrorMessage(data.error || 'Failed to dispatch template message');
+      } else {
+        setIsTemplatePickerOpen(false);
+        playOutgoingPop();
+        fetchMessages();
+        onRefreshList();
       }
-
-      fetchMessages();
-      onRefreshList();
     } catch (err: any) {
       setErrorMessage(err.message || 'Error dispatching template.');
     } finally {
@@ -594,21 +622,69 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
     }
   };
 
-  const contactName = contact?.firstName
-    ? `${contact.firstName} ${contact.lastName || ''}`.trim()
-    : contact?.phoneNumber;
+  const handleSimulateInbound = async () => {
+    if (!contact?.id) return;
+    setIsSimulatingInbound(true);
+    try {
+      const promptText = window.prompt(
+        `Simulate Incoming WhatsApp Message from ${contactName}:`,
+        'Hi, I received your message! How can I proceed?'
+      );
+      if (!promptText || !promptText.trim()) {
+        setIsSimulatingInbound(false);
+        return;
+      }
+      const res = await fetch('/api/chat/simulate-inbound', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contactId: contact.id,
+          text: promptText.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Failed to simulate inbound message');
+      }
+      fetchMessages();
+      onRefreshList();
+    } catch (err: any) {
+      setErrorMessage(err.message);
+    } finally {
+      setIsSimulatingInbound(false);
+    }
+  };
 
+  const contactName = `${contact?.firstName || ''} ${contact?.lastName || ''}`.trim() || contact?.phoneNumber || 'Customer';
   const currentStageObj = LEAD_STAGES.find((s) => s.id === leadStage) || LEAD_STAGES[0];
 
   return (
-    <div className="flex h-full min-h-[600px] bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-      {/* Hidden File Input */}
+    <div className="flex-1 h-full w-full flex bg-[#efeae2] overflow-hidden min-w-0">
+      {/* Hidden Global File Input */}
       <input
         type="file"
         ref={fileInputRef}
         className="hidden"
         onChange={(e) => {
-          if (e.target.files?.[0]) handleFileSelected(e.target.files[0]);
+          if (e.target.files && e.target.files[0]) {
+            handleFileSelected(e.target.files[0]);
+          }
+          e.target.value = '';
+        }}
+      />
+
+      {/* Hidden Camera Capture Input */}
+      <input
+        type="file"
+        ref={cameraInputRef}
+        accept="image/*,video/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            handleFileSelected(e.target.files[0]);
+          }
+          e.target.value = '';
         }}
       />
 
@@ -622,15 +698,15 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
         />
       )}
 
-      {/* Main Conversation Stream & Input Area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-slate-50/50">
-        {/* Chat Header */}
-        <div className="h-16 px-4 border-b border-slate-200 bg-white flex items-center justify-between gap-2 shrink-0">
+      {/* Main Chat Thread */}
+      <div className="flex-1 flex flex-col min-w-0 border-r border-slate-200">
+        {/* Chat Top Bar */}
+        <div className="h-16 px-4 md:px-6 bg-[#f0f2f5] border-b border-slate-200 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             {onBackMobile && (
               <button
                 onClick={onBackMobile}
-                className="lg:hidden p-1.5 -ml-1.5 rounded-lg text-slate-500 hover:bg-slate-100"
+                className="lg:hidden p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-200"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
@@ -642,34 +718,52 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
 
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-sm text-slate-900 truncate">{contactName}</h3>
+                <h3 className="text-sm font-bold text-slate-900 truncate">{contactName}</h3>
                 {modules.lead_crm && (
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${currentStageObj.color}`}>
                     {currentStageObj.label}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 font-mono truncate">{contact?.phoneNumber}</p>
+
+              {/* 24-Hour Active Window Pill */}
+              <div className="flex items-center gap-1.5">
+                {effectiveWindowActive ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    {isMockMode ? 'Mock Simulation Active' : `24h Active • ${hoursRemaining}h ${minutesRemaining}m`}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                    <Lock className="w-2.5 h-2.5" />
+                    24h Expired &bull; Template Required
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Header Action Tools */}
           <div className="flex items-center gap-2">
-            {/* 24-hour service compliance badge */}
-            <div
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold shrink-0 border ${
-                isWindowActive
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  : 'bg-amber-50 text-amber-700 border-amber-200'
-              }`}
+            <button
+              type="button"
+              onClick={handleSimulateInbound}
+              disabled={isSimulatingInbound}
+              className="px-3 py-1.5 rounded-xl border border-dashed border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-50"
+              title="Simulate incoming customer message to test two-way communication"
             >
-              <Clock className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">
-                {isWindowActive
-                  ? `${hoursRemaining}h ${minutesRemaining}m window`
-                  : '24h Window Expired'}
-              </span>
-            </div>
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="hidden sm:inline">{isSimulatingInbound ? 'Simulating...' : 'Simulate Reply'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsTemplatePickerOpen(!isTemplatePickerOpen)}
+              className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+            >
+              <FileText className="w-3.5 h-3.5 text-slate-500" />
+              <span>Templates</span>
+            </button>
 
             {/* AI Summarize Chat Button */}
             {modules.ai_copilot && (
@@ -704,102 +798,171 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
           </div>
         )}
 
-        {/* Messages Stream */}
-        <div className="flex-1 p-4 overflow-y-auto space-y-3 min-h-0">
+        {/* Chat Messages Timeline */}
+        <div
+          ref={messagesContainerRef}
+          onScroll={handleContainerScroll}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDragging(false);
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+              handleFileSelected(e.dataTransfer.files[0]);
+            }
+          }}
+          className={`flex-1 overflow-y-auto p-4 md:p-6 space-y-3.5 bg-[#efeae2]/90 relative ${
+            isDragging ? 'ring-2 ring-emerald-500 ring-inset bg-emerald-50/50' : ''
+          }`}
+        >
+          {isDragging && (
+            <div className="absolute inset-0 bg-emerald-50/90 backdrop-blur-sm z-20 flex flex-col items-center justify-center text-emerald-700 pointer-events-none">
+              <ImageIcon className="w-12 h-12 mb-2 animate-bounce" />
+              <p className="text-sm font-bold">Drop your image, video, or PDF file to attach</p>
+            </div>
+          )}
+
           {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400">
-              <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-2">
-                <User className="w-6 h-6 text-slate-400" />
+            <div className="h-full flex flex-col items-center justify-center text-center p-8 text-slate-400 space-y-2">
+              <div className="w-12 h-12 rounded-2xl bg-white/80 border border-slate-200/80 flex items-center justify-center shadow-sm">
+                <Sparkles className="w-6 h-6 text-emerald-600" />
               </div>
-              <p className="text-sm font-semibold text-slate-600">No messages yet with {contactName}</p>
-              <p className="text-xs max-w-xs mt-1">
-                {isWindowActive
-                  ? 'Send a friendly greeting or pick an approved template below.'
-                  : 'The 24h conversation window is expired. Send an approved template to start chatting.'}
+              <p className="text-xs font-bold text-slate-700">No messages yet in this conversation</p>
+              <p className="text-[11px] text-slate-500 max-w-xs">
+                Send an approved WhatsApp template or reply directly to begin chatting.
               </p>
             </div>
           ) : (
-            messages.map((msg) => {
-              const isInbound = msg.direction === 'INBOUND';
+            messages.map((m) => {
+              const isOutbound = m.direction === 'OUTBOUND';
+              const hasMedia = !!m.mediaUrl;
+              const msgType = m.messageType || 'text';
+
               return (
                 <div
-                  key={msg.id}
-                  className={`flex flex-col ${isInbound ? 'items-start' : 'items-end'}`}
+                  key={m.id}
+                  className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'}`}
                 >
                   <div
-                    className={`max-w-[85%] sm:max-w-[70%] rounded-2xl p-3 text-xs shadow-sm relative group ${
-                      isInbound
-                        ? 'bg-white text-slate-800 border border-slate-200/80 rounded-tl-none'
-                        : 'bg-emerald-600 text-white rounded-tr-none'
+                    className={`max-w-[88%] sm:max-w-[75%] md:max-w-[65%] rounded-2xl p-3 md:p-3.5 shadow-sm space-y-1.5 transition-all ${
+                      isOutbound
+                        ? 'bg-[#d9fdd3] text-slate-900 border border-[#c3f4bb] rounded-tr-xs ml-auto'
+                        : 'bg-white text-slate-900 border border-slate-200/90 rounded-tl-xs mr-auto'
                     }`}
                   >
-                    {/* Media Attachments Rendering */}
-                    {msg.mediaUrl && (
-                      <div className="mb-2 rounded-lg overflow-hidden border border-black/10">
-                        {msg.messageType === 'image' ? (
-                          <img
-                            src={msg.mediaUrl}
-                            alt="Attachment"
-                            className="max-h-60 w-auto object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() =>
-                              setLightboxMedia({
-                                url: msg.mediaUrl,
-                                type: 'image',
-                                caption: msg.body,
-                              })
-                            }
-                          />
-                        ) : msg.messageType === 'video' ? (
-                          <video
-                            src={msg.mediaUrl}
-                            controls
-                            className="max-h-60 w-full rounded-lg bg-black"
-                          />
-                        ) : msg.messageType === 'audio' || msg.messageType === 'voice' ? (
-                          <AudioVoicePlayer
-                            src={msg.mediaUrl}
-                            isOutbound={!isInbound}
-                          />
-                        ) : (
-                          <a
-                            href={msg.mediaUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`flex items-center gap-2 p-2 rounded-lg ${
-                              isInbound ? 'bg-slate-100 text-slate-800' : 'bg-emerald-700 text-white'
-                            }`}
-                          >
-                            <FileIcon className="w-5 h-5 shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <p className="font-semibold truncate">{msg.body || 'Download Attachment'}</p>
-                              <span className="text-[10px] opacity-75">Click to view document</span>
-                            </div>
-                            <Download className="w-4 h-4 shrink-0" />
-                          </a>
-                        )}
+                    {/* Media Type: Image */}
+                    {msgType === 'image' && hasMedia && (
+                      <div
+                        onClick={() =>
+                          setLightboxMedia({
+                            url: m.mediaUrl,
+                            type: 'image',
+                            caption: m.body !== 'Photo' ? m.body : undefined,
+                          })
+                        }
+                        className="cursor-pointer overflow-hidden rounded-xl bg-slate-950/10 group relative border border-black/5"
+                      >
+                        <img
+                          src={m.mediaUrl}
+                          alt="WhatsApp Image"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = 'none';
+                          }}
+                          className="max-h-64 w-full object-cover rounded-xl group-hover:scale-102 transition-transform duration-200"
+                        />
+                        <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                          <ExternalLink className="w-5 h-5" />
+                        </div>
                       </div>
                     )}
 
-                    {/* Text Body */}
-                    {msg.body && (
-                      <p className="whitespace-pre-wrap break-words leading-relaxed font-sans">
-                        {msg.body}
-                      </p>
+                    {/* Media Type: Video */}
+                    {msgType === 'video' && hasMedia && (
+                      <div className="overflow-hidden rounded-xl bg-black max-h-64 border border-black/10">
+                        <video
+                          src={m.mediaUrl}
+                          controls
+                          className="w-full max-h-64 rounded-xl"
+                        />
+                      </div>
                     )}
 
-                    {/* Meta & Status Timestamps */}
+                    {/* Media Type: Audio / Voice Note */}
+                    {(msgType === 'audio' || msgType === 'voice') && hasMedia && (
+                      <AudioVoicePlayer src={m.mediaUrl} isOutbound={isOutbound} />
+                    )}
+
+                    {/* Media Type: Document / PDF */}
+                    {msgType === 'document' && hasMedia && (
+                      <div
+                        className={`flex items-center gap-3 p-2.5 rounded-xl border ${
+                          isOutbound
+                            ? 'bg-[#c3f4bb]/70 border-[#b2e8a9] text-slate-900'
+                            : 'bg-slate-50 border-slate-200 text-slate-900'
+                        }`}
+                      >
+                        <FileIcon className="w-8 h-8 text-rose-500 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold truncate">
+                            {m.body && m.body !== 'Document' ? m.body : 'Attached Document'}
+                          </p>
+                          <p className="text-[10px] opacity-70">PDF / Document File</p>
+                        </div>
+                        <a
+                          href={m.mediaUrl}
+                          download
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`p-2 rounded-lg transition-all ${
+                            isOutbound
+                              ? 'bg-[#005c4b] hover:bg-[#004739] text-white shadow-sm'
+                              : 'bg-slate-200 hover:bg-slate-300 text-slate-800'
+                          }`}
+                        >
+                          <Download className="w-4 h-4" />
+                        </a>
+                      </div>
+                    )}
+
+                    {/* Media Type: Location */}
+                    {msgType === 'location' && (
+                      <div className="flex items-start gap-2.5 p-2 rounded-xl bg-slate-100 text-slate-800 border border-slate-200">
+                        <MapPin className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+                        <div className="text-xs font-medium">{m.body}</div>
+                      </div>
+                    )}
+
+                    {/* Text Body / Caption */}
+                    {m.body &&
+                      msgType !== 'audio' &&
+                      msgType !== 'voice' &&
+                      (msgType !== 'image' || m.body !== 'Photo') &&
+                      (msgType !== 'video' || m.body !== 'Video') &&
+                      (msgType !== 'document' || !hasMedia) &&
+                      msgType !== 'location' && (
+                        <p className="text-[13px] whitespace-pre-wrap leading-relaxed font-sans text-slate-900">
+                          {m.body}
+                        </p>
+                      )}
+
+                    {/* Message Timestamp & Status */}
                     <div
-                      className={`flex items-center justify-end gap-1 mt-1 text-[10px] ${
-                        isInbound ? 'text-slate-400' : 'text-emerald-100'
+                      className={`flex items-center justify-end gap-1 text-[10px] select-none pt-0.5 ${
+                        isOutbound ? 'text-slate-500' : 'text-slate-400'
                       }`}
                     >
-                      <span>{formatDateTime(msg.timestamp)}</span>
-                      {!isInbound && (
+                      <span className="font-mono text-[10px]">{formatDateTime(m.timestamp)}</span>
+                      {isOutbound && (
                         <CheckCheck
                           className={`w-3.5 h-3.5 ${
-                            msg.status === 'READ' || msg.status === 'REPLIED'
-                              ? 'text-cyan-300'
-                              : 'text-emerald-200'
+                            m.status === 'READ'
+                              ? 'text-[#53bdeb] font-bold'
+                              : m.status === 'DELIVERED'
+                              ? 'text-slate-500'
+                              : 'text-slate-400'
                           }`}
                         />
                       )}
@@ -809,7 +972,6 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
               );
             })
           )}
-          <div ref={messagesEndRef} />
         </div>
 
         {/* Error Banner */}
@@ -1000,35 +1162,54 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
             </div>
           )}
 
-          {/* Voice Recorder Overlay */}
+          {/* Informational banner if window is expired */}
+          {!effectiveWindowActive && (
+            <div className="mb-2 p-2.5 rounded-xl bg-amber-50/90 border border-amber-200/80 flex items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span className="text-amber-800 text-[11px] truncate">
+                  24h Window Inactive: May require an approved WhatsApp template.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTemplatePickerOpen(!isTemplatePickerOpen)}
+                className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold shrink-0 flex items-center gap-1 shadow-sm"
+              >
+                <FileText className="w-3 h-3" />
+                <span>Templates</span>
+              </button>
+            </div>
+          )}
+
+          {/* Voice Recorder Overlay or Active Input Bar */}
           {isRecordingVoice ? (
             <VoiceNoteRecorder
               onSendVoiceNote={handleSendVoiceNote}
               onCancel={() => setIsRecordingVoice(false)}
             />
-          ) : !isWindowActive ? (
-            <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <Lock className="w-4 h-4 text-amber-600 shrink-0" />
-                <p className="text-xs text-amber-800">
-                  <strong>24h Window Expired:</strong> Send an approved WhatsApp template to safely re-open the conversation.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsTemplatePickerOpen(!isTemplatePickerOpen)}
-                className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shrink-0 shadow-sm flex items-center gap-1.5"
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>Send Template</span>
-                <ChevronDown className="w-3.5 h-3.5" />
-              </button>
-            </div>
           ) : (
             <div className="relative">
               {/* Attachment Popover */}
               {isAttachmentMenuOpen && (
-                <div className="absolute bottom-14 left-0 bg-white rounded-2xl border border-slate-200 shadow-2xl p-2 z-30 grid grid-cols-2 gap-1.5 min-w-[200px] animate-in fade-in slide-in-from-bottom-2 duration-150">
+                <div className="absolute bottom-14 left-0 bg-white rounded-2xl border border-slate-200 shadow-2xl p-2 z-30 grid grid-cols-2 gap-1.5 min-w-[240px] animate-in fade-in slide-in-from-bottom-2 duration-150">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAttachmentMenuOpen(false);
+                      cameraInputRef.current?.click();
+                    }}
+                    className="p-2 rounded-xl hover:bg-emerald-50 flex items-center gap-2 text-xs font-semibold text-slate-800 transition-all col-span-2 bg-emerald-50/50 border border-emerald-200/60"
+                  >
+                    <div className="p-1.5 rounded-lg bg-emerald-600 text-white shadow-sm">
+                      <Camera className="w-4 h-4" />
+                    </div>
+                    <div className="text-left">
+                      <span className="block font-bold text-slate-900">Take Photo / Video</span>
+                      <span className="text-[10px] text-slate-500 block">Capture from camera</span>
+                    </div>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => triggerFileInput('image')}
@@ -1057,7 +1238,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                     <div className="p-1.5 rounded-lg bg-purple-100 text-purple-700">
                       <FileIcon className="w-4 h-4" />
                     </div>
-                    <span>Document / PDF</span>
+                    <span>Document</span>
                   </button>
                   <button
                     type="button"
@@ -1067,23 +1248,34 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                     <div className="p-1.5 rounded-lg bg-amber-100 text-amber-700">
                       <Music className="w-4 h-4" />
                     </div>
-                    <span>Audio File</span>
+                    <span>Audio</span>
                   </button>
                 </div>
               )}
 
-              <form onSubmit={handleSend} className="flex items-center gap-2 md:gap-3">
+              <form onSubmit={handleSend} className="flex items-center gap-1.5 sm:gap-2">
+                {/* Paperclip Button */}
                 <button
                   type="button"
                   onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
-                  className={`p-2 rounded-xl transition-all ${
+                  className={`p-2 sm:p-2.5 rounded-xl shrink-0 transition-all ${
                     isAttachmentMenuOpen
                       ? 'bg-emerald-100 text-emerald-700'
-                      : 'text-slate-500 hover:bg-slate-200'
+                      : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200'
                   }`}
                   title="Attach file"
                 >
                   <Paperclip className="w-4 h-4" />
+                </button>
+
+                {/* Quick Camera Snap */}
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="p-2 sm:p-2.5 rounded-xl text-slate-500 hover:text-emerald-600 hover:bg-slate-200 transition-all shrink-0"
+                  title="Take photo from camera"
+                >
+                  <Camera className="w-4 h-4" />
                 </button>
 
                 <input
@@ -1096,15 +1288,15 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                   }
                   value={text}
                   onChange={handleTextChange}
-                  className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="flex-1 min-w-0 px-3.5 py-2 sm:py-2.5 text-xs rounded-2xl border-0 shadow-sm bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 />
 
                 {!text.trim() && (
                   <button
                     type="button"
                     onClick={() => setIsRecordingVoice(true)}
-                    className="p-2 rounded-xl text-slate-500 hover:text-emerald-600 hover:bg-slate-200 transition-all"
-                    title="Record voice note"
+                    className="p-2 sm:p-2.5 rounded-xl text-slate-500 hover:text-emerald-600 hover:bg-slate-200 transition-all shrink-0"
+                    title="Record WhatsApp voice note"
                   >
                     <Mic className="w-4 h-4" />
                   </button>
@@ -1113,7 +1305,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                 <button
                   type="submit"
                   disabled={isSending || !text.trim()}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all disabled:opacity-50"
+                  className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all disabled:opacity-50 shrink-0"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Send</span>
@@ -1124,10 +1316,13 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
 
           {/* Quick Template Picker Drawer */}
           {isTemplatePickerOpen && (
-            <div className="mt-3 p-3.5 bg-white rounded-xl border border-slate-200 shadow-lg space-y-2">
+            <div className="mt-3 p-3.5 bg-white rounded-2xl border border-slate-200 shadow-2xl space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-800">Select Approved Template to Re-Engage</span>
-                <button onClick={() => setIsTemplatePickerOpen(false)} className="text-xs text-slate-400 hover:text-slate-600">
+                <span className="text-xs font-bold text-slate-900">Select Approved WhatsApp Template</span>
+                <button
+                  onClick={() => setIsTemplatePickerOpen(false)}
+                  className="text-xs text-slate-400 hover:text-slate-700"
+                >
                   Close
                 </button>
               </div>
@@ -1137,11 +1332,11 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                   No approved templates found. Create or sync templates in the Templates tab.
                 </p>
               ) : (
-                <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
+                <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto">
                   {templates.map((tpl) => (
                     <div
                       key={tpl.id}
-                      className="p-2.5 rounded-lg border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/20 flex items-center justify-between gap-2 cursor-pointer transition-all"
+                      className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/60 hover:border-emerald-500 hover:bg-emerald-50/30 flex items-center justify-between gap-2 cursor-pointer transition-all"
                       onClick={() => handleSendTemplate(tpl)}
                     >
                       <div className="min-w-0">
@@ -1151,7 +1346,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                       <button
                         type="button"
                         disabled={isSending}
-                        className="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold shrink-0"
+                        className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold shrink-0"
                       >
                         {isSending ? 'Sending...' : 'Send'}
                       </button>

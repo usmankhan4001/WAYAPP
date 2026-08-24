@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth/rbac';
 import { WhatsAppClient } from '@/lib/whatsapp/client';
 import { encryptString, decryptString, maskSecret } from '@/lib/crypto';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { ensureDatabaseSchema } from '@/lib/db-init';
 
 export async function GET(request: NextRequest) {
+  await ensureDatabaseSchema();
   // 1. RBAC: Only Admins can view settings
   const authResult = await requireRole(request, ['SUPER_ADMIN', 'ADMIN']);
   if ('response' in authResult) {
@@ -47,26 +50,36 @@ export async function GET(request: NextRequest) {
   const rawAppSecret = decryptString(settings.appSecret);
   const rawMetaSecret = decryptString(authConfig?.metaAppSecret);
 
+  const effectiveWabaId = settings.wabaId || process.env.META_WABA_ID || '';
+  const effectivePhoneNumberId = settings.phoneNumberId || process.env.META_PHONE_NUMBER_ID || '';
+  const effectiveAccessToken = rawAccessToken || process.env.META_ACCESS_TOKEN || '';
+  const effectiveAppSecret = rawAppSecret || process.env.META_APP_SECRET || '';
+
+  const isActuallyConnected =
+    settings.isConnected ||
+    Boolean(effectivePhoneNumberId && effectiveAccessToken) ||
+    settings.isMockMode === true;
+
   // Return strictly sanitized fields (NO secret leaks)
   const safeSettings = {
     id: settings.id,
-    wabaId: settings.wabaId,
-    phoneNumberId: settings.phoneNumberId,
-    businessName: settings.businessName,
+    wabaId: effectiveWabaId,
+    phoneNumberId: effectivePhoneNumberId,
+    businessName: settings.businessName || 'My WhatsApp Business',
     businessPhone: settings.businessPhone,
-    defaultCountryCode: settings.defaultCountryCode,
-    rateLimitPerSecond: settings.rateLimitPerSecond,
-    tierDailyLimit: settings.tierDailyLimit,
-    qualityRating: settings.qualityRating,
+    defaultCountryCode: settings.defaultCountryCode || '+971',
+    rateLimitPerSecond: settings.rateLimitPerSecond || 20,
+    tierDailyLimit: settings.tierDailyLimit || 1000,
+    qualityRating: settings.qualityRating || 'GREEN',
     isMockMode: settings.isMockMode,
-    isConnected: settings.isConnected,
+    isConnected: isActuallyConnected,
     marketingMessagesEnabled: settings.marketingMessagesEnabled ?? false,
     marketingMessagesPolicy: settings.marketingMessagesPolicy || 'CLOUD_API_FALLBACK',
     webhookVerifyToken: settings.webhookVerifyToken,
-    accessTokenMasked: rawAccessToken ? maskSecret(rawAccessToken) : null,
-    hasAppSecret: Boolean(rawAppSecret),
-    metaAppId: authConfig?.metaAppId || '',
-    hasMetaAppSecret: Boolean(rawMetaSecret),
+    accessTokenMasked: effectiveAccessToken ? maskSecret(effectiveAccessToken) : null,
+    hasAppSecret: Boolean(effectiveAppSecret),
+    metaAppId: authConfig?.metaAppId || process.env.META_APP_ID || '',
+    hasMetaAppSecret: Boolean(rawMetaSecret || process.env.META_APP_SECRET),
     allowedDomains: authConfig?.allowedDomains || 'gccstartup.com',
     allowedEmails: authConfig?.allowedEmails || '',
     requireAuth: authConfig?.requireAuth ?? true,
@@ -77,6 +90,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  await ensureDatabaseSchema();
   // 1. RBAC: Only Admins can modify settings
   const authResult = await requireRole(request, ['SUPER_ADMIN', 'ADMIN']);
   if ('response' in authResult) {
@@ -171,11 +185,11 @@ export async function POST(request: NextRequest) {
           wabaId: wabaId?.trim() || null,
           phoneNumberId: phoneNumberId?.trim() || null,
           accessToken: encryptedToken,
-          webhookVerifyToken: webhookVerifyToken?.trim() || crypto.randomUUID().replace(/-/g, ''),
+          webhookVerifyToken: webhookVerifyToken?.trim() || existing?.webhookVerifyToken || crypto.randomUUID().replace(/-/g, ''),
           appSecret: encryptedSecret,
           businessName: verifiedName,
           businessPhone: verifiedPhone,
-          defaultCountryCode: defaultCountryCode?.trim() || '+1',
+          defaultCountryCode: defaultCountryCode?.trim() || '+971',
           rateLimitPerSecond: Number(rateLimitPerSecond) || 20,
           tierDailyLimit: Number(tierDailyLimit) || 1000,
           isMockMode: Boolean(isMockMode),
@@ -186,11 +200,11 @@ export async function POST(request: NextRequest) {
           wabaId: wabaId?.trim() || null,
           phoneNumberId: phoneNumberId?.trim() || null,
           accessToken: encryptedToken,
-          webhookVerifyToken: webhookVerifyToken?.trim() || crypto.randomUUID().replace(/-/g, ''),
+          webhookVerifyToken: webhookVerifyToken?.trim() || existing?.webhookVerifyToken || crypto.randomUUID().replace(/-/g, ''),
           appSecret: encryptedSecret,
           businessName: verifiedName,
           businessPhone: verifiedPhone,
-          defaultCountryCode: defaultCountryCode?.trim() || '+1',
+          defaultCountryCode: defaultCountryCode?.trim() || '+971',
           rateLimitPerSecond: Number(rateLimitPerSecond) || 20,
           tierDailyLimit: Number(tierDailyLimit) || 1000,
           isMockMode: Boolean(isMockMode),
@@ -230,10 +244,10 @@ export async function POST(request: NextRequest) {
     const dataToUpdate: any = {
       wabaId: wabaId?.trim() || null,
       phoneNumberId: phoneNumberId?.trim() || null,
-      webhookVerifyToken: webhookVerifyToken?.trim() || crypto.randomUUID().replace(/-/g, ''),
+      webhookVerifyToken: webhookVerifyToken?.trim() || existing?.webhookVerifyToken || crypto.randomUUID().replace(/-/g, ''),
       businessName: businessName?.trim() || 'My Business',
-      businessPhone: businessPhone?.trim() || '+1234567890',
-      defaultCountryCode: defaultCountryCode?.trim() || '+1',
+      businessPhone: businessPhone?.trim() || '+971501234567',
+      defaultCountryCode: defaultCountryCode?.trim() || '+971',
       rateLimitPerSecond: Number(rateLimitPerSecond) || 20,
       tierDailyLimit: Number(tierDailyLimit) || 1000,
       isMockMode: Boolean(isMockMode),
@@ -243,6 +257,8 @@ export async function POST(request: NextRequest) {
 
     if (isConnected !== undefined) {
       dataToUpdate.isConnected = Boolean(isConnected);
+    } else if (dataToUpdate.phoneNumberId && (dataToUpdate.accessToken || existing?.accessToken)) {
+      dataToUpdate.isConnected = true;
     }
 
     if (accessToken && !accessToken.includes('••') && !accessToken.includes('...')) {
@@ -298,6 +314,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[Settings API] Error:', error);
-    return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to update settings' }, { status: 500 });
   }
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
@@ -133,6 +134,9 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error: any) {
     console.error('[Auth API] Login error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error', details: error?.message || String(error) },
+      { status: 500 }
+    );
   }
 }

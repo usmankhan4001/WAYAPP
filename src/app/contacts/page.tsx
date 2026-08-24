@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Users,
@@ -20,6 +21,16 @@ import {
   MapPin,
   TrendingUp,
   Award,
+  CheckSquare,
+  Square,
+  MinusSquare,
+  CheckCircle2,
+  XCircle,
+  FolderPlus,
+  Tag as TagIcon,
+  X,
+  AlertTriangle,
+  Loader2,
 } from 'lucide-react';
 import { CsvImportModal } from '@/components/contacts/CsvImportModal';
 import { GroupTagModal } from '@/components/contacts/GroupTagModal';
@@ -36,22 +47,32 @@ const LEAD_STAGES = [
 ];
 
 export default function ContactsPage() {
+  const router = useRouter();
   const [contacts, setContacts] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
   const [tags, setTags] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('kanban');
+  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
 
   // Filters
   const [search, setSearch] = useState('');
   const [selectedGroupId, setSelectedGroupId] = useState<string>('ALL');
   const [selectedTagId, setSelectedTagId] = useState<string>('ALL');
 
+  // Bulk Selection State
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkOperating, setIsBulkOperating] = useState(false);
+  const [bulkMessage, setBulkMessage] = useState<string | null>(null);
+
   // Modals
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isGroupTagOpen, setIsGroupTagOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<any | null>(null);
+
+  // Bulk Action Menus
+  const [bulkGroupMenuOpen, setBulkGroupMenuOpen] = useState(false);
+  const [bulkTagMenuOpen, setBulkTagMenuOpen] = useState(false);
 
   const downloadSampleCsv = () => {
     const csvContent =
@@ -104,10 +125,34 @@ export default function ContactsPage() {
     fetchContacts();
   }, [search, selectedGroupId, selectedTagId]);
 
+  // Selection helpers
+  const allSelected = useMemo(() => {
+    return contacts.length > 0 && contacts.every((c) => selectedIds.includes(c.id));
+  }, [contacts, selectedIds]);
+
+  const isIndeterminate = useMemo(() => {
+    return selectedIds.length > 0 && !allSelected;
+  }, [selectedIds, allSelected]);
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(contacts.map((c) => c.id));
+    }
+  };
+
+  const toggleSelectRow = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
   const handleDeleteContact = async (id: string) => {
     if (!confirm('Are you sure you want to delete this contact?')) return;
     try {
       await fetch(`/api/contacts?id=${id}`, { method: 'DELETE' });
+      setSelectedIds((prev) => prev.filter((item) => item !== id));
       fetchContacts();
     } catch {}
   };
@@ -133,14 +178,121 @@ export default function ContactsPage() {
     .filter((c) => c.leadStage === 'WON')
     .reduce((sum, c) => sum + (c.dealValue || 0), 0);
 
+  // Bulk Operations
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (
+      !confirm(
+        `Are you sure you want to permanently delete ${selectedIds.length} selected contact(s)? This will also remove their conversation history.`
+      )
+    )
+      return;
+
+    setIsBulkOperating(true);
+    try {
+      const res = await fetch('/api/contacts', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedIds }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBulkMessage(`Successfully deleted ${selectedIds.length} contacts.`);
+        setSelectedIds([]);
+        fetchContacts();
+        setTimeout(() => setBulkMessage(null), 4000);
+      } else {
+        alert(data.error || 'Failed to delete contacts');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Network error');
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
+
+  const handleBulkAssignGroup = async (groupId: string) => {
+    if (selectedIds.length === 0 || !groupId) return;
+    setIsBulkOperating(true);
+    setBulkGroupMenuOpen(false);
+    try {
+      const res = await fetch('/api/contacts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: selectedIds,
+          addGroupId: groupId,
+        }),
+      });
+      if (res.ok) {
+        setBulkMessage(`Assigned group to ${selectedIds.length} contact(s).`);
+        fetchContacts();
+        setTimeout(() => setBulkMessage(null), 4000);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
+
+  const handleBulkAssignTag = async (tagId: string) => {
+    if (selectedIds.length === 0 || !tagId) return;
+    setIsBulkOperating(true);
+    setBulkTagMenuOpen(false);
+    try {
+      const res = await fetch('/api/contacts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: selectedIds,
+          addTagId: tagId,
+        }),
+      });
+      if (res.ok) {
+        setBulkMessage(`Assigned tag to ${selectedIds.length} contact(s).`);
+        fetchContacts();
+        setTimeout(() => setBulkMessage(null), 4000);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
+
+  const handleBulkStatusChange = async (newStatus: 'ACTIVE' | 'UNSUBSCRIBED') => {
+    if (selectedIds.length === 0) return;
+    setIsBulkOperating(true);
+    try {
+      const res = await fetch('/api/contacts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: selectedIds,
+          status: newStatus,
+        }),
+      });
+      if (res.ok) {
+        setBulkMessage(`Updated status to ${newStatus} for ${selectedIds.length} contact(s).`);
+        fetchContacts();
+        setTimeout(() => setBulkMessage(null), 4000);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-1.5">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Contacts & Sales CRM</h1>
-            <InfoTooltip content="Manage customer records, track visual pipeline stages, and organize tags." />
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Contacts & Audience Groups</h1>
+            <InfoTooltip content="Manage individual customer records, normalized E.164 phone numbers, static list groups, and tag taxonomies with bulk editing & delete options." />
           </div>
           <p className="text-xs text-slate-500">
             Categorize your audience into visual pipeline stages, static groups, and tag taxonomies
@@ -151,15 +303,6 @@ export default function ContactsPage() {
           {/* View Toggle */}
           <div className="flex items-center bg-slate-200 p-0.5 rounded-xl text-xs font-bold">
             <button
-              onClick={() => setViewMode('kanban')}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${
-                viewMode === 'kanban' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600'
-              }`}
-            >
-              <Kanban className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Pipeline Board</span>
-            </button>
-            <button
               onClick={() => setViewMode('table')}
               className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${
                 viewMode === 'table' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600'
@@ -167,6 +310,15 @@ export default function ContactsPage() {
             >
               <Table className="w-3.5 h-3.5" />
               <span>Table View</span>
+            </button>
+            <button
+              onClick={() => setViewMode('kanban')}
+              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${
+                viewMode === 'kanban' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600'
+              }`}
+            >
+              <Kanban className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Pipeline Board</span>
             </button>
           </div>
 
@@ -236,6 +388,19 @@ export default function ContactsPage() {
         </div>
       </div>
 
+      {/* Bulk Feedback Banner */}
+      {bulkMessage && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center justify-between animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="font-semibold">{bulkMessage}</span>
+          </div>
+          <button onClick={() => setBulkMessage(null)} className="text-emerald-700 hover:text-emerald-900">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Filters Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs">
         <div className="relative w-full sm:w-80">
@@ -277,6 +442,142 @@ export default function ContactsPage() {
           </select>
         </div>
       </div>
+
+      {/* Floating Bulk Action Bar */}
+      {selectedIds.length > 0 && (
+        <div className="bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl border border-slate-800 flex flex-wrap items-center justify-between gap-3 animate-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center gap-2.5">
+            <span className="px-2.5 py-1 rounded-lg bg-emerald-500 text-slate-950 font-black text-xs">
+              {selectedIds.length} Selected
+            </span>
+            <span className="text-xs text-slate-300 hidden sm:inline">Bulk actions for selected contacts:</span>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Bulk Assign Group Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setBulkGroupMenuOpen(!bulkGroupMenuOpen);
+                  setBulkTagMenuOpen(false);
+                }}
+                disabled={isBulkOperating}
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-all"
+              >
+                <FolderPlus className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Assign Group</span>
+              </button>
+
+              {bulkGroupMenuOpen && (
+                <div className="absolute top-full mt-1.5 left-0 z-30 w-48 bg-white rounded-xl shadow-2xl border border-slate-200 py-1.5 text-slate-800 max-h-48 overflow-y-auto">
+                  <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase">Select Group</div>
+                  {groups.length === 0 ? (
+                    <p className="px-3 py-1.5 text-xs text-slate-400">No groups available</p>
+                  ) : (
+                    groups.map((g) => (
+                      <button
+                        key={g.id}
+                        type="button"
+                        onClick={() => handleBulkAssignGroup(g.id)}
+                        className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-100 flex items-center gap-2 font-medium"
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: g.color }} />
+                        <span className="truncate">{g.name}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Bulk Assign Tag Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setBulkTagMenuOpen(!bulkTagMenuOpen);
+                  setBulkGroupMenuOpen(false);
+                }}
+                disabled={isBulkOperating}
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-all"
+              >
+                <TagIcon className="w-3.5 h-3.5 text-blue-400" />
+                <span>Assign Tag</span>
+              </button>
+
+              {bulkTagMenuOpen && (
+                <div className="absolute top-full mt-1.5 left-0 z-30 w-48 bg-white rounded-xl shadow-2xl border border-slate-200 py-1.5 text-slate-800 max-h-48 overflow-y-auto">
+                  <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase">Select Tag</div>
+                  {tags.length === 0 ? (
+                    <p className="px-3 py-1.5 text-xs text-slate-400">No tags available</p>
+                  ) : (
+                    tags.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => handleBulkAssignTag(t.id)}
+                        className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-100 flex items-center gap-2 font-medium"
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: t.color }} />
+                        <span className="truncate">{t.name}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Bulk Status Update */}
+            <button
+              type="button"
+              onClick={() => handleBulkStatusChange('ACTIVE')}
+              disabled={isBulkOperating}
+              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-semibold flex items-center gap-1.5 transition-all"
+              title="Set selected contacts as Active"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Set Active</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleBulkStatusChange('UNSUBSCRIBED')}
+              disabled={isBulkOperating}
+              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-semibold flex items-center gap-1.5 transition-all"
+              title="Set selected contacts as Unsubscribed"
+            >
+              <XCircle className="w-3.5 h-3.5" />
+              <span>Opt Out</span>
+            </button>
+
+            {/* Bulk Delete Button */}
+            <button
+              type="button"
+              onClick={handleBulkDelete}
+              disabled={isBulkOperating}
+              className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-rose-600/30 transition-all disabled:opacity-50"
+            >
+              {isBulkOperating ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="w-3.5 h-3.5" />
+              )}
+              <span>Delete ({selectedIds.length})</span>
+            </button>
+
+            {/* Clear Selection */}
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              title="Clear selection"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Loading Spinner */}
       {loading ? (
@@ -350,10 +651,10 @@ export default function ContactsPage() {
                         <div className="flex flex-wrap gap-1">
                           {contact.tags.map((t: any) => (
                             <span
-                              key={t.tagId}
-                              className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-blue-50 text-blue-700"
+                              key={t.tagId || t.tag?.id}
+                              className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-blue-50 text-blue-700"
                             >
-                              {t.tag?.name}
+                              {t.tag?.name || t.name}
                             </span>
                           ))}
                         </div>
@@ -361,13 +662,13 @@ export default function ContactsPage() {
 
                       {/* Card Footer Actions */}
                       <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 text-[10px]">
-                        <Link
-                          href="/inbox"
+                        <button
+                          onClick={() => router.push(`/inbox?contactId=${contact.id}`)}
                           className="text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-1"
                         >
                           <MessageSquare className="w-3 h-3" />
                           <span>Chat</span>
-                        </Link>
+                        </button>
 
                         {/* Stage Selector */}
                         <select
@@ -397,85 +698,168 @@ export default function ContactsPage() {
         </div>
       ) : (
         /* TABLE VIEW */
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-bold text-[10px]">
-              <tr>
-                <th className="p-3.5">Name & Phone</th>
-                <th className="p-3.5">Company & City</th>
-                <th className="p-3.5">Lead Stage</th>
-                <th className="p-3.5">Deal Value</th>
-                <th className="p-3.5">Tags</th>
-                <th className="p-3.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {contacts.map((c) => {
-                const stageObj = LEAD_STAGES.find((s) => s.id === c.leadStage) || LEAD_STAGES[0];
-
-                return (
-                  <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="p-3.5">
-                      <div className="font-bold text-slate-900">
-                        {c.firstName ? `${c.firstName} ${c.lastName || ''}`.trim() : 'Unnamed Contact'}
-                      </div>
-                      <div className="font-mono text-slate-500 text-[11px]">{c.phoneNumber}</div>
-                    </td>
-                    <td className="p-3.5">
-                      <div className="text-slate-800">{c.company || '—'}</div>
-                      <div className="text-slate-400 text-[11px]">{c.city || ''}</div>
-                    </td>
-                    <td className="p-3.5">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${stageObj.color}`}>
-                        {stageObj.label}
-                      </span>
-                    </td>
-                    <td className="p-3.5 font-mono font-bold text-slate-800">
-                      {c.dealValue > 0 ? `$${c.dealValue.toLocaleString()}` : '—'}
-                    </td>
-                    <td className="p-3.5">
-                      <div className="flex flex-wrap gap-1">
-                        {c.tags?.map((t: any) => (
-                          <span
-                            key={t.tagId}
-                            className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-blue-50 text-blue-700"
-                          >
-                            {t.tag?.name}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="p-3.5 text-right space-x-1">
-                      <Link
-                        href="/inbox"
-                        className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg inline-block"
-                        title="Open in Chat"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5" />
-                      </Link>
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          {contacts.length === 0 ? (
+            <div className="py-16 text-center space-y-3">
+              <Users className="w-10 h-10 text-slate-300 mx-auto" />
+              <h3 className="text-sm font-bold text-slate-800">No contacts in database</h3>
+              <p className="text-xs text-slate-500">
+                Upload a customer CSV file or add your first WhatsApp recipient.
+              </p>
+              <button
+                onClick={() => setIsImportOpen(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>Import Contacts CSV</span>
+              </button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-slate-50/70 border-b border-slate-200 text-slate-500 uppercase text-[10px] font-semibold">
+                    <th className="py-3 px-3 w-10 text-center">
                       <button
-                        onClick={() => {
-                          setEditingContact(c);
-                          setIsFormOpen(true);
-                        }}
-                        className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg"
-                        title="Edit Contact"
+                        type="button"
+                        onClick={toggleSelectAll}
+                        className="text-slate-400 hover:text-emerald-600 focus:outline-none"
+                        title={allSelected ? 'Deselect all' : 'Select all'}
                       >
-                        <Edit2 className="w-3.5 h-3.5" />
+                        {allSelected ? (
+                          <CheckSquare className="w-4 h-4 text-emerald-600" />
+                        ) : isIndeterminate ? (
+                          <MinusSquare className="w-4 h-4 text-emerald-600" />
+                        ) : (
+                          <Square className="w-4 h-4" />
+                        )}
                       </button>
-                      <button
-                        onClick={() => handleDeleteContact(c.id)}
-                        className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg"
-                        title="Delete Contact"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
+                    </th>
+                    <th className="py-3 px-4">Contact</th>
+                    <th className="py-3 px-4">Phone Number (E.164)</th>
+                    <th className="py-3 px-4">Lead Stage</th>
+                    <th className="py-3 px-4">Assigned Groups</th>
+                    <th className="py-3 px-4">Tags</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {contacts.map((c) => {
+                    const contactName = `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Customer';
+                    const isSelected = selectedIds.includes(c.id);
+                    const stageObj = LEAD_STAGES.find((s) => s.id === c.leadStage) || LEAD_STAGES[0];
+
+                    return (
+                      <tr
+                        key={c.id}
+                        className={`transition-colors ${
+                          isSelected ? 'bg-emerald-50/60' : 'hover:bg-slate-50/80'
+                        }`}
+                      >
+                        <td className="py-3 px-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => toggleSelectRow(c.id)}
+                            className="text-slate-400 hover:text-emerald-600 focus:outline-none"
+                          >
+                            {isSelected ? (
+                              <CheckSquare className="w-4 h-4 text-emerald-600" />
+                            ) : (
+                              <Square className="w-4 h-4" />
+                            )}
+                          </button>
+                        </td>
+                        <td className="py-3 px-4">
+                          <p className="font-bold text-slate-900">{contactName}</p>
+                          {c.email && <p className="text-[11px] text-slate-400">{c.email}</p>}
+                        </td>
+                        <td className="py-3 px-4 font-mono font-medium text-slate-800">
+                          {c.phoneNumber}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${stageObj.color}`}>
+                            {stageObj.label}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex flex-wrap gap-1">
+                            {c.groups?.length > 0 ? (
+                              c.groups.map((g: any) => (
+                                <span
+                                  key={g.groupId || g.id}
+                                  className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-200"
+                                >
+                                  {g.group?.name || g.name}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-[11px] text-slate-400">-</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex flex-wrap gap-1">
+                            {c.tags?.length > 0 ? (
+                              c.tags.map((t: any) => (
+                                <span
+                                  key={t.tagId || t.id}
+                                  className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700"
+                                >
+                                  {t.tag?.name || t.name}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-[11px] text-slate-400">-</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                              c.status === 'ACTIVE'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            {c.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => router.push(`/inbox?contactId=${c.id}`)}
+                              className="p-1.5 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
+                              title="Direct 1-to-1 Chat"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingContact(c);
+                                setIsFormOpen(true);
+                              }}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                              title="Edit Contact"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteContact(c.id)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-slate-100 transition-colors"
+                              title="Delete Contact"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 

@@ -39,15 +39,30 @@ export async function sweepStuckCampaigns(): Promise<void> {
           logger.error({ campaignId: campaign.id, err }, '[Sweeper] Error resuming campaign');
         });
       } else {
-        // No pending messages remaining, mark COMPLETED
+        // No pending messages remaining — decide final state:
+        // FAILED if every message ended in an error, COMPLETED otherwise
+        const [failedCount, deliveredOrBetter] = await Promise.all([
+          prisma.campaignMessage.count({
+            where: { campaignId: campaign.id, status: 'FAILED' },
+          }),
+          prisma.campaignMessage.count({
+            where: {
+              campaignId: campaign.id,
+              status: { in: ['SENT', 'DELIVERED', 'READ', 'REPLIED'] },
+            },
+          }),
+        ]);
+
+        const finalStatus = deliveredOrBetter === 0 && failedCount > 0 ? 'FAILED' : 'COMPLETED';
+
         await prisma.campaign.update({
           where: { id: campaign.id },
           data: {
-            status: 'COMPLETED',
+            status: finalStatus,
             completedAt: new Date(),
           },
         });
-        logger.info({ campaignId: campaign.id }, '[Sweeper] Marked stranded empty campaign as COMPLETED');
+        logger.info({ campaignId: campaign.id, finalStatus }, '[Sweeper] Finalized stranded campaign');
       }
     }
   } catch (error) {
