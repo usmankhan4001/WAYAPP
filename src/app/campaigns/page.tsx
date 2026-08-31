@@ -93,94 +93,188 @@ export default function CampaignsPage() {
             </Link>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase text-[10px] font-semibold tracking-wider">
-                  <th className="py-2.5 px-4">Campaign & Template</th>
-                  <th className="py-2.5 px-4">Status</th>
-                  <th className="py-2.5 px-4 text-center">Recipients</th>
-                  <th className="py-2.5 px-4 text-center">Sent</th>
-                  <th className="py-2.5 px-4 text-center">Delivered</th>
-                  <th className="py-2.5 px-4 text-center">Read Rate</th>
-                  <th className="py-2.5 px-4 text-center">Replies</th>
-                  <th className="py-2.5 px-4">Created At</th>
-                  <th className="py-2.5 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
-                {filteredCampaigns.map((c) => {
-                  const readRate = c.deliveredCount > 0 ? Math.round((c.readCount / c.deliveredCount) * 100) : 0;
+          <div>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase text-[10px] font-semibold tracking-wider">
+                    <th className="py-2.5 px-4">Campaign & Template</th>
+                    <th className="py-2.5 px-4">Status</th>
+                    <th className="py-2.5 px-4 text-center">Recipients</th>
+                    <th className="py-2.5 px-4 text-center">Sent</th>
+                    <th className="py-2.5 px-4 text-center">Delivered</th>
+                    <th className="py-2.5 px-4 text-center">Read Rate</th>
+                    <th className="py-2.5 px-4 text-center">Replies</th>
+                    <th className="py-2.5 px-4">Created At</th>
+                    <th className="py-2.5 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {filteredCampaigns.map((c) => {
+                    const readRate = c.deliveredCount > 0 ? Math.round((c.readCount / c.deliveredCount) * 100) : 0;
 
-                  return (
-                    <tr key={c.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-3 px-4">
+                    return (
+                      <tr key={c.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-3 px-4">
+                          <Link
+                            href={`/campaigns/${c.id}`}
+                            className="font-semibold text-slate-900 hover:text-emerald-700 block text-xs"
+                          >
+                            {c.name}
+                          </Link>
+                          <span className="text-[11px] text-slate-400 font-mono">
+                            {c.template?.name}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={
+                              c.status === 'COMPLETED'
+                                ? 'badge-emerald'
+                                : c.status === 'RUNNING'
+                                ? 'badge-sky'
+                                : c.status === 'PAUSED'
+                                ? 'badge-amber'
+                                : 'badge-slate'
+                            }
+                          >
+                            {c.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-center font-mono font-semibold text-slate-900">
+                          {c.totalContacts}
+                        </td>
+                        <td className="py-3 px-4 text-center text-slate-700 font-mono">
+                          {c.sentCount}
+                        </td>
+                        <td className="py-3 px-4 text-center text-emerald-700 font-mono font-semibold">
+                          {c.deliveredCount}
+                        </td>
+                        <td className="py-3 px-4 text-center font-mono text-sky-700 font-semibold">
+                          {readRate}% ({c.readCount})
+                        </td>
+                        <td className="py-3 px-4 text-center text-violet-700 font-mono font-semibold">
+                          {c.repliedCount}
+                        </td>
+                        <td className="py-3 px-4 text-slate-500 text-[11px]">
+                          {formatDateTime(c.createdAt)}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Link
+                              href={`/campaigns/${c.id}`}
+                              className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                              title="View Campaign Details"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </Link>
+                            <button
+                              onClick={() => handleDelete(c.id)}
+                              className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-slate-100 transition-colors"
+                              title="Delete Campaign"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Stacked Card View */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {filteredCampaigns.map((c) => {
+                const readRate = c.deliveredCount > 0 ? Math.round((c.readCount / c.deliveredCount) * 100) : 0;
+                const progressPct = c.totalContacts > 0 ? Math.round((c.sentCount / c.totalContacts) * 100) : 0;
+
+                return (
+                  <div key={c.id} className="p-4 space-y-3 hover:bg-slate-50/50 transition-colors">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
                         <Link
                           href={`/campaigns/${c.id}`}
-                          className="font-medium text-slate-900 hover:text-emerald-700 block text-xs"
+                          className="font-bold text-slate-900 hover:text-emerald-700 text-sm block truncate"
                         >
                           {c.name}
                         </Link>
                         <span className="text-[11px] text-slate-400 font-mono">
                           {c.template?.name}
                         </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={
-                            c.status === 'COMPLETED'
-                              ? 'badge-emerald'
-                              : c.status === 'RUNNING'
-                              ? 'badge-sky'
-                              : c.status === 'PAUSED'
-                              ? 'badge-amber'
-                              : 'badge-slate'
-                          }
-                        >
-                          {c.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-center font-mono font-medium text-slate-900">
-                        {c.totalContacts}
-                      </td>
-                      <td className="py-3 px-4 text-center text-slate-700 font-mono">
-                        {c.sentCount}
-                      </td>
-                      <td className="py-3 px-4 text-center text-emerald-700 font-mono font-medium">
-                        {c.deliveredCount}
-                      </td>
-                      <td className="py-3 px-4 text-center font-mono text-sky-700 font-medium">
-                        {readRate}% ({c.readCount})
-                      </td>
-                      <td className="py-3 px-4 text-center text-violet-700 font-mono font-medium">
-                        {c.repliedCount}
-                      </td>
-                      <td className="py-3 px-4 text-slate-500 text-[11px]">
+                      </div>
+                      <span
+                        className={
+                          c.status === 'COMPLETED'
+                            ? 'badge-emerald shrink-0'
+                            : c.status === 'RUNNING'
+                            ? 'badge-sky shrink-0'
+                            : c.status === 'PAUSED'
+                            ? 'badge-amber shrink-0'
+                            : 'badge-slate shrink-0'
+                        }
+                      >
+                        {c.status}
+                      </span>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[11px] text-slate-500">
+                        <span>Progress ({progressPct}%)</span>
+                        <span className="font-mono">{c.sentCount} / {c.totalContacts}</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-600 rounded-full"
+                          style={{ width: `${progressPct}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Mobile Metric Badges */}
+                    <div className="grid grid-cols-3 gap-2 pt-1 text-center">
+                      <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
+                        <span className="text-[10px] text-slate-400 block">Delivered</span>
+                        <span className="text-xs font-mono font-bold text-emerald-700">{c.deliveredCount}</span>
+                      </div>
+                      <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
+                        <span className="text-[10px] text-slate-400 block">Read Rate</span>
+                        <span className="text-xs font-mono font-bold text-sky-700">{readRate}%</span>
+                      </div>
+                      <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
+                        <span className="text-[10px] text-slate-400 block">Replies</span>
+                        <span className="text-xs font-mono font-bold text-violet-700">{c.repliedCount}</span>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+                      <span className="text-[11px] text-slate-400">
                         {formatDateTime(c.createdAt)}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Link
-                            href={`/campaigns/${c.id}`}
-                            className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                            title="View Campaign Details"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </Link>
-                          <button
-                            onClick={() => handleDelete(c.id)}
-                            className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-slate-100 transition-colors"
-                            title="Delete Campaign"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleDelete(c.id)}
+                          className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                        <Link
+                          href={`/campaigns/${c.id}`}
+                          className="px-3 py-1 rounded-lg bg-slate-900 text-white font-semibold text-xs inline-flex items-center gap-1 active:scale-95 transition-all"
+                        >
+                          <span>Details</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

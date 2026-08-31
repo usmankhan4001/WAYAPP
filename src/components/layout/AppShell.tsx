@@ -77,7 +77,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Full Active Native App Shell Workspace
   return (
     <NotificationProvider>
-      <div className="h-screen h-[100dvh] w-screen flex bg-transparent text-slate-900 overflow-hidden select-none safe-top">
+      <div className="h-[100dvh] w-full flex bg-slate-50 text-slate-900 overflow-hidden">
         {/* Sidebar (Desktop + Sliding Mobile Drawer) */}
         <Sidebar
           isMobileOpen={isMobileMenuOpen}

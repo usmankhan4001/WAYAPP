@@ -25,13 +25,12 @@
   }
 
   body {
-    height: 100%;
-    height: 100dvh;
-    width: 100vw;
+    min-height: 100%;
+    min-height: 100dvh;
     margin: 0;
     padding: 0;
-    background-color: #fcf5eb;
-    color: #1c1e21;
+    background-color: #f8fafc;
+    color: #0f172a;
     font-weight: 400;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
@@ -39,7 +38,6 @@
     overscroll-behavior-y: none;
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
-    overflow: hidden;
   }
 
   input, textarea, select, [contenteditable="true"] {
@@ -48,50 +46,50 @@
   }
 }
 
-/* Design System Utilities - WhatsApp Identity */
+/* Modern WhatsApp Design System Components */
 @layer components {
   .btn-primary {
-    @apply h-11 px-6 rounded-full bg-[#25d366] hover:bg-[#20b858] text-[#1c1e21] text-[15px] font-normal inline-flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:pointer-events-none border border-[#1c1e21];
+    @apply h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-sm font-semibold inline-flex items-center justify-center gap-2 shadow-xs transition-all disabled:opacity-50 disabled:pointer-events-none;
   }
 
   .btn-secondary {
-    @apply h-11 px-6 rounded-full border border-[#1c1e21] bg-transparent hover:bg-black/5 text-[#1c1e21] text-[15px] font-normal inline-flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:pointer-events-none;
+    @apply h-10 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-800 text-sm font-medium inline-flex items-center justify-center gap-2 shadow-2xs transition-all disabled:opacity-50 disabled:pointer-events-none;
   }
 
   .btn-ghost {
-    @apply h-10 px-4 rounded-full text-[#1c1e21] hover:bg-black/5 text-[15px] font-normal inline-flex items-center justify-center gap-2 transition-colors;
+    @apply h-9 px-3 rounded-lg text-slate-700 hover:bg-slate-100 active:scale-[0.98] text-sm font-medium inline-flex items-center justify-center gap-1.5 transition-all;
   }
 
   .input-base {
-    @apply h-11 text-[15px] rounded-full border border-[#1c1e21] bg-white px-5 text-[#1c1e21] placeholder:text-slate-400 focus:border-[#25d366] focus:ring-1 focus:ring-[#25d366] focus:outline-none transition-shadow w-full font-normal;
+    @apply h-10 text-sm rounded-xl border border-slate-200 bg-white px-3.5 text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all w-full;
   }
 
   .card-base {
-    @apply bg-white rounded-[25px] border-none;
+    @apply bg-white rounded-2xl border border-slate-200/80 shadow-xs;
   }
 
   .badge-emerald {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80;
   }
 
   .badge-sky {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200/80;
   }
 
   .badge-violet {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200/80;
   }
 
   .badge-slate {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200/80;
   }
 
   .badge-rose {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/80;
   }
 
   .badge-amber {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200;
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/80;
   }
 }
 

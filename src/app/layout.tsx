@@ -9,10 +9,9 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
   viewportFit: 'cover',
-  themeColor: '#10b981',
+  themeColor: '#059669',
 };
 
 export const metadata: Metadata = {
@@ -54,7 +53,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
-      <body className={`${inter.variable} font-sans antialiased h-full w-full bg-slate-50 text-slate-900 overflow-hidden`}>
+      <body className={`${inter.variable} font-sans antialiased min-h-full min-h-[100dvh] w-full bg-slate-50 text-slate-900 selection:bg-emerald-100 selection:text-emerald-900`}>
         <ToastProvider>
           <AppShell>
             {children}

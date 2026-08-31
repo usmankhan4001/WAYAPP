@@ -90,7 +90,7 @@ export function SetupWalkthrough({
 
         <button
           onClick={() => setIsDismissed(true)}
-          className="text-slate-400 hover:text-slate-200 p-1 rounded-full hover:bg-slate-800 transition-colors"
+          className="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-800 transition-colors"
           title="Dismiss"
         >
           <X className="w-4 h-4" />
@@ -103,10 +103,10 @@ export function SetupWalkthrough({
           <Link
             key={step.id}
             href={step.href}
-            className={`p-2.5 rounded-full border transition-all flex flex-col justify-between ${
+            className={`p-3 rounded-xl border transition-all flex flex-col justify-between active:scale-[0.98] ${
               step.done
-                ? 'bg-slate-800/40 border-slate-800 text-slate-400'
-                : 'bg-slate-800/90 border-slate-700 hover:border-emerald-500/60 text-slate-200'
+                ? 'bg-slate-800/40 border-slate-800/80 text-slate-400'
+                : 'bg-slate-800/90 border-slate-700 hover:border-emerald-500/60 text-slate-200 shadow-2xs'
             }`}
           >
             <div className="space-y-1">
@@ -118,7 +118,7 @@ export function SetupWalkthrough({
                   <Circle className="w-3.5 h-3.5 text-slate-500" />
                 )}
               </div>
-              <h4 className={`text-xs font-medium ${step.done ? 'line-through text-slate-500' : 'text-slate-100'}`}>
+              <h4 className={`text-xs font-semibold ${step.done ? 'line-through text-slate-500' : 'text-slate-100'}`}>
                 {step.title}
               </h4>
             </div>

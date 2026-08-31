@@ -83,8 +83,8 @@ export function AudioVoicePlayer({ src, isOutbound = false }: AudioVoicePlayerPr
 
   return (
     <div
-      className={`flex items-center gap-2.5 p-2 rounded-full ${
-        isOutbound ? 'bg-[#25d366] text-white' : 'bg-slate-100 text-slate-900'
+      className={`flex items-center gap-2.5 p-2 rounded-xl ${
+        isOutbound ? 'bg-emerald-600/10 text-slate-900' : 'bg-slate-100 text-slate-900'
       } min-w-[240px] max-w-[280px]`}
     >
       <audio ref={audioRef} src={src} preload="metadata" />
@@ -93,10 +93,10 @@ export function AudioVoicePlayer({ src, isOutbound = false }: AudioVoicePlayerPr
       <button
         type="button"
         onClick={togglePlay}
-        className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0  transition-all ${
+        className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-xs transition-all active:scale-95 ${
           isOutbound
-            ? 'bg-white text-emerald-600 hover:bg-black/5'
-            : 'bg-[#25d366] text-white hover:bg-emerald-700'
+            ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+            : 'bg-emerald-600 text-white hover:bg-emerald-700'
         }`}
       >
         {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}

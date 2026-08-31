@@ -715,53 +715,173 @@ export default function ContactsPage() {
               </button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-slate-50/70 border-b border-slate-200 text-slate-500 uppercase text-[10px] font-semibold">
-                    <th className="py-3 px-3 w-10 text-center">
-                      <button
-                        type="button"
-                        onClick={toggleSelectAll}
-                        className="text-slate-400 hover:text-emerald-600 focus:outline-none"
-                        title={allSelected ? 'Deselect all' : 'Select all'}
-                      >
-                        {allSelected ? (
-                          <CheckSquare className="w-4 h-4 text-emerald-600" />
-                        ) : isIndeterminate ? (
-                          <MinusSquare className="w-4 h-4 text-emerald-600" />
-                        ) : (
-                          <Square className="w-4 h-4" />
-                        )}
-                      </button>
-                    </th>
-                    <th className="py-3 px-4">Contact</th>
-                    <th className="py-3 px-4">Phone Number (E.164)</th>
-                    <th className="py-3 px-4">Lead Stage</th>
-                    <th className="py-3 px-4">Assigned Groups</th>
-                    <th className="py-3 px-4">Tags</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {contacts.map((c) => {
-                    const contactName = `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Customer';
-                    const isSelected = selectedIds.includes(c.id);
-                    const stageObj = LEAD_STAGES.find((s) => s.id === c.leadStage) || LEAD_STAGES[0];
+            <div>
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-50/70 border-b border-slate-200 text-slate-500 uppercase text-[10px] font-semibold">
+                      <th className="py-3 px-3 w-10 text-center">
+                        <button
+                          type="button"
+                          onClick={toggleSelectAll}
+                          className="text-slate-400 hover:text-emerald-600 focus:outline-none"
+                          title={allSelected ? 'Deselect all' : 'Select all'}
+                        >
+                          {allSelected ? (
+                            <CheckSquare className="w-4 h-4 text-emerald-600" />
+                          ) : isIndeterminate ? (
+                            <MinusSquare className="w-4 h-4 text-emerald-600" />
+                          ) : (
+                            <Square className="w-4 h-4" />
+                          )}
+                        </button>
+                      </th>
+                      <th className="py-3 px-4">Contact</th>
+                      <th className="py-3 px-4">Phone Number (E.164)</th>
+                      <th className="py-3 px-4">Lead Stage</th>
+                      <th className="py-3 px-4">Assigned Groups</th>
+                      <th className="py-3 px-4">Tags</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    {contacts.map((c) => {
+                      const contactName = `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Customer';
+                      const isSelected = selectedIds.includes(c.id);
+                      const stageObj = LEAD_STAGES.find((s) => s.id === c.leadStage) || LEAD_STAGES[0];
 
-                    return (
-                      <tr
-                        key={c.id}
-                        className={`transition-colors ${
-                          isSelected ? 'bg-emerald-50/60' : 'hover:bg-slate-50/80'
-                        }`}
-                      >
-                        <td className="py-3 px-3 text-center">
+                      return (
+                        <tr
+                          key={c.id}
+                          className={`transition-colors ${
+                            isSelected ? 'bg-emerald-50/60' : 'hover:bg-slate-50/80'
+                          }`}
+                        >
+                          <td className="py-3 px-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() => toggleSelectRow(c.id)}
+                              className="text-slate-400 hover:text-emerald-600 focus:outline-none"
+                            >
+                              {isSelected ? (
+                                <CheckSquare className="w-4 h-4 text-emerald-600" />
+                              ) : (
+                                <Square className="w-4 h-4" />
+                              )}
+                            </button>
+                          </td>
+                          <td className="py-3 px-4">
+                            <p className="font-bold text-slate-900">{contactName}</p>
+                            {c.email && <p className="text-[11px] text-slate-400">{c.email}</p>}
+                          </td>
+                          <td className="py-3 px-4 font-mono font-medium text-slate-800">
+                            {c.phoneNumber}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${stageObj.color}`}>
+                              {stageObj.label}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex flex-wrap gap-1">
+                              {c.groups?.length > 0 ? (
+                                c.groups.map((g: any) => (
+                                  <span
+                                    key={g.groupId || g.id}
+                                    className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-200"
+                                  >
+                                    {g.group?.name || g.name}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-[11px] text-slate-400">-</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex flex-wrap gap-1">
+                              {c.tags?.length > 0 ? (
+                                c.tags.map((t: any) => (
+                                  <span
+                                    key={t.tagId || t.id}
+                                    className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700"
+                                  >
+                                    {t.tag?.name || t.name}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-[11px] text-slate-400">-</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span
+                              className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                                c.status === 'ACTIVE'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : 'bg-slate-100 text-slate-600'
+                              }`}
+                            >
+                              {c.status}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => router.push(`/inbox?contactId=${c.id}`)}
+                                className="p-1.5 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
+                                title="Direct 1-to-1 Chat"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingContact(c);
+                                  setIsFormOpen(true);
+                                }}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                                title="Edit Contact"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteContact(c.id)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-slate-100 transition-colors"
+                                title="Delete Contact"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Stacked Cards Stream */}
+              <div className="md:hidden divide-y divide-slate-100">
+                {contacts.map((c) => {
+                  const contactName = `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Customer';
+                  const isSelected = selectedIds.includes(c.id);
+                  const stageObj = LEAD_STAGES.find((s) => s.id === c.leadStage) || LEAD_STAGES[0];
+
+                  return (
+                    <div
+                      key={c.id}
+                      className={`p-3.5 space-y-2.5 transition-colors ${
+                        isSelected ? 'bg-emerald-50/60' : 'hover:bg-slate-50/60'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
                           <button
                             type="button"
                             onClick={() => toggleSelectRow(c.id)}
-                            className="text-slate-400 hover:text-emerald-600 focus:outline-none"
+                            className="text-slate-400 hover:text-emerald-600 shrink-0"
                           >
                             {isSelected ? (
                               <CheckSquare className="w-4 h-4 text-emerald-600" />
@@ -769,95 +889,74 @@ export default function ContactsPage() {
                               <Square className="w-4 h-4" />
                             )}
                           </button>
-                        </td>
-                        <td className="py-3 px-4">
-                          <p className="font-bold text-slate-900">{contactName}</p>
-                          {c.email && <p className="text-[11px] text-slate-400">{c.email}</p>}
-                        </td>
-                        <td className="py-3 px-4 font-mono font-medium text-slate-800">
-                          {c.phoneNumber}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${stageObj.color}`}>
-                            {stageObj.label}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex flex-wrap gap-1">
-                            {c.groups?.length > 0 ? (
-                              c.groups.map((g: any) => (
-                                <span
-                                  key={g.groupId || g.id}
-                                  className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-200"
-                                >
-                                  {g.group?.name || g.name}
-                                </span>
-                              ))
-                            ) : (
-                              <span className="text-[11px] text-slate-400">-</span>
-                            )}
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-slate-900 text-xs truncate">{contactName}</h4>
+                            <p className="text-[11px] font-mono text-slate-500">{c.phoneNumber}</p>
                           </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex flex-wrap gap-1">
-                            {c.tags?.length > 0 ? (
-                              c.tags.map((t: any) => (
-                                <span
-                                  key={t.tagId || t.id}
-                                  className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700"
-                                >
-                                  {t.tag?.name || t.name}
-                                </span>
-                              ))
-                            ) : (
-                              <span className="text-[11px] text-slate-400">-</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
+                        </div>
+
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${stageObj.color}`}>
+                          {stageObj.label}
+                        </span>
+                      </div>
+
+                      {/* Groups & Tags */}
+                      <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                        {c.groups?.map((g: any) => (
                           <span
-                            className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                              c.status === 'ACTIVE'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-slate-100 text-slate-600'
-                            }`}
+                            key={g.groupId || g.id}
+                            className="px-2 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-700 border border-slate-200"
                           >
-                            {c.status}
+                            {g.group?.name || g.name}
                           </span>
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() => router.push(`/inbox?contactId=${c.id}`)}
-                              className="p-1.5 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
-                              title="Direct 1-to-1 Chat"
-                            >
-                              <MessageSquare className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                setEditingContact(c);
-                                setIsFormOpen(true);
-                              }}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
-                              title="Edit Contact"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteContact(c.id)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-slate-100 transition-colors"
-                              title="Delete Contact"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        ))}
+                        {c.tags?.map((t: any) => (
+                          <span
+                            key={t.tagId || t.id}
+                            className="px-2 py-0.5 rounded-full font-semibold bg-blue-50 text-blue-700"
+                          >
+                            {t.tag?.name || t.name}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* Mobile Row Action Bar */}
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                          c.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                        }`}>
+                          {c.status}
+                        </span>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => router.push(`/inbox?contactId=${c.id}`)}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold text-xs inline-flex items-center gap-1 shadow-2xs transition-all"
+                          >
+                            <MessageSquare className="w-3 h-3" />
+                            <span>Chat</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingContact(c);
+                              setIsFormOpen(true);
+                            }}
+                            className="p-1 text-slate-400 hover:text-slate-700 p-1"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteContact(c.id)}
+                            className="p-1 text-slate-400 hover:text-rose-600 p-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>

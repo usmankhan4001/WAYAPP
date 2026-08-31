@@ -26,9 +26,11 @@ import {
   Trash2,
   Plus,
   Search,
+  CreditCard,
 } from 'lucide-react';
 import { InfoTooltip } from '@/components/ui/Tooltip';
 import { MetaSetupGuideModal } from '@/components/common/MetaSetupGuideModal';
+import { MetaBillingSection } from '@/components/settings/MetaBillingSection';
 
 const MODULE_ICONS: Record<string, any> = {
   Sparkles,
@@ -44,7 +46,7 @@ const MODULE_ICONS: Record<string, any> = {
 };
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<'gateway' | 'marketplace' | 'snippets'>('gateway');
+  const [activeTab, setActiveTab] = useState<'gateway' | 'marketplace' | 'snippets' | 'billing'>('gateway');
 
   // Gateway Settings
   const [settings, setSettings] = useState<any>({
@@ -369,14 +371,26 @@ export default function SettingsPage() {
 
         <button
           onClick={() => setActiveTab('snippets')}
-          className={`px-4 py-2 rounded-xl text-xs font-normal transition-all flex items-center gap-1.5 shrink-0 ${
+          className={`px-4 py-2 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 shrink-0 ${
             activeTab === 'snippets'
-              ? 'bg-slate-900 text-white '
+              ? 'bg-slate-900 text-white shadow-2xs font-semibold'
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
           <Zap className="w-3.5 h-3.5 text-amber-500" />
           <span>Canned Snippets ({snippets.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('billing')}
+          className={`px-4 py-2 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 shrink-0 ${
+            activeTab === 'billing'
+              ? 'bg-slate-900 text-white shadow-2xs font-semibold'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Billing & Meta Rates</span>
         </button>
       </div>
 
@@ -906,6 +920,9 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      {/* TAB 4: META BILLING & CONVERSATION PRICING */}
+      {activeTab === 'billing' && <MetaBillingSection />}
 
       {/* Meta Setup Guide Modal */}
       <MetaSetupGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
