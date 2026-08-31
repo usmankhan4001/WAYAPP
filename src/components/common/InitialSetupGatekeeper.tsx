@@ -119,7 +119,7 @@ export function InitialSetupGatekeeper({ onActivationSuccess }: InitialSetupGate
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4 sm:p-6">
+    <div className="min-h-screen bg-black/5 flex flex-col justify-center items-center p-4 sm:p-6">
       {/* Top Brand Banner */}
       <div className="max-w-2xl w-full text-center space-y-2 mb-6">
         <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 p-2 text-white shadow-lg ring-4 ring-emerald-500/10 mb-2">
@@ -128,7 +128,7 @@ export function InitialSetupGatekeeper({ onActivationSuccess }: InitialSetupGate
             <circle cx="392" cy="180" r="32" fill="#34d399" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+        <h1 className="text-2xl font-normal text-slate-900 tracking-tight">
           WAY<span className="text-emerald-600">APP</span> — WhatsApp Platform Setup
         </h1>
         <p className="text-xs text-slate-500 max-w-md mx-auto">
@@ -140,7 +140,7 @@ export function InitialSetupGatekeeper({ onActivationSuccess }: InitialSetupGate
       <div className="card-base max-w-lg w-full bg-white shadow-xl overflow-hidden border border-slate-200">
         <div className="p-6 md:p-8 space-y-6">
           <div className="text-center space-y-2">
-            <h2 className="text-xl font-bold text-slate-900">Connect your WhatsApp</h2>
+            <h2 className="text-xl font-normal text-slate-900">Connect your WhatsApp</h2>
             <p className="text-sm text-slate-500">
               Link your business number to start chatting with customers and sending broadcast campaigns.
             </p>
@@ -151,7 +151,7 @@ export function InitialSetupGatekeeper({ onActivationSuccess }: InitialSetupGate
             <button
               type="button"
               onClick={() => alert('Meta Embedded Signup OAuth Flow will launch here.')}
-              className="w-full h-12 rounded-xl bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold shadow-md flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+              className="w-full h-12 rounded-xl bg-[#1877F2] hover:bg-[#166fe5] text-white font-normal  flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
             >
               <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
@@ -168,7 +168,7 @@ export function InitialSetupGatekeeper({ onActivationSuccess }: InitialSetupGate
               <span className="w-full border-t border-slate-200" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-slate-400 font-bold">OR</span>
+              <span className="bg-white px-2 text-slate-400 font-normal">OR</span>
             </div>
           </div>
 
@@ -180,7 +180,7 @@ export function InitialSetupGatekeeper({ onActivationSuccess }: InitialSetupGate
               setStep(2); // Jump directly to success test screen for simulator
               handleCompleteActivation(); // Auto activate mock mode
             }}
-            className="w-full h-11 rounded-xl border-2 border-emerald-100 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+            className="w-full h-11 rounded-xl border-2 border-emerald-100 bg-black/5 hover:bg-[#e6ffda] text-[#1c1e21] font-normal  flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
           >
             <Sparkles className="w-4 h-4" />
             <span>Try Virtual Simulator (Instant Demo)</span>
@@ -188,7 +188,7 @@ export function InitialSetupGatekeeper({ onActivationSuccess }: InitialSetupGate
           
           {/* Error Alert */}
           {error && (
-            <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+            <div className="p-3 rounded-full bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
               <span>{error}</span>
             </div>
@@ -197,7 +197,7 @@ export function InitialSetupGatekeeper({ onActivationSuccess }: InitialSetupGate
           {/* Advanced Manual Setup Accordion */}
           <div className="pt-4 mt-4 border-t border-slate-100">
             <details className="group">
-              <summary className="text-xs font-semibold text-slate-500 cursor-pointer list-none flex items-center gap-1 hover:text-slate-800">
+              <summary className="text-xs font-normal text-slate-500 cursor-pointer list-none flex items-center gap-1 hover:text-slate-800">
                 <ShieldCheck className="w-4 h-4" />
                 <span>Advanced: Manual API Configuration</span>
                 <span className="ml-auto transition group-open:rotate-180">▼</span>

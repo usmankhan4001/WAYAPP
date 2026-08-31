@@ -77,11 +77,11 @@ export function SetupWalkthrough({
     <div className="card-base p-4 bg-slate-900 text-slate-100 relative overflow-hidden">
       <div className="flex items-center justify-between pb-3 border-b border-slate-800">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">
+          <div className="w-6 h-6 rounded-full bg-black/50/20 text-emerald-400 flex items-center justify-center font-normal text-xs">
             <Sparkles className="w-3.5 h-3.5" />
           </div>
           <div>
-            <h3 className="text-xs font-semibold text-white">Getting Started Checklist</h3>
+            <h3 className="text-xs font-normal text-white">Getting Started Checklist</h3>
             <p className="text-[11px] text-slate-400">
               {completedCount} of {steps.length} setup steps completed
             </p>
@@ -90,7 +90,7 @@ export function SetupWalkthrough({
 
         <button
           onClick={() => setIsDismissed(true)}
-          className="text-slate-400 hover:text-slate-200 p-1 rounded-md hover:bg-slate-800 transition-colors"
+          className="text-slate-400 hover:text-slate-200 p-1 rounded-full hover:bg-slate-800 transition-colors"
           title="Dismiss"
         >
           <X className="w-4 h-4" />
@@ -103,7 +103,7 @@ export function SetupWalkthrough({
           <Link
             key={step.id}
             href={step.href}
-            className={`p-2.5 rounded-lg border transition-all flex flex-col justify-between ${
+            className={`p-2.5 rounded-full border transition-all flex flex-col justify-between ${
               step.done
                 ? 'bg-slate-800/40 border-slate-800 text-slate-400'
                 : 'bg-slate-800/90 border-slate-700 hover:border-emerald-500/60 text-slate-200'

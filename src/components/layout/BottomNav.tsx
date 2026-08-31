@@ -37,7 +37,7 @@ export function BottomNav() {
   }
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 flex items-center justify-around shadow-xl safe-bottom">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#fcf5eb]/95 backdrop-blur-md border-t border-[#1c1e21]/10 px-2 py-1.5 flex items-center justify-around shadow-xl safe-bottom">
       {BOTTOM_NAV_ITEMS.map((item) => {
         const Icon = item.icon;
         const isActive =
@@ -47,23 +47,23 @@ export function BottomNav() {
           <Link
             key={item.href}
             href={item.href}
-            className={`flex flex-col items-center justify-center py-1 px-3 rounded-md transition-all relative ${
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-full transition-all relative ${
               isActive
-                ? 'text-emerald-600 font-bold'
-                : 'text-slate-500 hover:text-slate-900'
+                ? 'text-[#1c1e21] font-normal font-normal'
+                : 'text-[#1c1e21]/70 hover:text-[#1c1e21]'
             }`}
           >
             <div className="relative">
               <Icon className={`w-5 h-5 ${isActive ? 'scale-105' : ''} transition-transform`} />
               {item.hasBadge && unreadCount > 0 && (
-                <span className="absolute -top-1 -right-2 bg-emerald-600 text-white font-extrabold text-[10px] w-4 h-4 rounded-full flex items-center justify-center ">
+                <span className="absolute -top-1 -right-2 bg-[#25d366] text-white font-extrabold text-[10px] w-4 h-4 rounded-full flex items-center justify-center ">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </div>
             <span className="text-[10px] mt-0.5 font-medium">{item.label}</span>
             {isActive && (
-              <span className="absolute -bottom-0.5 w-4 h-0.5 rounded-full bg-emerald-600" />
+              <span className="absolute -bottom-0.5 w-4 h-0.5 rounded-full bg-[#25d366]" />
             )}
           </Link>
         );

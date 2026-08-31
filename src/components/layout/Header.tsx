@@ -85,13 +85,13 @@ export function Header({ onToggleMobileMenu, onOpenMetaGuide }: HeaderProps) {
   };
 
   return (
-    <header className="h-14 bg-white border-b border-slate-200 px-4 md:px-6 flex items-center justify-between shrink-0 sticky top-0 z-30">
+    <header className="h-14 bg-transparent border-b border-[#1c1e21]/10 px-4 md:px-6 flex items-center justify-between shrink-0 sticky top-0 z-30">
       {/* Left: Mobile Menu Trigger & Business Identity */}
       <div className="flex items-center gap-3 min-w-0">
         {onToggleMobileMenu && (
           <button
             onClick={onToggleMobileMenu}
-            className="md:hidden p-1.5 -ml-1 text-slate-600 hover:text-slate-900 rounded-md hover:bg-slate-100 transition-colors"
+            className="md:hidden p-1.5 -ml-1 text-[#1c1e21] hover:text-black rounded-full hover:bg-slate-100 transition-colors"
             aria-label="Open Navigation"
           >
             <Menu className="w-4 h-4" />
@@ -99,8 +99,8 @@ export function Header({ onToggleMobileMenu, onOpenMetaGuide }: HeaderProps) {
         )}
 
         <div className="flex items-center gap-2 min-w-0">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-          <span className="text-xs font-semibold text-slate-900 truncate">
+          <span className="w-2 h-2 rounded-full bg-black/50 shrink-0" />
+          <span className="text-xs font-normal text-black truncate">
             {settings?.businessName || 'My WhatsApp Business'}
           </span>
         </div>
@@ -120,9 +120,9 @@ export function Header({ onToggleMobileMenu, onOpenMetaGuide }: HeaderProps) {
         {/* Status notification */}
         {statusMsg && (
           <div
-            className={`hidden md:inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-md border font-medium ${
+            className={`hidden md:inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border font-medium ${
               statusMsg.ok
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                ? 'bg-black/5 text-[#1c1e21] border-emerald-200'
                 : 'bg-rose-50 text-rose-700 border-rose-200'
             }`}
           >
@@ -197,21 +197,21 @@ export function Header({ onToggleMobileMenu, onOpenMetaGuide }: HeaderProps) {
 
         {/* User Profile & Logout */}
         {user && (
-          <div className="flex items-center gap-2 pl-2 border-l border-slate-200 ml-1">
-            <div className="w-7 h-7 rounded-full bg-slate-900 text-white font-bold text-[11px] flex items-center justify-center shrink-0  ring-1 ring-slate-800">
+          <div className="flex items-center gap-2 pl-2 border-l border-[#1c1e21]/10 ml-1">
+            <div className="w-7 h-7 rounded-full bg-[#1c1e21] text-white font-normal text-[11px] flex items-center justify-center shrink-0  ring-1 ring-slate-800">
               {user.name ? user.name.substring(0, 1).toUpperCase() : 'G'}
             </div>
             <div className="hidden xl:block text-left min-w-0 max-w-[120px]">
-              <span className="text-[11px] font-bold text-slate-900 truncate block leading-tight">
+              <span className="text-[11px] font-normal text-black truncate block leading-tight">
                 {user.name || user.email}
               </span>
-              <span className="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200 uppercase tracking-wider">
+              <span className="text-[9px] font-normal text-[#1c1e21] bg-black/5 px-1 py-0.2 rounded border border-emerald-200 uppercase tracking-wider">
                 {user.role === 'SUPER_ADMIN' ? 'GCC Admin' : 'GCC Member'}
               </span>
             </div>
             <button
               onClick={handleLogout}
-              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors"
               title="Sign Out"
             >
               <LogOut className="w-3.5 h-3.5" />

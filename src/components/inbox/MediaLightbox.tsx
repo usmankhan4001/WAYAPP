@@ -15,7 +15,7 @@ export function MediaLightbox({ mediaUrl, mediaType, caption, onClose }: MediaLi
     <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-4">
       {/* Top Bar */}
       <div className="w-full max-w-5xl flex items-center justify-between text-white p-2 mb-2">
-        <div className="text-xs font-semibold truncate max-w-md">
+        <div className="text-xs font-normal truncate max-w-md">
           {caption || 'Media Preview'}
         </div>
 
@@ -25,7 +25,7 @@ export function MediaLightbox({ mediaUrl, mediaType, caption, onClose }: MediaLi
             download
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all flex items-center gap-1.5 text-xs font-medium"
+            className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all flex items-center gap-1.5 text-xs font-medium"
           >
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Download</span>
@@ -35,7 +35,7 @@ export function MediaLightbox({ mediaUrl, mediaType, caption, onClose }: MediaLi
             href={mediaUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all"
+            className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all"
             title="Open in new tab"
           >
             <ExternalLink className="w-4 h-4" />
@@ -44,7 +44,7 @@ export function MediaLightbox({ mediaUrl, mediaType, caption, onClose }: MediaLi
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-lg bg-white/10 hover:bg-rose-600 text-white transition-all ml-2"
+            className="p-2 rounded-full bg-white/10 hover:bg-rose-600 text-white transition-all ml-2"
           >
             <X className="w-4 h-4" />
           </button>
@@ -52,28 +52,28 @@ export function MediaLightbox({ mediaUrl, mediaType, caption, onClose }: MediaLi
       </div>
 
       {/* Main Content */}
-      <div className="max-w-4xl max-h-[80vh] flex items-center justify-center overflow-hidden rounded-lg">
+      <div className="max-w-4xl max-h-[80vh] flex items-center justify-center overflow-hidden rounded-full">
         {mediaType === 'image' ? (
           <img
             src={mediaUrl}
             alt={caption || 'Preview'}
-            className="max-w-full max-h-[75vh] object-contain rounded-md shadow-lg"
+            className="max-w-full max-h-[75vh] object-contain rounded-full shadow-lg"
           />
         ) : mediaType === 'video' ? (
           <video
             src={mediaUrl}
             controls
             autoPlay
-            className="max-w-full max-h-[75vh] object-contain rounded-md shadow-lg"
+            className="max-w-full max-h-[75vh] object-contain rounded-full shadow-lg"
           />
         ) : (
-          <div className="p-8 bg-slate-900 text-white rounded-lg border border-slate-800 text-center space-y-4">
-            <p className="text-sm font-semibold">Document Preview</p>
+          <div className="p-8 bg-slate-900 text-white rounded-full border border-slate-800 text-center space-y-4">
+            <p className="text-sm font-normal">Document Preview</p>
             <a
               href={mediaUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-md text-xs font-bold"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#25d366] hover:bg-[#20b858] rounded-full text-xs font-normal"
             >
               <Download className="w-4 h-4" />
               <span>Download / Open Document</span>

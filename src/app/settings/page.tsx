@@ -295,7 +295,7 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Settings & App Switchboard</h1>
+          <h1 className="text-2xl font-normal text-slate-900 tracking-tight">Settings & App Switchboard</h1>
           <p className="text-xs text-slate-500">
             Configure official Meta Cloud API credentials, toggle modular apps on/off, and manage sales tools
           </p>
@@ -304,7 +304,7 @@ export default function SettingsPage() {
         <div className="flex items-center gap-2 self-start">
           <button
             onClick={() => setIsGuideOpen(true)}
-            className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center gap-1.5 shadow-2xs"
+            className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-black/5 text-xs font-normal text-slate-700 flex items-center gap-1.5 shadow-2xs"
           >
             <BookOpen className="w-3.5 h-3.5 text-slate-500" />
             <span>Meta Setup Guide</span>
@@ -312,7 +312,7 @@ export default function SettingsPage() {
 
           <button
             onClick={handleDisconnect}
-            className="px-3 py-1.5 rounded-xl border border-rose-200 bg-white text-rose-700 hover:bg-rose-50 text-xs font-semibold flex items-center gap-1.5 shadow-2xs"
+            className="px-3 py-1.5 rounded-xl border border-rose-200 bg-white text-rose-700 hover:bg-rose-50 text-xs font-normal flex items-center gap-1.5 shadow-2xs"
             title="Disconnect and re-enter setup"
           >
             <LogOut className="w-3.5 h-3.5" />
@@ -325,7 +325,7 @@ export default function SettingsPage() {
         <div
           className={`p-3 rounded-xl text-xs flex items-center gap-2 shadow-2xs ${
             notice.success
-              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+              ? 'bg-black/5 text-emerald-800 border border-emerald-200'
               : 'bg-rose-50 text-rose-800 border border-rose-200'
           }`}
         >
@@ -342,9 +342,9 @@ export default function SettingsPage() {
       <div className="flex items-center gap-2 border-b border-slate-200 pb-1 overflow-x-auto">
         <button
           onClick={() => setActiveTab('gateway')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+          className={`px-4 py-2 rounded-xl text-xs font-normal transition-all flex items-center gap-1.5 shrink-0 ${
             activeTab === 'gateway'
-              ? 'bg-slate-900 text-white shadow-sm'
+              ? 'bg-slate-900 text-white '
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
@@ -354,24 +354,24 @@ export default function SettingsPage() {
 
         <button
           onClick={() => setActiveTab('marketplace')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+          className={`px-4 py-2 rounded-xl text-xs font-normal transition-all flex items-center gap-1.5 shrink-0 ${
             activeTab === 'marketplace'
-              ? 'bg-slate-900 text-white shadow-sm'
+              ? 'bg-slate-900 text-white '
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
           <Layers className="w-3.5 h-3.5 text-emerald-400" />
           <span>App Marketplace & Modules</span>
-          <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-700 text-[10px] font-bold">
+          <span className="px-1.5 py-0.2 rounded-full bg-black/50/20 text-[#1c1e21] text-[10px] font-normal">
             {modules.filter((m) => m.isEnabled).length}/{modules.length} ON
           </span>
         </button>
 
         <button
           onClick={() => setActiveTab('snippets')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+          className={`px-4 py-2 rounded-xl text-xs font-normal transition-all flex items-center gap-1.5 shrink-0 ${
             activeTab === 'snippets'
-              ? 'bg-slate-900 text-white shadow-sm'
+              ? 'bg-slate-900 text-white '
               : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
@@ -384,15 +384,15 @@ export default function SettingsPage() {
       {activeTab === 'gateway' && (
         <div className="space-y-4">
           {/* Connection Status Card */}
-          <div className="p-4 rounded-2xl bg-slate-900 text-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+          <div className="p-4 rounded-2xl bg-slate-900 text-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                <span className="text-[10px] font-normal text-slate-400 uppercase tracking-wider">
                   Direct Gateway Connection Status
                 </span>
               </div>
-              <h3 className="text-xs font-bold text-white">
+              <h3 className="text-xs font-normal text-white">
                 {settings.isMockMode ? 'Virtual Simulator Active' : 'Meta Cloud API v21.0 Live & Activated'}
               </h3>
               <p className="text-[11px] text-slate-400">
@@ -418,7 +418,7 @@ export default function SettingsPage() {
             <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3.5">
               <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
                 <Key className="w-4 h-4 text-emerald-600" />
-                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                <h3 className="text-xs font-normal text-slate-900 uppercase tracking-wider">
                   Meta WhatsApp Cloud API Credentials
                 </h3>
               </div>
@@ -426,7 +426,7 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <div className="flex items-center gap-1 mb-1">
-                    <label className="text-xs font-bold text-slate-700">
+                    <label className="text-xs font-normal text-slate-700">
                       Phone Number ID <span className="text-rose-500">*</span>
                     </label>
                     <InfoTooltip content="Found in Meta for Developers > WhatsApp > API Setup." />
@@ -442,7 +442,7 @@ export default function SettingsPage() {
 
                 <div>
                   <div className="flex items-center gap-1 mb-1">
-                    <label className="text-xs font-bold text-slate-700">
+                    <label className="text-xs font-normal text-slate-700">
                       WhatsApp Business Account ID (WABA ID) <span className="text-rose-500">*</span>
                     </label>
                     <InfoTooltip content="Found in Meta Business Manager > WhatsApp Accounts." />
@@ -459,7 +459,7 @@ export default function SettingsPage() {
 
               <div>
                 <div className="flex items-center gap-1 mb-1">
-                  <label className="text-xs font-bold text-slate-700">
+                  <label className="text-xs font-normal text-slate-700">
                     Permanent System User Access Token <span className="text-rose-500">*</span>
                   </label>
                   <InfoTooltip content="Permanent Token with whatsapp_business_messaging and whatsapp_business_management permissions." />
@@ -481,7 +481,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={handleTestConnection}
                       disabled={testing}
-                      className="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 shadow-2xs"
+                      className="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-black/5 text-slate-700 text-xs font-normal flex items-center gap-1.5 shadow-2xs"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${testing ? 'animate-spin text-emerald-600' : 'text-slate-500'}`} />
                       <span>{testing ? 'Scanning Diagnostics...' : 'Deep Connection Diagnostics'}</span>
@@ -490,14 +490,14 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => setIsPinModalOpen(true)}
-                      className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold shadow-2xs"
+                      className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-black/5 text-xs font-normal shadow-2xs"
                     >
                       1-Click Register Phone (2FA)
                     </button>
                   </div>
 
                   {testDetails?.phoneDetails && (
-                    <div className="text-xs text-emerald-700 font-bold flex items-center gap-1.5">
+                    <div className="text-xs text-[#1c1e21] font-normal flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                       <span>Verified: {testDetails.phoneDetails.verified_name || 'Account Active'}</span>
                     </div>
@@ -505,28 +505,28 @@ export default function SettingsPage() {
                 </div>
 
                 {testDetails?.phoneDetails && (
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+                  <div className="p-3 rounded-xl bg-black/5 border border-slate-200 grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
                     <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-semibold">Display Phone</span>
-                      <p className="font-bold font-mono text-slate-800">{testDetails.phoneDetails.display_phone_number || 'N/A'}</p>
+                      <span className="text-[10px] text-slate-400 uppercase font-normal">Display Phone</span>
+                      <p className="font-normal font-mono text-slate-800">{testDetails.phoneDetails.display_phone_number || 'N/A'}</p>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-semibold">Display Name</span>
-                      <p className={`font-bold ${testDetails.phoneDetails.name_status === 'APPROVED' ? 'text-emerald-700' : 'text-amber-700'}`}>
+                      <span className="text-[10px] text-slate-400 uppercase font-normal">Display Name</span>
+                      <p className={`font-normal ${testDetails.phoneDetails.name_status === 'APPROVED' ? 'text-[#1c1e21]' : 'text-amber-700'}`}>
                         {testDetails.phoneDetails.name_status || (testDetails.phoneDetails.verified_name ? 'APPROVED' : 'PENDING')}
                       </p>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-semibold">Quality Rating</span>
-                      <p className="font-bold text-emerald-700">{testDetails.phoneDetails.quality_rating || 'GREEN'}</p>
+                      <span className="text-[10px] text-slate-400 uppercase font-normal">Quality Rating</span>
+                      <p className="font-normal text-[#1c1e21]">{testDetails.phoneDetails.quality_rating || 'GREEN'}</p>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-semibold">Messaging Tier</span>
-                      <p className="font-bold text-slate-800">{testDetails.phoneDetails.messaging_tier || 'STANDARD'}</p>
+                      <span className="text-[10px] text-slate-400 uppercase font-normal">Messaging Tier</span>
+                      <p className="font-normal text-slate-800">{testDetails.phoneDetails.messaging_tier || 'STANDARD'}</p>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-semibold">Registration Status</span>
-                      <p className="font-bold text-emerald-700">{testDetails.phoneDetails.code_verification_status || 'VERIFIED'}</p>
+                      <span className="text-[10px] text-slate-400 uppercase font-normal">Registration Status</span>
+                      <p className="font-normal text-[#1c1e21]">{testDetails.phoneDetails.code_verification_status || 'VERIFIED'}</p>
                     </div>
                   </div>
                 )}
@@ -537,7 +537,7 @@ export default function SettingsPage() {
             <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3.5">
               <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
                 <Webhook className="w-4 h-4 text-emerald-600" />
-                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                <h3 className="text-xs font-normal text-slate-900 uppercase tracking-wider">
                   Meta Webhook Configuration
                 </h3>
               </div>
@@ -545,7 +545,7 @@ export default function SettingsPage() {
               <div className="space-y-3">
                 <div>
                   <div className="flex items-center gap-1 mb-1">
-                    <label className="text-xs font-bold text-slate-700">Webhook Callback URL</label>
+                    <label className="text-xs font-normal text-slate-700">Webhook Callback URL</label>
                     <InfoTooltip content="Paste this Callback URL in Meta Developer Portal > WhatsApp > Configuration." />
                   </div>
                   <div className="flex gap-2">
@@ -553,12 +553,12 @@ export default function SettingsPage() {
                       type="text"
                       readOnly
                       value={webhookUrl}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono bg-slate-50 text-slate-600"
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono bg-black/5 text-slate-600"
                     />
                     <button
                       type="button"
                       onClick={handleCopyWebhook}
-                      className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1 shadow-2xs"
+                      className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-black/5 text-slate-700 text-xs font-normal flex items-center gap-1 shadow-2xs"
                     >
                       {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                       <span>{copied ? 'Copied' : 'Copy'}</span>
@@ -569,7 +569,7 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <div className="flex items-center gap-1 mb-1">
-                      <label className="text-xs font-bold text-slate-700">Verify Token</label>
+                      <label className="text-xs font-normal text-slate-700">Verify Token</label>
                       <InfoTooltip content="Verification token for the hub.challenge handshake." />
                     </div>
                     <input
@@ -582,7 +582,7 @@ export default function SettingsPage() {
 
                   <div>
                     <div className="flex items-center gap-1 mb-1">
-                      <label className="text-xs font-bold text-slate-700">App Secret (HMAC SHA-256)</label>
+                      <label className="text-xs font-normal text-slate-700">App Secret (HMAC SHA-256)</label>
                       <InfoTooltip content="App Secret from Meta App Settings > Basic for cryptographic signature verification." />
                     </div>
                     <input
@@ -601,14 +601,14 @@ export default function SettingsPage() {
             <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3.5">
               <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
                 <Sliders className="w-4 h-4 text-emerald-600" />
-                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                <h3 className="text-xs font-normal text-slate-900 uppercase tracking-wider">
                   Broadcast Defaults & Throttling
                 </h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Business Display Name</label>
+                  <label className="block text-xs font-normal text-slate-700 mb-1">Business Display Name</label>
                   <input
                     type="text"
                     value={settings.businessName || ''}
@@ -618,7 +618,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Default Country Code</label>
+                  <label className="block text-xs font-normal text-slate-700 mb-1">Default Country Code</label>
                   <input
                     type="text"
                     value={settings.defaultCountryCode || '+1'}
@@ -629,7 +629,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Rate Limit (Msgs / Sec)</label>
+                  <label className="block text-xs font-normal text-slate-700 mb-1">Rate Limit (Msgs / Sec)</label>
                   <input
                     type="number"
                     min="1"
@@ -647,7 +647,7 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-sm transition-all disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-normal  transition-all disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save Configuration'}
               </button>
@@ -659,8 +659,8 @@ export default function SettingsPage() {
       {/* TAB 2: APP MARKETPLACE & MODULAR SWITCHBOARD */}
       {activeTab === 'marketplace' && (
         <div className="space-y-4">
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-white space-y-1 shadow-md">
-            <h3 className="font-black text-sm text-white flex items-center gap-1.5">
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-white space-y-1 ">
+            <h3 className="font-normal text-sm text-white flex items-center gap-1.5">
               <Layers className="w-4 h-4 text-emerald-400" />
               <span>Plug-and-Play Module Switchboard</span>
             </h3>
@@ -684,10 +684,10 @@ export default function SettingsPage() {
               <button
                 key={cat.id}
                 onClick={() => setModuleCategoryFilter(cat.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-normal transition-all shrink-0 ${
                   moduleCategoryFilter === cat.id
                     ? 'bg-slate-900 text-white shadow-xs'
-                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-black/5'
                 }`}
               >
                 {cat.label}
@@ -707,7 +707,7 @@ export default function SettingsPage() {
                   className={`p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between gap-3 ${
                     mod.isEnabled
                       ? 'bg-white border-slate-200 shadow-xs'
-                      : 'bg-slate-50/70 border-slate-200/60 opacity-75'
+                      : 'bg-black/5/70 border-slate-200/60 opacity-75'
                   }`}
                 >
                   <div className="space-y-2">
@@ -716,15 +716,15 @@ export default function SettingsPage() {
                         <div
                           className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${
                             mod.isEnabled
-                              ? 'bg-emerald-100 text-emerald-700'
+                              ? 'bg-[#e6ffda] text-[#1c1e21]'
                               : 'bg-slate-200 text-slate-500'
                           }`}
                         >
                           <IconComp className="w-4 h-4" />
                         </div>
                         <div>
-                          <h4 className="font-bold text-xs text-slate-900">{mod.name}</h4>
-                          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                          <h4 className="font-normal text-xs text-slate-900">{mod.name}</h4>
+                          <span className="text-[10px] font-normal text-slate-400 uppercase tracking-wider">
                             {mod.category}
                           </span>
                         </div>
@@ -736,7 +736,7 @@ export default function SettingsPage() {
                         disabled={isToggling}
                         onClick={() => handleToggleModule(mod.id, mod.isEnabled)}
                         className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          mod.isEnabled ? 'bg-emerald-600' : 'bg-slate-300'
+                          mod.isEnabled ? 'bg-[#25d366]' : 'bg-slate-300'
                         } ${isToggling ? 'opacity-50' : ''}`}
                       >
                         <span
@@ -752,7 +752,7 @@ export default function SettingsPage() {
 
                   <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px]">
                     <span className="font-medium text-slate-500">
-                      Status: <strong className={mod.isEnabled ? 'text-emerald-700' : 'text-slate-500'}>{mod.isEnabled ? 'Active' : 'Disabled'}</strong>
+                      Status: <strong className={mod.isEnabled ? 'text-[#1c1e21]' : 'text-slate-500'}>{mod.isEnabled ? 'Active' : 'Disabled'}</strong>
                     </span>
                     <span className="text-[10px] text-slate-400 font-mono">ID: {mod.id}</span>
                   </div>
@@ -768,7 +768,7 @@ export default function SettingsPage() {
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="font-bold text-sm text-slate-900">Canned Sales Snippets & Shortcuts</h3>
+              <h3 className="font-normal text-sm text-slate-900">Canned Sales Snippets & Shortcuts</h3>
               <p className="text-xs text-slate-500">
                 Sales agents can type "/" in live chat to insert these pre-saved messages instantly.
               </p>
@@ -776,7 +776,7 @@ export default function SettingsPage() {
 
             <button
               onClick={() => setIsAddingSnippet(!isAddingSnippet)}
-              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all self-start sm:self-auto"
+              className="px-3.5 py-1.5 rounded-xl bg-[#25d366] hover:bg-emerald-700 text-white text-xs font-normal flex items-center gap-1.5  transition-all self-start sm:self-auto"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{isAddingSnippet ? 'Cancel' : 'New Snippet'}</span>
@@ -785,11 +785,11 @@ export default function SettingsPage() {
 
           {/* Add Snippet Form Drawer */}
           {isAddingSnippet && (
-            <form onSubmit={handleCreateSnippet} className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3 animate-in fade-in duration-150">
-              <h4 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Create New Sales Shortcut</h4>
+            <form onSubmit={handleCreateSnippet} className="p-4 rounded-2xl bg-white border border-slate-200  space-y-3 animate-in fade-in duration-150">
+              <h4 className="font-normal text-xs text-slate-900 uppercase tracking-wider">Create New Sales Shortcut</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Shortcut Trigger (Starts with /)</label>
+                  <label className="block text-xs font-normal text-slate-700 mb-1">Shortcut Trigger (Starts with /)</label>
                   <input
                     type="text"
                     placeholder="/pricing or /brochure"
@@ -799,7 +799,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Snippet Title</label>
+                  <label className="block text-xs font-normal text-slate-700 mb-1">Snippet Title</label>
                   <input
                     type="text"
                     placeholder="e.g. Standard Pricing List"
@@ -809,7 +809,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Category</label>
+                  <label className="block text-xs font-normal text-slate-700 mb-1">Category</label>
                   <select
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
@@ -824,7 +824,7 @@ export default function SettingsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Message Content to Insert</label>
+                <label className="block text-xs font-normal text-slate-700 mb-1">Message Content to Insert</label>
                 <textarea
                   rows={3}
                   placeholder="Type the full WhatsApp text message..."
@@ -838,13 +838,13 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setIsAddingSnippet(false)}
-                  className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-slate-100 text-slate-600"
+                  className="px-3.5 py-1.5 text-xs font-normal rounded-xl bg-slate-100 text-slate-600"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 text-xs font-bold rounded-xl bg-emerald-600 text-white shadow-xs"
+                  className="px-4 py-1.5 text-xs font-normal rounded-xl bg-[#25d366] text-white shadow-xs"
                 >
                   Save Shortcut
                 </button>
@@ -873,11 +873,11 @@ export default function SettingsPage() {
               >
                 <div className="space-y-1 min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-xs text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-lg">
+                    <span className="font-mono font-normal text-xs text-emerald-800 bg-[#e6ffda] px-2 py-0.5 rounded-full">
                       {s.shortcut}
                     </span>
-                    <h4 className="font-bold text-xs text-slate-900 truncate">{s.title}</h4>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                    <h4 className="font-normal text-xs text-slate-900 truncate">{s.title}</h4>
+                    <span className="text-[10px] font-normal px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
                       {s.category}
                     </span>
                   </div>
@@ -890,7 +890,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => handleDeleteSnippet(s.id)}
-                  className="p-2 text-slate-400 hover:text-rose-600 rounded-lg transition-colors shrink-0"
+                  className="p-2 text-slate-400 hover:text-rose-600 rounded-full transition-colors shrink-0"
                   title="Delete shortcut"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -915,14 +915,14 @@ export default function SettingsPage() {
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 space-y-4">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">1-Click Phone Number 2FA Registration</h3>
+              <h3 className="text-sm font-normal text-slate-900">1-Click Phone Number 2FA Registration</h3>
               <p className="text-xs text-slate-500 mt-1">
                 Register your business phone number ID directly on the Meta Cloud API gateway with a 6-digit PIN.
               </p>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-normal text-slate-700 mb-1">
                 6-Digit 2FA PIN
               </label>
               <input
@@ -931,7 +931,7 @@ export default function SettingsPage() {
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
                 placeholder="123456"
-                className="w-full px-3 py-2 text-sm text-center font-mono font-bold tracking-widest rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 text-sm text-center font-mono font-normal tracking-widest rounded-full border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
               <p className="text-[10px] text-slate-400 mt-1">
                 Choose any 6-digit PIN to secure your WhatsApp Cloud number.
@@ -942,7 +942,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => setIsPinModalOpen(false)}
-                className="px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50"
+                className="px-3.5 py-1.5 rounded-full border border-slate-300 text-slate-700 text-xs font-normal hover:bg-black/5"
               >
                 Cancel
               </button>
@@ -950,7 +950,7 @@ export default function SettingsPage() {
                 type="button"
                 onClick={handleRegisterPhone}
                 disabled={isRegistering || pinInput.length !== 6}
-                className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold disabled:opacity-50"
+                className="px-4 py-1.5 rounded-full bg-[#25d366] hover:bg-emerald-700 text-white text-xs font-normal disabled:opacity-50"
               >
                 {isRegistering ? 'Registering...' : 'Register PIN'}
               </button>

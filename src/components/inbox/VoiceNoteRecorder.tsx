@@ -102,12 +102,12 @@ export function VoiceNoteRecorder({ onSendVoiceNote, onCancel }: VoiceNoteRecord
 
   if (error) {
     return (
-      <div className="p-3 rounded-md bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center justify-between gap-3">
+      <div className="p-3 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center justify-between gap-3">
         <span>{error}</span>
         <button
           type="button"
           onClick={onCancel}
-          className="px-2.5 py-1 rounded bg-rose-200 hover:bg-rose-300 text-rose-900 font-bold"
+          className="px-2.5 py-1 rounded bg-rose-200 hover:bg-rose-300 text-rose-900 font-normal"
         >
           Dismiss
         </button>
@@ -116,11 +116,11 @@ export function VoiceNoteRecorder({ onSendVoiceNote, onCancel }: VoiceNoteRecord
   }
 
   return (
-    <div className="p-3 rounded-md bg-slate-900 text-white flex items-center justify-between gap-3 shadow-lg border border-slate-800 animate-in fade-in slide-in-from-bottom duration-200">
+    <div className="p-3 rounded-full bg-slate-900 text-white flex items-center justify-between gap-3 shadow-lg border border-slate-800 animate-in fade-in slide-in-from-bottom duration-200">
       {/* Recording Indicator & Timer */}
       <div className="flex items-center gap-3">
         <div className="w-3 h-3 rounded-full bg-rose-500 animate-pulse" />
-        <span className="text-xs font-mono font-bold">{formatTime(recordingTime)}</span>
+        <span className="text-xs font-mono font-normal">{formatTime(recordingTime)}</span>
 
         {/* Animated wave sound bars */}
         <div className="hidden sm:flex items-center gap-1">
@@ -141,7 +141,7 @@ export function VoiceNoteRecorder({ onSendVoiceNote, onCancel }: VoiceNoteRecord
         <button
           type="button"
           onClick={handleCancel}
-          className="p-2 rounded-lg bg-slate-800 hover:bg-rose-900/50 text-slate-400 hover:text-rose-400 transition-all"
+          className="p-2 rounded-full bg-slate-800 hover:bg-rose-900/50 text-slate-400 hover:text-rose-400 transition-all"
           title="Delete recording"
         >
           <Trash2 className="w-4 h-4" />
@@ -150,7 +150,7 @@ export function VoiceNoteRecorder({ onSendVoiceNote, onCancel }: VoiceNoteRecord
         <button
           type="button"
           onClick={handleSend}
-          className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-600/30 transition-all"
+          className="px-3.5 py-1.5 rounded-full bg-[#25d366] hover:bg-[#20b858] text-white text-xs font-normal flex items-center gap-1.5  shadow-emerald-600/30 transition-all"
         >
           <span>Send</span>
           <Send className="w-3.5 h-3.5" />

@@ -113,9 +113,9 @@ function InboxContent() {
         {/* Top Header & New Chat Trigger */}
         <div className="p-3.5 border-b border-slate-200 bg-[#f0f2f5] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold text-slate-900 tracking-tight">Chats</h2>
+            <h2 className="text-base font-normal text-slate-900 tracking-tight">Chats</h2>
             {conversations.length > 0 && (
-              <span className="text-[10px] font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] font-normal bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">
                 {conversations.length}
               </span>
             )}
@@ -124,11 +124,11 @@ function InboxContent() {
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setIsNewChatOpen(true)}
-              className="p-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs  flex items-center gap-1.5 transition-all active:scale-95"
+              className="p-2 rounded-full bg-[#25d366] hover:bg-[#20b858] text-white font-normal text-xs  flex items-center gap-1.5 transition-all active:scale-95"
               title="Start a new WhatsApp chat"
             >
               <UserPlus className="w-4 h-4" />
-              <span className="text-xs font-semibold">New Chat</span>
+              <span className="text-xs font-normal">New Chat</span>
             </button>
           </div>
         </div>
@@ -142,16 +142,16 @@ function InboxContent() {
               placeholder="Search chats or phone..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 text-xs rounded-md border border-slate-200 bg-[#f0f2f5] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
+              className="w-full pl-8 pr-3 py-2 text-xs rounded-full border border-slate-200 bg-[#f0f2f5] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
             />
           </div>
 
           <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
             <button
               onClick={() => setFilter('all')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 ${
+              className={`px-3 py-1 rounded-full text-xs font-normal transition-all shrink-0 ${
                 filter === 'all'
-                  ? 'bg-emerald-600 text-white '
+                  ? 'bg-[#25d366] text-white '
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -159,9 +159,9 @@ function InboxContent() {
             </button>
             <button
               onClick={() => setFilter('unread')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center gap-1 ${
+              className={`px-3 py-1 rounded-full text-xs font-normal transition-all shrink-0 flex items-center gap-1 ${
                 filter === 'unread'
-                  ? 'bg-emerald-600 text-white '
+                  ? 'bg-[#25d366] text-white '
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -187,7 +187,7 @@ function InboxContent() {
               <p className="text-xs text-red-600 font-medium">{error}</p>
               <button
                 onClick={() => { setError(null); fetchConversations(); }}
-                className="text-xs text-emerald-600 font-bold hover:underline"
+                className="text-xs text-emerald-600 font-normal hover:underline"
               >
                 Retry
               </button>
@@ -195,7 +195,7 @@ function InboxContent() {
           ) : conversations.length === 0 ? (
             <div className="p-8 text-center text-xs text-slate-400 space-y-2">
               <MessageSquare className="w-8 h-8 text-slate-300 mx-auto mb-1" />
-              <p className="font-semibold text-slate-700">No chats found</p>
+              <p className="font-normal text-slate-700">No chats found</p>
               <p className="text-[11px] text-slate-400">Start a new conversation or adjust your search filter.</p>
             </div>
           ) : (
@@ -213,17 +213,17 @@ function InboxContent() {
                   className={`p-3.5 cursor-pointer transition-all flex items-start gap-3 select-none ${
                     isSelected
                       ? 'bg-[#f0f2f5] border-l-4 border-emerald-600'
-                      : 'hover:bg-slate-50'
+                      : 'hover:bg-black/5'
                   }`}
                 >
                   {/* WhatsApp Profile Avatar */}
-                  <div className="w-11 h-11 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shrink-0 ">
+                  <div className="w-11 h-11 rounded-full bg-[#25d366] text-white flex items-center justify-center font-normal text-sm shrink-0 ">
                     {contactName.charAt(0).toUpperCase()}
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1 mb-0.5">
-                      <span className="text-xs font-bold text-slate-900 truncate">{contactName}</span>
+                      <span className="text-xs font-normal text-slate-900 truncate">{contactName}</span>
                       <span className="text-[10px] text-slate-400 shrink-0 font-mono">
                         {c.lastMessageAt ? formatTimeAgo(new Date(c.lastMessageAt)) : ''}
                       </span>
@@ -250,7 +250,7 @@ function InboxContent() {
                       </span>
 
                       {c.unreadCount > 0 && (
-                        <span className="min-w-4 h-4 px-1 rounded-full bg-emerald-600 text-white font-black text-[10px] flex items-center justify-center shrink-0">
+                        <span className="min-w-4 h-4 px-1 rounded-full bg-[#25d366] text-white font-normal text-[10px] flex items-center justify-center shrink-0">
                           {c.unreadCount}
                         </span>
                       )}
@@ -277,7 +277,7 @@ function InboxContent() {
               <MessageSquare className="w-8 h-8" />
             </div>
             <div className="max-w-sm space-y-1">
-              <h3 className="text-base font-bold text-slate-800">WAYAPP for Web & Desktop</h3>
+              <h3 className="text-base font-normal text-slate-800">WAYAPP for Web & Desktop</h3>
               <p className="text-xs text-slate-500 leading-relaxed">
                 Select a customer thread from the left panel to begin live 1-to-1 WhatsApp chatting, send templates, or share media files.
               </p>
@@ -297,7 +297,7 @@ export default function InboxPage() {
   return (
     <Suspense
       fallback={
-        <div className="h-full w-full flex items-center justify-center bg-slate-50">
+        <div className="h-full w-full flex items-center justify-center bg-black/5">
           <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin" />
         </div>
       }

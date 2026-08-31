@@ -83,8 +83,8 @@ export function AudioVoicePlayer({ src, isOutbound = false }: AudioVoicePlayerPr
 
   return (
     <div
-      className={`flex items-center gap-2.5 p-2 rounded-lg ${
-        isOutbound ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-900'
+      className={`flex items-center gap-2.5 p-2 rounded-full ${
+        isOutbound ? 'bg-[#25d366] text-white' : 'bg-slate-100 text-slate-900'
       } min-w-[240px] max-w-[280px]`}
     >
       <audio ref={audioRef} src={src} preload="metadata" />
@@ -95,8 +95,8 @@ export function AudioVoicePlayer({ src, isOutbound = false }: AudioVoicePlayerPr
         onClick={togglePlay}
         className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0  transition-all ${
           isOutbound
-            ? 'bg-white text-emerald-600 hover:bg-emerald-50'
-            : 'bg-emerald-600 text-white hover:bg-emerald-700'
+            ? 'bg-white text-emerald-600 hover:bg-black/5'
+            : 'bg-[#25d366] text-white hover:bg-emerald-700'
         }`}
       >
         {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
@@ -111,7 +111,7 @@ export function AudioVoicePlayer({ src, isOutbound = false }: AudioVoicePlayerPr
             max={duration || 100}
             value={currentTime}
             onChange={handleSeek}
-            className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-emerald-500 bg-slate-300 dark:bg-slate-700"
+            className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-emerald-500 bg-slate-300 dark:bg-slate-700"
           />
         </div>
 
@@ -125,7 +125,7 @@ export function AudioVoicePlayer({ src, isOutbound = false }: AudioVoicePlayerPr
       <button
         type="button"
         onClick={toggleSpeed}
-        className={`px-1.5 py-0.5 rounded text-[10px] font-black shrink-0 transition-all ${
+        className={`px-1.5 py-0.5 rounded text-[10px] font-normal shrink-0 transition-all ${
           isOutbound
             ? 'bg-emerald-700/80 hover:bg-emerald-800 text-white'
             : 'bg-slate-200 hover:bg-slate-300 text-slate-700'

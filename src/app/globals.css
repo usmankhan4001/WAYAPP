@@ -30,8 +30,9 @@
     width: 100vw;
     margin: 0;
     padding: 0;
-    background-color: #f8fafc;
-    color: #0f172a;
+    background-color: #fcf5eb;
+    color: #1c1e21;
+    font-weight: 400;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -47,26 +48,26 @@
   }
 }
 
-/* Design System Utilities - Professional SaaS (Stripe/Linear style) */
+/* Design System Utilities - WhatsApp Identity */
 @layer components {
   .btn-primary {
-    @apply h-9 px-4 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium inline-flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:pointer-events-none;
+    @apply h-11 px-6 rounded-full bg-[#25d366] hover:bg-[#20b858] text-[#1c1e21] text-[15px] font-normal inline-flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:pointer-events-none border border-[#1c1e21];
   }
 
   .btn-secondary {
-    @apply h-9 px-4 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium inline-flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:pointer-events-none;
+    @apply h-11 px-6 rounded-full border border-[#1c1e21] bg-transparent hover:bg-black/5 text-[#1c1e21] text-[15px] font-normal inline-flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:pointer-events-none;
   }
 
   .btn-ghost {
-    @apply h-8 px-3 rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-xs font-medium inline-flex items-center justify-center gap-2 transition-colors;
+    @apply h-10 px-4 rounded-full text-[#1c1e21] hover:bg-black/5 text-[15px] font-normal inline-flex items-center justify-center gap-2 transition-colors;
   }
 
   .input-base {
-    @apply h-9 text-xs rounded-md border border-slate-200 bg-white px-3 text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none transition-shadow w-full;
+    @apply h-11 text-[15px] rounded-full border border-[#1c1e21] bg-white px-5 text-[#1c1e21] placeholder:text-slate-400 focus:border-[#25d366] focus:ring-1 focus:ring-[#25d366] focus:outline-none transition-shadow w-full font-normal;
   }
 
   .card-base {
-    @apply bg-white rounded-lg border border-slate-200;
+    @apply bg-white rounded-[25px] border-none;
   }
 
   .badge-emerald {
