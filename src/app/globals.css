@@ -47,26 +47,26 @@
   }
 }
 
-/* Design System Utilities */
+/* Design System Utilities - Professional SaaS (Stripe/Linear style) */
 @layer components {
   .btn-primary {
-    @apply h-9 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-xs font-semibold shadow-sm inline-flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+    @apply h-9 px-4 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium inline-flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:pointer-events-none;
   }
 
   .btn-secondary {
-    @apply h-9 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-700 text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 disabled:pointer-events-none shadow-sm;
+    @apply h-9 px-4 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium inline-flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:pointer-events-none;
   }
 
   .btn-ghost {
-    @apply h-8 px-2.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 text-xs font-medium inline-flex items-center justify-center gap-1.5 transition-colors;
+    @apply h-8 px-3 rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-xs font-medium inline-flex items-center justify-center gap-2 transition-colors;
   }
 
   .input-base {
-    @apply h-9 text-xs rounded-xl border border-slate-300 bg-white px-3 text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-colors w-full;
+    @apply h-9 text-xs rounded-md border border-slate-200 bg-white px-3 text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none transition-shadow w-full;
   }
 
   .card-base {
-    @apply bg-white rounded-2xl border border-slate-200 shadow-sm;
+    @apply bg-white rounded-lg border border-slate-200;
   }
 
   .badge-emerald {

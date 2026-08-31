@@ -92,7 +92,7 @@ export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
       {/* Brand Header */}
       <div className="h-14 px-4 flex items-center justify-between border-b border-slate-100">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-emerald-600 p-1 flex items-center justify-center text-white shadow-sm ring-1 ring-emerald-500/20">
+          <div className="w-8 h-8 rounded-lg bg-emerald-600 p-1 flex items-center justify-center text-white  ring-1 ring-emerald-500/20">
             <svg viewBox="0 0 512 512" fill="none" className="w-full h-full">
               <path d="M120 180L180 340L256 220L332 340L392 180" stroke="#FFFFFF" strokeWidth="52" strokeLinecap="round" strokeLinejoin="round" />
               <circle cx="392" cy="180" r="32" fill="#34d399" />
@@ -132,9 +132,9 @@ export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
               href={item.href}
               onClick={onCloseMobile}
               className={cn(
-                'w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition-all',
+                'w-full flex items-center justify-between px-2.5 py-2 rounded-md text-xs font-semibold transition-all',
                 isActive
-                  ? 'bg-emerald-50 text-emerald-700 shadow-sm'
+                  ? 'bg-emerald-50 text-emerald-700 '
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
               )}
             >
@@ -156,10 +156,10 @@ export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
       {/* User & Footer Info */}
       <div className="p-3 border-t border-slate-100 space-y-2">
         <div className="flex items-center gap-2">
-          <PWAInstallPrompt className="flex-1 py-1.5 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all" />
+          <PWAInstallPrompt className="flex-1 py-1.5 px-2.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5  transition-all" />
           <button
             onClick={() => setIsPermissionsOpen(true)}
-            className="p-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 transition-all shrink-0"
+            className="p-1.5 rounded-md bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 transition-all shrink-0"
             title="Device Permissions"
           >
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
@@ -167,9 +167,9 @@ export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
         </div>
 
         {user && (
-          <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200">
+          <div className="flex items-center justify-between gap-2 p-2 rounded-md bg-slate-50 border border-slate-200">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm">
+              <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0 ">
                 {user.name ? user.name.substring(0, 1).toUpperCase() : 'G'}
               </div>
               <div className="min-w-0">
@@ -216,7 +216,7 @@ export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
             className="fixed inset-0 bg-black/40 backdrop-blur-sm"
             onClick={onCloseMobile}
           />
-          <div className="relative z-50 w-60 max-w-[80vw] h-full shadow-2xl">
+          <div className="relative z-50 w-60 max-w-[80vw] h-full shadow-lg">
             {sidebarContent}
           </div>
         </div>

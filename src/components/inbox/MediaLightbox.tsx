@@ -52,28 +52,28 @@ export function MediaLightbox({ mediaUrl, mediaType, caption, onClose }: MediaLi
       </div>
 
       {/* Main Content */}
-      <div className="max-w-4xl max-h-[80vh] flex items-center justify-center overflow-hidden rounded-2xl">
+      <div className="max-w-4xl max-h-[80vh] flex items-center justify-center overflow-hidden rounded-lg">
         {mediaType === 'image' ? (
           <img
             src={mediaUrl}
             alt={caption || 'Preview'}
-            className="max-w-full max-h-[75vh] object-contain rounded-xl shadow-2xl"
+            className="max-w-full max-h-[75vh] object-contain rounded-md shadow-lg"
           />
         ) : mediaType === 'video' ? (
           <video
             src={mediaUrl}
             controls
             autoPlay
-            className="max-w-full max-h-[75vh] object-contain rounded-xl shadow-2xl"
+            className="max-w-full max-h-[75vh] object-contain rounded-md shadow-lg"
           />
         ) : (
-          <div className="p-8 bg-slate-900 text-white rounded-2xl border border-slate-800 text-center space-y-4">
+          <div className="p-8 bg-slate-900 text-white rounded-lg border border-slate-800 text-center space-y-4">
             <p className="text-sm font-semibold">Document Preview</p>
             <a
               href={mediaUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-xs font-bold"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-md text-xs font-bold"
             >
               <Download className="w-4 h-4" />
               <span>Download / Open Document</span>

@@ -198,7 +198,7 @@ export function Header({ onToggleMobileMenu, onOpenMetaGuide }: HeaderProps) {
         {/* User Profile & Logout */}
         {user && (
           <div className="flex items-center gap-2 pl-2 border-l border-slate-200 ml-1">
-            <div className="w-7 h-7 rounded-full bg-slate-900 text-white font-bold text-[11px] flex items-center justify-center shrink-0 shadow-sm ring-1 ring-slate-800">
+            <div className="w-7 h-7 rounded-full bg-slate-900 text-white font-bold text-[11px] flex items-center justify-center shrink-0  ring-1 ring-slate-800">
               {user.name ? user.name.substring(0, 1).toUpperCase() : 'G'}
             </div>
             <div className="hidden xl:block text-left min-w-0 max-w-[120px]">

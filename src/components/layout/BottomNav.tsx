@@ -47,7 +47,7 @@ export function BottomNav() {
           <Link
             key={item.href}
             href={item.href}
-            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all relative ${
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-md transition-all relative ${
               isActive
                 ? 'text-emerald-600 font-bold'
                 : 'text-slate-500 hover:text-slate-900'
@@ -56,7 +56,7 @@ export function BottomNav() {
             <div className="relative">
               <Icon className={`w-5 h-5 ${isActive ? 'scale-105' : ''} transition-transform`} />
               {item.hasBadge && unreadCount > 0 && (
-                <span className="absolute -top-1 -right-2 bg-emerald-600 text-white font-extrabold text-[10px] w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
+                <span className="absolute -top-1 -right-2 bg-emerald-600 text-white font-extrabold text-[10px] w-4 h-4 rounded-full flex items-center justify-center ">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}

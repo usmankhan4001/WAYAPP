@@ -124,7 +124,7 @@ function InboxContent() {
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setIsNewChatOpen(true)}
-              className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 transition-all active:scale-95"
+              className="p-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs  flex items-center gap-1.5 transition-all active:scale-95"
               title="Start a new WhatsApp chat"
             >
               <UserPlus className="w-4 h-4" />
@@ -142,7 +142,7 @@ function InboxContent() {
               placeholder="Search chats or phone..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-[#f0f2f5] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
+              className="w-full pl-8 pr-3 py-2 text-xs rounded-md border border-slate-200 bg-[#f0f2f5] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
             />
           </div>
 
@@ -151,7 +151,7 @@ function InboxContent() {
               onClick={() => setFilter('all')}
               className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 ${
                 filter === 'all'
-                  ? 'bg-emerald-600 text-white shadow-sm'
+                  ? 'bg-emerald-600 text-white '
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -161,7 +161,7 @@ function InboxContent() {
               onClick={() => setFilter('unread')}
               className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center gap-1 ${
                 filter === 'unread'
-                  ? 'bg-emerald-600 text-white shadow-sm'
+                  ? 'bg-emerald-600 text-white '
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -217,7 +217,7 @@ function InboxContent() {
                   }`}
                 >
                   {/* WhatsApp Profile Avatar */}
-                  <div className="w-11 h-11 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
+                  <div className="w-11 h-11 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shrink-0 ">
                     {contactName.charAt(0).toUpperCase()}
                   </div>
 

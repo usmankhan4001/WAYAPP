@@ -102,7 +102,7 @@ export function VoiceNoteRecorder({ onSendVoiceNote, onCancel }: VoiceNoteRecord
 
   if (error) {
     return (
-      <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center justify-between gap-3">
+      <div className="p-3 rounded-md bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center justify-between gap-3">
         <span>{error}</span>
         <button
           type="button"
@@ -116,7 +116,7 @@ export function VoiceNoteRecorder({ onSendVoiceNote, onCancel }: VoiceNoteRecord
   }
 
   return (
-    <div className="p-3 rounded-xl bg-slate-900 text-white flex items-center justify-between gap-3 shadow-lg border border-slate-800 animate-in fade-in slide-in-from-bottom duration-200">
+    <div className="p-3 rounded-md bg-slate-900 text-white flex items-center justify-between gap-3 shadow-lg border border-slate-800 animate-in fade-in slide-in-from-bottom duration-200">
       {/* Recording Indicator & Timer */}
       <div className="flex items-center gap-3">
         <div className="w-3 h-3 rounded-full bg-rose-500 animate-pulse" />
