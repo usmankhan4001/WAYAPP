@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import {
   MessageSquare,
   Send,
@@ -22,10 +22,17 @@ const BOTTOM_NAV_ITEMS = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { unreadCount } = useNotifications();
 
-  // Hide on login, register, and completely hide on inbox so it NEVER covers the chat typing bar!
-  if (pathname === '/login' || pathname === '/register' || pathname.startsWith('/inbox')) {
+  // Hide on auth routes
+  if (pathname === '/login' || pathname === '/register') {
+    return null;
+  }
+
+  // Hide on inbox ONLY if a chat is actually open (contactId is present)
+  // This allows the BottomNav to appear natively on the mobile Inbox list view
+  if (pathname.startsWith('/inbox') && searchParams.get('contactId')) {
     return null;
   }
 

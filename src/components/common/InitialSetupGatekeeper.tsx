@@ -137,322 +137,106 @@ export function InitialSetupGatekeeper({ onActivationSuccess }: InitialSetupGate
       </div>
 
       {/* Main Setup Card */}
-      <div className="card-base max-w-2xl w-full bg-white shadow-xl overflow-hidden border border-slate-200">
-        {/* Progress Tracker Bar */}
-        <div className="grid grid-cols-3 border-b border-slate-200 bg-slate-50/70 text-xs">
-          <div
-            className={`p-3.5 flex items-center gap-2 border-r border-slate-200 ${
-              step === 1 ? 'bg-white font-semibold text-slate-900' : 'text-slate-500'
-            }`}
-          >
-            <span
-              className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-                step >= 1 ? 'bg-slate-900 text-white' : 'bg-slate-200'
-              }`}
-            >
-              1
-            </span>
-            <span className="truncate">Credentials</span>
+      <div className="card-base max-w-lg w-full bg-white shadow-xl overflow-hidden border border-slate-200">
+        <div className="p-6 md:p-8 space-y-6">
+          <div className="text-center space-y-2">
+            <h2 className="text-xl font-bold text-slate-900">Connect your WhatsApp</h2>
+            <p className="text-sm text-slate-500">
+              Link your business number to start chatting with customers and sending broadcast campaigns.
+            </p>
           </div>
 
-          <div
-            className={`p-3.5 flex items-center gap-2 border-r border-slate-200 ${
-              step === 2 ? 'bg-white font-semibold text-slate-900' : 'text-slate-500'
-            }`}
-          >
-            <span
-              className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-                step >= 2 ? 'bg-slate-900 text-white' : 'bg-slate-200'
-              }`}
+          {/* Primary Action: Embedded Signup */}
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => alert('Meta Embedded Signup OAuth Flow will launch here.')}
+              className="w-full h-12 rounded-xl bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold shadow-md flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
             >
-              2
-            </span>
-            <span className="truncate">Verification</span>
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+              <span>Continue with Facebook</span>
+            </button>
+            <p className="text-[11px] text-center text-slate-400 font-medium">
+              1-Click Setup. We automatically configure your Meta APIs and webhooks.
+            </p>
           </div>
 
-          <div
-            className={`p-3.5 flex items-center gap-2 ${
-              step === 3 ? 'bg-white font-semibold text-slate-900' : 'text-slate-500'
-            }`}
-          >
-            <span
-              className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-                step >= 3 ? 'bg-slate-900 text-white' : 'bg-slate-200'
-              }`}
-            >
-              3
-            </span>
-            <span className="truncate">Activation</span>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-slate-200" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-slate-400 font-bold">OR</span>
+            </div>
           </div>
+
+          {/* Secondary Action: Virtual Simulator */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsMockMode(true);
+              setStep(2); // Jump directly to success test screen for simulator
+              handleCompleteActivation(); // Auto activate mock mode
+            }}
+            className="w-full h-11 rounded-xl border-2 border-emerald-100 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Try Virtual Simulator (Instant Demo)</span>
+          </button>
+          
+          {/* Error Alert */}
+          {error && (
+            <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Advanced Manual Setup Accordion */}
+          <div className="pt-4 mt-4 border-t border-slate-100">
+            <details className="group">
+              <summary className="text-xs font-semibold text-slate-500 cursor-pointer list-none flex items-center gap-1 hover:text-slate-800">
+                <ShieldCheck className="w-4 h-4" />
+                <span>Advanced: Manual API Configuration</span>
+                <span className="ml-auto transition group-open:rotate-180">▼</span>
+              </summary>
+              <div className="pt-4 space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Phone Number ID</label>
+                  <input type="text" placeholder="e.g. 100654321987654" value={phoneNumberId} onChange={(e) => setPhoneNumberId(e.target.value)} className="input-base font-mono" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">WABA ID</label>
+                  <input type="text" placeholder="e.g. 100987654321098" value={wabaId} onChange={(e) => setWabaId(e.target.value)} className="input-base font-mono" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Permanent Access Token</label>
+                  <input type="password" placeholder="EAAG..." value={accessToken} onChange={(e) => setAccessToken(e.target.value)} className="input-base font-mono" />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleTestHandshake}
+                  disabled={isTesting || !phoneNumberId || !wabaId || !accessToken}
+                  className="btn-primary w-full mt-2"
+                >
+                  {isTesting ? 'Verifying...' : 'Verify Manual Credentials'}
+                </button>
+                {testResult && (
+                  <button
+                    type="button"
+                    onClick={handleCompleteActivation}
+                    className="btn-primary w-full bg-slate-900 hover:bg-slate-800"
+                  >
+                    Complete Manual Activation
+                  </button>
+                )}
+              </div>
+            </details>
+          </div>
+
         </div>
-
-        {/* Error Alert */}
-        {error && (
-          <div className="m-5 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {/* STEP 1: Enter Credentials */}
-        {step === 1 && (
-          <div className="p-6 space-y-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-slate-900">Step 1: Meta Cloud API Credentials</h3>
-                <p className="text-xs text-slate-500">
-                  Enter your WhatsApp Business account credentials from Meta Developer Portal.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsGuideOpen(true)}
-                className="btn-secondary h-8 px-2.5 text-xs text-emerald-700"
-              >
-                <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Setup Guide</span>
-              </button>
-            </div>
-
-            {/* Virtual Simulator Mode Toggle */}
-            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between">
-              <div>
-                <span className="text-xs font-medium text-slate-900 block">Virtual Simulator / Mock Mode</span>
-                <span className="text-[11px] text-slate-500">
-                  Test and explore the platform locally without live Meta charges or credentials.
-                </span>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isMockMode}
-                  onChange={(e) => setIsMockMode(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
-              </label>
-            </div>
-
-            {!isMockMode && (
-              <div className="space-y-3.5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Phone Number ID <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 100654321987654"
-                      value={phoneNumberId}
-                      onChange={(e) => setPhoneNumberId(e.target.value)}
-                      className="input-base font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      WABA ID <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 100987654321098"
-                      value={wabaId}
-                      onChange={(e) => setWabaId(e.target.value)}
-                      className="input-base font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
-                    Permanent System User Access Token <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    placeholder="EAAG..."
-                    value={accessToken}
-                    onChange={(e) => setAccessToken(e.target.value)}
-                    className="input-base font-mono"
-                  />
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Generated under Meta Business Settings &gt; System Users with <code>whatsapp_business_messaging</code> permissions.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-xs text-slate-400 font-mono">Meta Graph API v21.0</span>
-              <button
-                type="button"
-                onClick={handleTestHandshake}
-                disabled={isTesting}
-                className="btn-primary px-4"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isTesting ? 'animate-spin' : ''}`} />
-                <span>{isTesting ? 'Verifying with Meta...' : 'Verify Connection'}</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 2: Live Verification Result */}
-        {step === 2 && (
-          <div className="p-6 space-y-5">
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900">Step 2: Meta Connection Verified</h3>
-              <p className="text-xs text-slate-500">
-                Your Meta WhatsApp credentials were successfully validated.
-              </p>
-            </div>
-
-            <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 space-y-3">
-              <div className="flex items-center gap-2 text-emerald-800 font-semibold text-xs">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>{testResult?.message || 'Meta Cloud API Connected'}</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1 border-t border-emerald-200/80">
-                <div>
-                  <span className="text-slate-500 block text-[11px]">Business Name:</span>
-                  <span className="font-medium text-slate-900">
-                    {testResult?.phoneDetails?.verified_name || businessName}
-                  </span>
-                </div>
-
-                <div>
-                  <span className="text-slate-500 block text-[11px]">Phone Number:</span>
-                  <span className="font-mono font-medium text-slate-900">
-                    {testResult?.phoneDetails?.display_phone_number || (isMockMode ? '+1 (555) 019-9823' : 'Verified')}
-                  </span>
-                </div>
-
-                <div>
-                  <span className="text-slate-500 block text-[11px]">Quality Rating:</span>
-                  <span className="badge-emerald mt-0.5">
-                    {testResult?.phoneDetails?.quality_rating || 'GREEN (High)'}
-                  </span>
-                </div>
-
-                <div>
-                  <span className="text-slate-500 block text-[11px]">Gateway Status:</span>
-                  <span className="font-medium text-emerald-700">Authenticated & Ready</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="btn-secondary"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Back</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setStep(3)}
-                className="btn-primary"
-              >
-                <span>Next: Webhook & Activation</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 3: Webhook Verification & Activation */}
-        {step === 3 && (
-          <div className="p-6 space-y-5">
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900">Step 3: Webhook Configuration & Final Activation</h3>
-              <p className="text-xs text-slate-500">
-                Configure your webhook callback to receive delivery receipts (double blue ticks) and inbound customer replies.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Webhook Callback URL</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    readOnly
-                    value={webhookUrl}
-                    className="input-base font-mono bg-slate-50 text-slate-600"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(webhookUrl);
-                      setCopiedWebhook(true);
-                      setTimeout(() => setCopiedWebhook(false), 2000);
-                    }}
-                    className="btn-secondary px-3"
-                  >
-                    {copiedWebhook ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedWebhook ? 'Copied' : 'Copy'}</span>
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Webhook Verify Token</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={webhookVerifyToken}
-                    onChange={(e) => setWebhookVerifyToken(e.target.value)}
-                    className="input-base font-mono"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(webhookVerifyToken);
-                      setCopiedToken(true);
-                      setTimeout(() => setCopiedToken(false), 2000);
-                    }}
-                    className="btn-secondary px-3"
-                  >
-                    {copiedToken ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedToken ? 'Copied' : 'Copy'}</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-600">
-              <p className="font-medium text-slate-800 mb-0.5">Ready to go live:</p>
-              <p className="text-[11px] text-slate-500">
-                Clicking below will activate the Meta Gateway and unlock your broadcast campaigns, template manager, and 2-way inbox.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setStep(2)}
-                className="btn-secondary"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Back</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleCompleteActivation}
-                disabled={isActivating}
-                className="btn-primary px-5"
-              >
-                <Lock className="w-3.5 h-3.5" />
-                <span>{isActivating ? 'Activating Gateway...' : 'Activate & Launch Platform'}</span>
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Guide Modal */}

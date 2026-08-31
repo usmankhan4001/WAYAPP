@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   MessageSquare,
   Search,
@@ -68,6 +68,10 @@ function InboxContent() {
           }
         })
         .catch(() => {});
+    } else {
+      if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+        setSelectedContact(null);
+      }
     }
   }, [urlContactId]);
 
@@ -80,10 +84,12 @@ function InboxContent() {
     };
   }, [fetchConversations]);
 
+  const router = useRouter();
+
   const handleSelect = (conv: any) => {
     const contactObj = conv.contact || conv;
-    setSelectedContact(contactObj);
-    setSelectedConversation(conv.id ? conv : null);
+    // Native app feel: push to router so the mobile Back button returns to the list
+    router.push(`/inbox?contactId=${contactObj.id}`);
   };
 
   return (
@@ -263,7 +269,7 @@ function InboxContent() {
           <ChatWindow
             contact={selectedContact}
             onRefreshList={() => fetchConversations()}
-            onBackMobile={() => setSelectedContact(null)}
+            onBackMobile={() => router.push('/inbox')}
           />
         ) : (
           <div className="h-full w-full flex flex-col items-center justify-center p-8 text-center bg-[#f0f2f5] space-y-4">

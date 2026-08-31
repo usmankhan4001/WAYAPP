@@ -104,8 +104,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </main>
         </div>
 
-        {/* WhatsApp Mobile App Bottom Navigation (Hidden on /inbox to keep typing bar unobstructed) */}
-        <BottomNav />
+        {/* WhatsApp Mobile App Bottom Navigation */}
+        <React.Suspense fallback={null}>
+          <BottomNav />
+        </React.Suspense>
 
         {/* Meta WhatsApp Cloud API Setup & Go-Live Guide Modal */}
         <MetaSetupGuideModal
