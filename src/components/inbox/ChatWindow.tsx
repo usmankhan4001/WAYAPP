@@ -38,6 +38,10 @@ import {
   CheckCircle2,
   UserCheck,
   Building,
+  Copy,
+  Forward,
+  Edit2,
+  Search,
 } from 'lucide-react';
 import { formatDateTime, formatTimeAgo } from '@/lib/utils';
 import { InfoTooltip, Tooltip } from '@/components/ui/Tooltip';
@@ -87,6 +91,17 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
   const [isDragging, setIsDragging] = useState(false);
   const [isMockMode, setIsMockMode] = useState(false);
   const [isSimulatingInbound, setIsSimulatingInbound] = useState(false);
+
+  // Message Actions State
+  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editMessageText, setEditMessageText] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [forwardingMessage, setForwardingMessage] = useState<any | null>(null);
+  const [isForwardModalOpen, setIsForwardModalOpen] = useState(false);
+  const [forwardContacts, setForwardContacts] = useState<any[]>([]);
+  const [forwardSearch, setForwardSearch] = useState('');
+  const [isForwarding, setIsForwarding] = useState(false);
 
   // Active Modules State
   const [modules, setModules] = useState<{
@@ -171,6 +186,100 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
       })
       .catch(() => {});
   }, []);
+
+  const handleCopyMessage = (body: string) => {
+    if (!body) return;
+    navigator.clipboard.writeText(body);
+  };
+
+  const handleOpenForward = (msg: any) => {
+    setForwardingMessage(msg);
+    setIsForwardModalOpen(true);
+    setForwardSearch('');
+    // Initial fetch of recent contacts to forward to
+    fetch('/api/chat?limit=5')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.conversations) {
+          setForwardContacts(data.conversations.map((c: any) => c.contact).filter(Boolean));
+        }
+      })
+      .catch(() => {});
+  };
+
+  const handleSearchContactsForForward = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setForwardSearch(val);
+    fetch(`/api/chat?search=${encodeURIComponent(val)}&limit=10`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.conversations) {
+          setForwardContacts(data.conversations.map((c: any) => c.contact).filter(Boolean));
+        }
+      })
+      .catch(() => {});
+  };
+
+  const handleForwardSubmit = async (targetContactId: string) => {
+    if (!targetContactId || !forwardingMessage) return;
+    setIsForwarding(true);
+    try {
+      const msgType = forwardingMessage.messageType || 'text';
+      const isMedia = msgType === 'image' || msgType === 'video' || msgType === 'audio' || msgType === 'document' || msgType === 'voice';
+      
+      const payload: any = {
+        contactId: targetContactId,
+      };
+
+      if (isMedia) {
+        payload.mediaType = msgType === 'voice' ? 'audio' : msgType;
+        payload.mediaUrl = forwardingMessage.mediaUrl;
+        payload.caption = forwardingMessage.body;
+      } else {
+        payload.text = forwardingMessage.body;
+      }
+
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        setIsForwardModalOpen(false);
+        setForwardingMessage(null);
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to forward message.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error forwarding message.');
+    } finally {
+      setIsForwarding(false);
+    }
+  };
+
+  const handleEditSubmit = async (msgId: string) => {
+    if (!editMessageText.trim()) return;
+    setIsSavingEdit(true);
+    try {
+      const res = await fetch(`/api/chat/message/${msgId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: editMessageText }),
+      });
+      if (res.ok) {
+        setEditingMessageId(null);
+        fetchMessages();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to edit message.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error editing message.');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
   const fetchMessages = () => {
     if (!contact?.id) return;
@@ -844,129 +953,194 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
               return (
                 <div
                   key={m.id}
-                  className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'}`}
+                  className={`flex flex-col group/msg ${isOutbound ? 'items-end' : 'items-start'}`}
+                  onMouseEnter={() => setHoveredMessageId(m.id)}
+                  onMouseLeave={() => setHoveredMessageId(null)}
                 >
-                  <div
-                    className={`max-w-[88%] sm:max-w-[75%] md:max-w-[65%] rounded-2xl p-3 md:p-3.5 shadow-sm space-y-1.5 transition-all ${
-                      isOutbound
-                        ? 'bg-[#d9fdd3] text-slate-900 border border-[#c3f4bb] rounded-tr-xs ml-auto'
-                        : 'bg-white text-slate-900 border border-slate-200/90 rounded-tl-xs mr-auto'
-                    }`}
-                  >
-                    {/* Media Type: Image */}
-                    {msgType === 'image' && hasMedia && (
-                      <div
-                        onClick={() =>
-                          setLightboxMedia({
-                            url: m.mediaUrl,
-                            type: 'image',
-                            caption: m.body !== 'Photo' ? m.body : undefined,
-                          })
-                        }
-                        className="cursor-pointer overflow-hidden rounded-xl bg-slate-950/10 group relative border border-black/5"
-                      >
-                        <img
-                          src={m.mediaUrl}
-                          alt="WhatsApp Image"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLElement).style.display = 'none';
-                          }}
-                          className="max-h-64 w-full object-cover rounded-xl group-hover:scale-102 transition-transform duration-200"
-                        />
-                        <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
-                          <ExternalLink className="w-5 h-5" />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Media Type: Video */}
-                    {msgType === 'video' && hasMedia && (
-                      <div className="overflow-hidden rounded-xl bg-black max-h-64 border border-black/10">
-                        <video
-                          src={m.mediaUrl}
-                          controls
-                          className="w-full max-h-64 rounded-xl"
-                        />
-                      </div>
-                    )}
-
-                    {/* Media Type: Audio / Voice Note */}
-                    {(msgType === 'audio' || msgType === 'voice') && hasMedia && (
-                      <AudioVoicePlayer src={m.mediaUrl} isOutbound={isOutbound} />
-                    )}
-
-                    {/* Media Type: Document / PDF */}
-                    {msgType === 'document' && hasMedia && (
-                      <div
-                        className={`flex items-center gap-3 p-2.5 rounded-xl border ${
-                          isOutbound
-                            ? 'bg-[#c3f4bb]/70 border-[#b2e8a9] text-slate-900'
-                            : 'bg-slate-50 border-slate-200 text-slate-900'
-                        }`}
-                      >
-                        <FileIcon className="w-8 h-8 text-rose-500 shrink-0" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold truncate">
-                            {m.body && m.body !== 'Document' ? m.body : 'Attached Document'}
-                          </p>
-                          <p className="text-[10px] opacity-70">PDF / Document File</p>
-                        </div>
-                        <a
-                          href={m.mediaUrl}
-                          download
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`p-2 rounded-lg transition-all ${
-                            isOutbound
-                              ? 'bg-[#005c4b] hover:bg-[#004739] text-white shadow-sm'
-                              : 'bg-slate-200 hover:bg-slate-300 text-slate-800'
-                          }`}
-                        >
-                          <Download className="w-4 h-4" />
-                        </a>
-                      </div>
-                    )}
-
-                    {/* Media Type: Location */}
-                    {msgType === 'location' && (
-                      <div className="flex items-start gap-2.5 p-2 rounded-xl bg-slate-100 text-slate-800 border border-slate-200">
-                        <MapPin className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-                        <div className="text-xs font-medium">{m.body}</div>
-                      </div>
-                    )}
-
-                    {/* Text Body / Caption */}
-                    {m.body &&
-                      msgType !== 'audio' &&
-                      msgType !== 'voice' &&
-                      (msgType !== 'image' || m.body !== 'Photo') &&
-                      (msgType !== 'video' || m.body !== 'Video') &&
-                      (msgType !== 'document' || !hasMedia) &&
-                      msgType !== 'location' && (
-                        <p className="text-[13px] whitespace-pre-wrap leading-relaxed font-sans text-slate-900">
-                          {m.body}
-                        </p>
-                      )}
-
-                    {/* Message Timestamp & Status */}
+                  <div className={`flex items-center gap-2 max-w-full ${isOutbound ? 'flex-row-reverse' : 'flex-row'}`}>
                     <div
-                      className={`flex items-center justify-end gap-1 text-[10px] select-none pt-0.5 ${
-                        isOutbound ? 'text-slate-500' : 'text-slate-400'
+                      onClick={() => setHoveredMessageId(hoveredMessageId === m.id ? null : m.id)}
+                      className={`max-w-[88%] sm:max-w-[75%] md:max-w-[65%] rounded-2xl p-3 md:p-3.5 shadow-sm space-y-1.5 transition-all relative cursor-pointer sm:cursor-default ${
+                        isOutbound
+                          ? 'bg-[#d9fdd3] text-slate-900 border border-[#c3f4bb] rounded-tr-xs'
+                          : 'bg-white text-slate-900 border border-slate-200/90 rounded-tl-xs'
                       }`}
                     >
-                      <span className="font-mono text-[10px]">{formatDateTime(m.timestamp)}</span>
-                      {isOutbound && (
-                        <CheckCheck
-                          className={`w-3.5 h-3.5 ${
-                            m.status === 'READ'
-                              ? 'text-[#53bdeb] font-bold'
-                              : m.status === 'DELIVERED'
-                              ? 'text-slate-500'
-                              : 'text-slate-400'
-                          }`}
-                        />
+                      {/* Media Type: Image */}
+                      {msgType === 'image' && hasMedia && (
+                        <div
+                          onClick={() =>
+                            setLightboxMedia({
+                              url: m.mediaUrl,
+                              type: 'image',
+                              caption: m.body !== 'Photo' ? m.body : undefined,
+                            })
+                          }
+                          className="cursor-pointer overflow-hidden rounded-xl bg-slate-950/10 group relative border border-black/5"
+                        >
+                          <img
+                            src={m.mediaUrl}
+                            alt="WhatsApp Image"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLElement).style.display = 'none';
+                            }}
+                            className="max-h-64 w-full object-cover rounded-xl group-hover:scale-102 transition-transform duration-200"
+                          />
+                          <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                            <ExternalLink className="w-5 h-5" />
+                          </div>
+                        </div>
                       )}
+
+                      {/* Media Type: Video */}
+                      {msgType === 'video' && hasMedia && (
+                        <div className="overflow-hidden rounded-xl bg-black max-h-64 border border-black/10">
+                          <video
+                            src={m.mediaUrl}
+                            controls
+                            className="w-full max-h-64 rounded-xl"
+                          />
+                        </div>
+                      )}
+
+                      {/* Media Type: Audio / Voice Note */}
+                      {(msgType === 'audio' || msgType === 'voice') && hasMedia && (
+                        <AudioVoicePlayer src={m.mediaUrl} isOutbound={isOutbound} />
+                      )}
+
+                      {/* Media Type: Document / PDF */}
+                      {msgType === 'document' && hasMedia && (
+                        <div
+                          className={`flex items-center gap-3 p-2.5 rounded-xl border ${
+                            isOutbound
+                              ? 'bg-[#c3f4bb]/70 border-[#b2e8a9] text-slate-900'
+                              : 'bg-slate-50 border-slate-200 text-slate-900'
+                          }`}
+                        >
+                          <FileIcon className="w-8 h-8 text-rose-500 shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold truncate">
+                              {m.body && m.body !== 'Document' ? m.body : 'Attached Document'}
+                            </p>
+                            <p className="text-[10px] opacity-70">PDF / Document File</p>
+                          </div>
+                          <a
+                            href={m.mediaUrl}
+                            download
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`p-2 rounded-lg transition-all ${
+                              isOutbound
+                                ? 'bg-[#005c4b] hover:bg-[#004739] text-white shadow-sm'
+                                : 'bg-slate-200 hover:bg-slate-300 text-slate-800'
+                            }`}
+                          >
+                            <Download className="w-4 h-4" />
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Media Type: Location */}
+                      {msgType === 'location' && (
+                        <div className="flex items-start gap-2.5 p-2 rounded-xl bg-slate-100 text-slate-800 border border-slate-200">
+                          <MapPin className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+                          <div className="text-xs font-medium">{m.body}</div>
+                        </div>
+                      )}
+
+                      {/* Text Body / Caption */}
+                      {editingMessageId === m.id ? (
+                        <div className="flex flex-col gap-2 min-w-[200px]">
+                          <textarea
+                            value={editMessageText}
+                            onChange={(e) => setEditMessageText(e.target.value)}
+                            className="w-full text-[13px] rounded-lg p-2 border border-emerald-400 bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none min-h-[60px]"
+                            autoFocus
+                          />
+                          <div className="flex justify-end gap-1.5">
+                            <button
+                              onClick={() => setEditingMessageId(null)}
+                              className="px-2 py-1 text-[10px] font-bold rounded bg-slate-200 hover:bg-slate-300 text-slate-700"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => handleEditSubmit(m.id)}
+                              disabled={isSavingEdit}
+                              className="px-2 py-1 text-[10px] font-bold rounded bg-emerald-600 hover:bg-emerald-700 text-white"
+                            >
+                              {isSavingEdit ? 'Saving...' : 'Save'}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        m.body &&
+                        msgType !== 'audio' &&
+                        msgType !== 'voice' &&
+                        (msgType !== 'image' || m.body !== 'Photo') &&
+                        (msgType !== 'video' || m.body !== 'Video') &&
+                        (msgType !== 'document' || !hasMedia) &&
+                        msgType !== 'location' && (
+                          <p className="text-[13px] whitespace-pre-wrap leading-relaxed font-sans text-slate-900">
+                            {m.body}
+                          </p>
+                        )
+                      )}
+
+                      {/* Message Timestamp & Status */}
+                      <div
+                        className={`flex items-center justify-end gap-1 text-[10px] select-none pt-0.5 ${
+                          isOutbound ? 'text-slate-500' : 'text-slate-400'
+                        }`}
+                      >
+                        <span className="font-mono text-[10px]">{formatDateTime(m.timestamp)}</span>
+                        {isOutbound && (
+                          <CheckCheck
+                            className={`w-3.5 h-3.5 ${
+                              m.status === 'READ'
+                                ? 'text-[#53bdeb] font-bold'
+                                : m.status === 'DELIVERED'
+                                ? 'text-slate-500'
+                                : 'text-slate-400'
+                            }`}
+                          />
+                        )}
+                      </div>
                     </div>
+
+                    {/* Hover Actions (Copy, Forward, Edit) */}
+                    {hoveredMessageId === m.id && (
+                      <div className="flex items-center gap-1 bg-white/80 backdrop-blur-sm border border-slate-200 p-1 rounded-xl shadow-sm animate-in fade-in zoom-in duration-150">
+                        {m.body && (
+                          <button
+                            onClick={() => handleCopyMessage(m.body)}
+                            className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                            title="Copy message text"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleOpenForward(m)}
+                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Forward message"
+                        >
+                          <Forward className="w-3.5 h-3.5" />
+                        </button>
+                        {m.body && isOutbound && (
+                          <button
+                            onClick={() => {
+                              setEditingMessageId(m.id);
+                              setEditMessageText(m.body);
+                            }}
+                            className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                            title="Edit message (Local CRM only)"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -1406,6 +1580,65 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>Insert in Chat</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Forward Message Modal */}
+      {isForwardModalOpen && forwardingMessage && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl p-5 max-w-sm w-full space-y-4">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h4 className="font-bold text-sm text-slate-900 flex items-center gap-1.5">
+                <Forward className="w-4 h-4 text-blue-600" />
+                <span>Forward Message</span>
+              </h4>
+              <button onClick={() => setIsForwardModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            {/* Message Preview */}
+            <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-[11px] text-slate-700 max-h-20 overflow-y-auto italic">
+              {forwardingMessage.body ? `"${forwardingMessage.body}"` : '[Media Message]'}
+            </div>
+
+            {/* Contact Search */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-700">Select Contact</label>
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                <input
+                  type="text"
+                  placeholder="Search name or phone..."
+                  value={forwardSearch}
+                  onChange={handleSearchContactsForForward}
+                  className="w-full pl-8 pr-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Contacts List */}
+            <div className="max-h-40 overflow-y-auto space-y-1">
+              {forwardContacts.map(c => (
+                <div key={c.id} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200">
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-900 truncate">{c.firstName} {c.lastName || ''}</p>
+                    <p className="text-[10px] text-slate-500 font-mono">{c.phoneNumber}</p>
+                  </div>
+                  <button
+                    onClick={() => handleForwardSubmit(c.id)}
+                    disabled={isForwarding}
+                    className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+                  >
+                    Send
+                  </button>
+                </div>
+              ))}
+              {forwardContacts.length === 0 && (
+                <p className="text-xs text-slate-400 text-center py-2">No contacts found</p>
+              )}
             </div>
           </div>
         </div>
