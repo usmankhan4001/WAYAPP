@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "tokens:build": "tsx design-tokens/build.ts",
+    "prebuild": "npm run tokens:build",
     "build": "prisma generate && next build",
     "start": "next start",
     "worker": "tsx src/worker/index.ts",
