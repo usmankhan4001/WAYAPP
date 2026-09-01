@@ -1,132 +1,98 @@
 'use client';
 
 import React from 'react';
-import { Play, Pause, XCircle, Send, CheckCheck, Eye, MessageSquare, AlertCircle } from 'lucide-react';
+import { Play, Pause, XCircle } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import { StatusBadge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyRecord = Record<string, any>;
 
 interface LiveProgressCardProps {
-  campaign: any;
-  stats: any;
+  campaign: AnyRecord;
+  stats: AnyRecord;
   onAction: (action: 'START' | 'PAUSE' | 'RESUME' | 'CANCEL') => void;
 }
+
+const STATUS_TONE: Record<string, string> = {
+  COMPLETED: 'success',
+  RUNNING: 'info',
+  QUEUED: 'info',
+  PAUSED: 'warning',
+};
 
 export function LiveProgressCard({ campaign, stats, onAction }: LiveProgressCardProps) {
   const isRunning = campaign.status === 'RUNNING' || campaign.status === 'QUEUED';
   const isPaused = campaign.status === 'PAUSED';
   const isCompleted = campaign.status === 'COMPLETED';
 
-  const progressPercentage = campaign.totalContacts > 0
-    ? Math.min(100, Math.round(((campaign.sentCount + campaign.failedCount) / campaign.totalContacts) * 100))
-    : 0;
+  const progressPct =
+    campaign.totalContacts > 0
+      ? Math.min(100, Math.round(((campaign.sentCount + campaign.failedCount) / campaign.totalContacts) * 100))
+      : 0;
+
+  const metrics = [
+    { label: 'Sent', value: campaign.sentCount, tone: 'text-foreground' },
+    { label: `Delivered (${stats.deliveryRate}%)`, value: campaign.deliveredCount, tone: 'text-success' },
+    { label: `Read (${stats.readRate}%)`, value: campaign.readCount, tone: 'text-info' },
+    { label: `Replies (${stats.replyRate}%)`, value: campaign.repliedCount, tone: 'text-accent-foreground' },
+    { label: `Failed (${stats.failureRate}%)`, value: campaign.failedCount, tone: 'text-destructive' },
+  ];
 
   return (
-    <div className="card-base p-5 space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className="space-y-5 rounded-xl bg-card p-5 ring-1 ring-foreground/10">
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <div>
           <div className="flex items-center gap-2">
-            <span
-              className={
-                isCompleted
-                  ? 'badge-emerald'
-                  : isRunning
-                  ? 'badge-sky'
-                  : isPaused
-                  ? 'badge-amber'
-                  : 'badge-slate'
-              }
-            >
-              {campaign.status}
-            </span>
-            <span className="text-[11px] text-slate-500">
+            <StatusBadge tone={STATUS_TONE[campaign.status] ?? 'neutral'}>{campaign.status}</StatusBadge>
+            <span className="text-[0.6875rem] text-muted-foreground">
               Created {new Date(campaign.createdAt).toLocaleDateString()}
             </span>
           </div>
-          <h2 className="text-lg font-semibold text-slate-900 mt-1">{campaign.name}</h2>
+          <h2 className="mt-1 text-lg font-semibold text-foreground">{campaign.name}</h2>
         </div>
 
-        {/* Action Controls */}
         <div className="flex items-center gap-2">
           {isRunning && (
-            <button
-              onClick={() => onAction('PAUSE')}
-              className="btn-secondary h-8 px-3 text-xs text-amber-700"
-            >
-              <Pause className="w-3.5 h-3.5" />
-              <span>Pause</span>
-            </button>
+            <Button variant="outline" size="sm" onClick={() => onAction('PAUSE')}>
+              <Pause />
+              Pause
+            </Button>
           )}
-
           {isPaused && (
-            <button
-              onClick={() => onAction('RESUME')}
-              className="btn-primary h-8 px-3 text-xs"
-            >
-              <Play className="w-3.5 h-3.5" />
-              <span>Resume</span>
-            </button>
+            <Button size="sm" onClick={() => onAction('RESUME')}>
+              <Play />
+              Resume
+            </Button>
           )}
-
           {!isCompleted && campaign.status !== 'CANCELLED' && (
-            <button
-              onClick={() => onAction('CANCEL')}
-              className="btn-secondary h-8 px-3 text-xs text-rose-700"
-            >
-              <XCircle className="w-3.5 h-3.5" />
-              <span>Cancel</span>
-            </button>
+            <Button variant="outline" size="sm" onClick={() => onAction('CANCEL')} className="text-destructive">
+              <XCircle />
+              Cancel
+            </Button>
           )}
         </div>
       </div>
 
-      {/* Progress Bar */}
       <div className="space-y-1.5">
-        <div className="flex items-center justify-between text-xs font-medium text-slate-600">
+        <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
           <span>
             Dispatched {campaign.sentCount + campaign.failedCount} of {campaign.totalContacts} contacts
           </span>
-          <span className="font-mono font-semibold text-slate-900">{progressPercentage}%</span>
+          <span className="font-mono font-semibold text-foreground">{progressPct}%</span>
         </div>
-        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-emerald-600 rounded-full transition-all duration-300"
-            style={{ width: `${progressPercentage}%` }}
-          />
-        </div>
+        <Progress value={progressPct} className="w-full" />
       </div>
 
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1">
-        <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80 text-center">
-          <span className="text-[11px] text-slate-500 font-medium block mb-0.5">Sent</span>
-          <p className="text-base font-semibold text-slate-900 font-mono">{campaign.sentCount}</p>
-        </div>
-
-        <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80 text-center">
-          <span className="text-[11px] text-slate-500 font-medium block mb-0.5">
-            Delivered ({stats.deliveryRate}%)
-          </span>
-          <p className="text-base font-semibold text-emerald-700 font-mono">{campaign.deliveredCount}</p>
-        </div>
-
-        <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80 text-center">
-          <span className="text-[11px] text-slate-500 font-medium block mb-0.5">
-            Read ({stats.readRate}%)
-          </span>
-          <p className="text-base font-semibold text-sky-700 font-mono">{campaign.readCount}</p>
-        </div>
-
-        <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80 text-center">
-          <span className="text-[11px] text-slate-500 font-medium block mb-0.5">
-            Replies ({stats.replyRate}%)
-          </span>
-          <p className="text-base font-semibold text-violet-700 font-mono">{campaign.repliedCount}</p>
-        </div>
-
-        <div className="p-3 bg-slate-50 rounded-lg border border-slate-200/80 text-center">
-          <span className="text-[11px] text-slate-500 font-medium block mb-0.5">
-            Failed ({stats.failureRate}%)
-          </span>
-          <p className="text-base font-semibold text-rose-600 font-mono">{campaign.failedCount}</p>
-        </div>
+      <div className="grid grid-cols-2 gap-3 pt-1 sm:grid-cols-5">
+        {metrics.map((m) => (
+          <div key={m.label} className="rounded-lg border border-border bg-muted p-3 text-center">
+            <span className="mb-0.5 block text-[0.6875rem] font-medium text-muted-foreground">{m.label}</span>
+            <p className={`font-mono text-base font-semibold ${m.tone}`}>{m.value}</p>
+          </div>
+        ))}
       </div>
     </div>
   );
