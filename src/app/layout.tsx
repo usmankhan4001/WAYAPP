@@ -3,6 +3,10 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { AppShell } from '@/components/layout/AppShell';
 import { ToastProvider } from '@/components/ui/Toast';
+import { ThemeProvider } from '@/components/providers/ThemeProvider';
+import { SessionProvider } from '@/components/providers/SessionProvider';
+import { ConfirmProvider } from '@/lib/hooks/use-confirm';
+import { TooltipProvider } from '@/components/ui/Tooltip';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -43,7 +47,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full bg-background">
+    <html lang="en" className="h-full bg-background" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
@@ -54,11 +58,19 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
       <body className={`${inter.variable} font-sans antialiased min-h-full min-h-dvh w-full bg-background text-foreground selection:bg-brand-subtle selection:text-brand-subtle-foreground`}>
-        <ToastProvider>
-          <AppShell>
-            {children}
-          </AppShell>
-        </ToastProvider>
+        <ThemeProvider>
+          <SessionProvider>
+            <TooltipProvider>
+              <ConfirmProvider>
+                <ToastProvider>
+                  <AppShell>
+                    {children}
+                  </AppShell>
+                </ToastProvider>
+              </ConfirmProvider>
+            </TooltipProvider>
+          </SessionProvider>
+        </ThemeProvider>
         <script
           dangerouslySetInnerHTML={{
             __html: `
