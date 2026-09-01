@@ -65,11 +65,11 @@ function RegisterForm() {
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4 relative overflow-hidden">
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-md relative z-10 space-y-6">
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-600 text-white font-black text-xl shadow-lg shadow-emerald-600/30 mb-2">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary text-white font-black text-xl shadow-lg  mb-2">
             W
           </div>
           <h1 className="text-2xl font-black text-white tracking-tight">
@@ -82,8 +82,8 @@ function RegisterForm() {
 
         <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5">
           <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center gap-2.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-            <p className="text-[11px] text-slate-300">
+            <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
+            <p className="text-2xs text-slate-300">
               The first registered account is granted <strong className="text-white">Super Administrator</strong> privileges.
             </p>
           </div>
@@ -108,7 +108,7 @@ function RegisterForm() {
                   placeholder="John Doe"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950/70 text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-sans"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950/70 text-white placeholder-slate-500 text-xs focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-transparent font-sans"
                 />
               </div>
             </div>
@@ -125,7 +125,7 @@ function RegisterForm() {
                   placeholder="name@yourcompany.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950/70 text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-sans"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950/70 text-white placeholder-slate-500 text-xs focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-transparent font-sans"
                 />
               </div>
             </div>
@@ -143,7 +143,7 @@ function RegisterForm() {
                   placeholder="••••••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-700 bg-slate-950/70 text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-sans"
+                  className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-700 bg-slate-950/70 text-white placeholder-slate-500 text-xs focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-transparent font-sans"
                 />
                 <button
                   type="button"
@@ -167,7 +167,7 @@ function RegisterForm() {
                   placeholder="••••••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950/70 text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-sans"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950/70 text-white placeholder-slate-500 text-xs focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-transparent font-sans"
                 />
               </div>
             </div>
@@ -175,7 +175,7 @@ function RegisterForm() {
             <button
               type="submit"
               disabled={loading || !email.trim() || !password || !name.trim()}
-              className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+              className="w-full py-3 px-4 rounded-xl bg-primary hover:bg-primary/85 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg  disabled:opacity-50 disabled:cursor-not-allowed mt-2"
             >
               <span>{loading ? 'Creating account...' : 'Create Account'}</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -185,9 +185,9 @@ function RegisterForm() {
           <div className="text-center pt-2">
             <Link
               href="/login"
-              className="text-xs text-slate-400 hover:text-emerald-400 transition-colors"
+              className="text-xs text-slate-400 hover:text-primary transition-colors"
             >
-              Already have an account? <span className="font-semibold text-emerald-400">Sign In</span>
+              Already have an account? <span className="font-semibold text-primary">Sign In</span>
             </Link>
           </div>
         </div>
@@ -201,7 +201,7 @@ export default function RegisterPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
       }
     >

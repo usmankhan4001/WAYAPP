@@ -1,25 +1,30 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, AlertCircle } from 'lucide-react';
+import { UserPlus, AlertCircle } from 'lucide-react';
+
+import { cn } from '@/lib/utils';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyRecord = Record<string, any>;
 
 interface ContactFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  groups: any[];
-  tags: any[];
+  groups: AnyRecord[];
+  tags: AnyRecord[];
   onSaved: () => void;
-  contactToEdit?: any;
+  contactToEdit?: AnyRecord | null;
 }
 
-export function ContactFormModal({
-  isOpen,
-  onClose,
-  groups,
-  tags,
-  onSaved,
-  contactToEdit,
-}: ContactFormModalProps) {
+const fieldLabel = 'mb-1 block text-xs font-semibold text-foreground';
+const selectClass =
+  'h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
+
+export function ContactFormModal({ isOpen, onClose, groups, tags, onSaved, contactToEdit }: ContactFormModalProps) {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -29,7 +34,6 @@ export function ContactFormModal({
   const [customCompany, setCustomCompany] = useState('');
   const [customCity, setCustomCity] = useState('');
   const [status, setStatus] = useState('ACTIVE');
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,14 +43,15 @@ export function ContactFormModal({
       setFirstName(contactToEdit.firstName || '');
       setLastName(contactToEdit.lastName || '');
       setEmail(contactToEdit.email || '');
-      setSelectedGroupIds(contactToEdit.groups?.map((g: any) => g.groupId) || []);
-      setSelectedTagIds(contactToEdit.tags?.map((t: any) => t.tagId) || []);
+      setSelectedGroupIds(contactToEdit.groups?.map((g: AnyRecord) => g.groupId) || []);
+      setSelectedTagIds(contactToEdit.tags?.map((t: AnyRecord) => t.tagId) || []);
       setStatus(contactToEdit.status || 'ACTIVE');
-
-      let custom: any = {};
+      let custom: AnyRecord = {};
       try {
         custom = contactToEdit.customAttributes ? JSON.parse(contactToEdit.customAttributes) : {};
-      } catch {}
+      } catch {
+        /* noop */
+      }
       setCustomCompany(custom.company || '');
       setCustomCity(custom.city || '');
     } else {
@@ -62,18 +67,17 @@ export function ContactFormModal({
     }
   }, [contactToEdit, isOpen]);
 
-  if (!isOpen) return null;
+  const toggle = (arr: string[], set: (v: string[]) => void, id: string) =>
+    set(arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-
     try {
-      const customAttributes: Record<string, any> = {};
+      const customAttributes: AnyRecord = {};
       if (customCompany) customAttributes.company = customCompany;
       if (customCity) customAttributes.city = customCity;
-
       const res = await fetch('/api/contacts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -89,216 +93,143 @@ export function ContactFormModal({
           status,
         }),
       });
-
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || 'Failed to save contact');
-
       onSaved();
       onClose();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save contact');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden flex flex-col max-h-[85vh]">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold">
-              <UserPlus className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">
-                {contactToEdit ? 'Edit Contact' : 'Add New Contact'}
-              </h3>
-              <p className="text-xs text-slate-500">Contact information & audience tags</p>
-            </div>
+    <Modal
+      open={isOpen}
+      onOpenChange={(o) => !o && onClose()}
+      title={
+        <span className="inline-flex items-center gap-2">
+          <span className="flex size-8 items-center justify-center rounded-lg bg-brand-subtle text-brand-subtle-foreground">
+            <UserPlus className="size-4" />
+          </span>
+          {contactToEdit ? 'Edit contact' : 'Add new contact'}
+        </span>
+      }
+      description="Contact information &amp; audience tags"
+      footer={
+        <>
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" form="contact-form" disabled={loading}>
+            {loading ? 'Saving…' : 'Save contact'}
+          </Button>
+        </>
+      }
+    >
+      <form id="contact-form" onSubmit={handleSubmit} className="space-y-4">
+        {error && (
+          <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+            <AlertCircle className="size-4 shrink-0" />
+            <span>{error}</span>
           </div>
-          <button
-            onClick={onClose}
-            className="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 flex items-center justify-center transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
+        )}
+
+        <div>
+          <label className={fieldLabel}>
+            WhatsApp phone number <span className="text-destructive">*</span>
+          </label>
+          <Input
+            required
+            placeholder="e.g. +971501234567"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            className="font-mono"
+          />
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4 flex-1">
-          {error && (
-            <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              WhatsApp Phone Number <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              placeholder="e.g. +971501234567 or +12025550143"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
+            <label className={fieldLabel}>First name</label>
+            <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="John" />
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">First Name</label>
-              <input
-                type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="John"
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Last Name</label>
-              <input
-                type="text"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="Doe"
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Email (Optional)</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="john@example.com"
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Status</label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              >
-                <option value="ACTIVE">Active (Can Receive Broadcasts)</option>
-                <option value="UNSUBSCRIBED">Unsubscribed (Opted Out)</option>
-                <option value="BOUNCED">Bounced / Invalid</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Custom Attributes */}
-          <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
-            <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Company</label>
-              <input
-                type="text"
-                value={customCompany}
-                onChange={(e) => setCustomCompany(e.target.value)}
-                placeholder="Company Name"
-                className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 bg-white"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">City / Region</label>
-              <input
-                type="text"
-                value={customCity}
-                onChange={(e) => setCustomCity(e.target.value)}
-                placeholder="Dubai, UAE"
-                className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 bg-white"
-              />
-            </div>
-          </div>
-
-          {/* Group assignment */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Assign Groups</label>
-            <div className="flex flex-wrap gap-2">
-              {groups.map((g) => {
-                const isSelected = selectedGroupIds.includes(g.id);
-                return (
-                  <button
-                    key={g.id}
-                    type="button"
-                    onClick={() => {
-                      if (isSelected) {
-                        setSelectedGroupIds(selectedGroupIds.filter((id) => id !== g.id));
-                      } else {
-                        setSelectedGroupIds([...selectedGroupIds, g.id]);
-                      }
-                    }}
-                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
-                      isSelected
-                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                        : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
-                    }`}
-                  >
-                    {g.name}
-                  </button>
-                );
-              })}
-            </div>
+            <label className={fieldLabel}>Last name</label>
+            <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Doe" />
           </div>
+        </div>
 
-          {/* Tag assignment */}
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Assign Tags</label>
-            <div className="flex flex-wrap gap-2">
-              {tags.map((t) => {
-                const isSelected = selectedTagIds.includes(t.id);
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => {
-                      if (isSelected) {
-                        setSelectedTagIds(selectedTagIds.filter((id) => id !== t.id));
-                      } else {
-                        setSelectedTagIds([...selectedTagIds, t.id]);
-                      }
-                    }}
-                    className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
-                      isSelected
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                        : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
-                    }`}
-                  >
-                    {t.name}
-                  </button>
-                );
-              })}
-            </div>
+            <label className={fieldLabel}>Email (optional)</label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="john@example.com" />
           </div>
+          <div>
+            <label className={fieldLabel}>Status</label>
+            <select value={status} onChange={(e) => setStatus(e.target.value)} className={selectClass}>
+              <option value="ACTIVE">Active (can receive broadcasts)</option>
+              <option value="UNSUBSCRIBED">Unsubscribed (opted out)</option>
+              <option value="BOUNCED">Bounced / invalid</option>
+            </select>
+          </div>
+        </div>
 
-          <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-all"
-            >
-              {loading ? 'Saving...' : 'Save Contact'}
-            </button>
+        <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-muted p-3">
+          <div>
+            <label className={fieldLabel}>Company</label>
+            <Input value={customCompany} onChange={(e) => setCustomCompany(e.target.value)} placeholder="Company name" />
           </div>
-        </form>
-      </div>
-    </div>
+          <div>
+            <label className={fieldLabel}>City / region</label>
+            <Input value={customCity} onChange={(e) => setCustomCity(e.target.value)} placeholder="Dubai, UAE" />
+          </div>
+        </div>
+
+        <div>
+          <label className={cn(fieldLabel, 'mb-1.5')}>Assign groups</label>
+          <div className="flex flex-wrap gap-2">
+            {groups.map((g) => {
+              const sel = selectedGroupIds.includes(g.id);
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  onClick={() => toggle(selectedGroupIds, setSelectedGroupIds, g.id)}
+                  className={cn(
+                    'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                    sel ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-muted text-foreground hover:bg-accent'
+                  )}
+                >
+                  {g.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div>
+          <label className={cn(fieldLabel, 'mb-1.5')}>Assign tags</label>
+          <div className="flex flex-wrap gap-2">
+            {tags.map((t) => {
+              const sel = selectedTagIds.includes(t.id);
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => toggle(selectedTagIds, setSelectedTagIds, t.id)}
+                  className={cn(
+                    'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
+                    sel ? 'border-info bg-info text-info-foreground' : 'border-border bg-muted text-foreground hover:bg-accent'
+                  )}
+                >
+                  {t.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </form>
+    </Modal>
   );
 }

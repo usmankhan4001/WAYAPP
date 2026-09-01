@@ -1,17 +1,23 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, UserPlus, X, Phone, User, ArrowRight } from 'lucide-react';
-import { normalizePhoneNumber } from '@/lib/utils';
+import { Search, UserPlus, ArrowRight } from 'lucide-react';
+
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyRecord = Record<string, any>;
 
 interface NewChatModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectContact: (contact: any) => void;
+  onSelectContact: (contact: AnyRecord) => void;
 }
 
 export function NewChatModal({ isOpen, onClose, onSelectContact }: NewChatModalProps) {
-  const [contacts, setContacts] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<AnyRecord[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [manualPhone, setManualPhone] = useState('');
@@ -29,150 +35,110 @@ export function NewChatModal({ isOpen, onClose, onSelectContact }: NewChatModalP
       .finally(() => setLoading(false));
   }, [isOpen, search]);
 
-  if (!isOpen) return null;
-
   const handleCreateAndSelect = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualPhone.trim()) return;
-
     setCreating(true);
     setError(null);
-
     try {
       const res = await fetch('/api/contacts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phoneNumber: manualPhone.trim(),
-          firstName: manualName.trim() || undefined,
-        }),
+        body: JSON.stringify({ phoneNumber: manualPhone.trim(), firstName: manualName.trim() || undefined }),
       });
-
       const data = await res.json();
-      if (!res.ok || data.error) {
-        throw new Error(data.error || 'Failed to create contact');
-      }
-
+      if (!res.ok || data.error) throw new Error(data.error || 'Failed to create contact');
       onSelectContact(data);
       onClose();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create contact');
     } finally {
       setCreating(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
-      <div className="bg-white rounded-full border border-slate-200 shadow-lg max-w-lg w-full overflow-hidden flex flex-col max-h-[85vh]">
-        {/* Modal Header */}
-        <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-black/5">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-[#e6ffda] text-[#1c1e21] flex items-center justify-center font-normal">
-              <UserPlus className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 className="text-sm font-normal text-slate-900">Start New Conversation</h2>
-              <p className="text-[11px] text-slate-500">Pick an existing contact or enter a new number</p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
+    <Modal
+      open={isOpen}
+      onOpenChange={(o) => !o && onClose()}
+      title={
+        <span className="inline-flex items-center gap-2">
+          <span className="flex size-8 items-center justify-center rounded-lg bg-wa-bubble-out text-wa-bubble-out-foreground">
+            <UserPlus className="size-4" />
+          </span>
+          Start new conversation
+        </span>
+      }
+      description="Pick an existing contact or enter a new number"
+    >
+      <div className="space-y-3">
         {error && (
-          <div className="p-3 bg-rose-50 border-b border-rose-200 text-rose-800 text-xs">
-            {error}
-          </div>
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">{error}</div>
         )}
 
-        {/* Search Existing Contacts */}
-        <div className="p-4 border-b border-slate-100 bg-white">
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search contacts by name, email, or phone..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 text-xs rounded-full border border-slate-300 bg-black/5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
-            />
-          </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search contacts by name, email or phone…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8"
+          />
         </div>
 
-        {/* Existing Contacts List */}
-        <div className="flex-1 overflow-y-auto divide-y divide-slate-100 p-2 min-h-[160px] max-h-[240px]">
+        <div className="max-h-[240px] min-h-[140px] divide-y divide-border overflow-y-auto rounded-lg border border-border">
           {loading ? (
-            <div className="py-8 flex justify-center">
-              <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+            <div className="flex justify-center py-8">
+              <div className="size-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
           ) : contacts.length === 0 ? (
-            <div className="py-6 text-center text-xs text-slate-400">
-              No contacts found matching search
-            </div>
+            <div className="py-6 text-center text-xs text-muted-foreground">No contacts found matching search</div>
           ) : (
             contacts.map((c) => {
               const name = `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Customer';
               return (
-                <div
+                <button
                   key={c.id}
+                  type="button"
                   onClick={() => {
                     onSelectContact(c);
                     onClose();
                   }}
-                  className="p-2.5 rounded-full hover:bg-black/5/70 cursor-pointer flex items-center justify-between group transition-all"
+                  className="group flex w-full items-center justify-between p-2.5 text-left transition-colors hover:bg-accent"
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-[#e6ffda] text-[#1c1e21] font-normal text-xs flex items-center justify-center shrink-0">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
                       {name.charAt(0).toUpperCase()}
-                    </div>
+                    </span>
                     <div className="min-w-0">
-                      <p className="text-xs font-normal text-slate-800 truncate">{name}</p>
-                      <p className="text-[11px] font-mono text-slate-400">{c.phoneNumber}</p>
+                      <p className="truncate text-xs font-medium text-foreground">{name}</p>
+                      <p className="font-mono text-2xs text-muted-foreground">{c.phoneNumber}</p>
                     </div>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 transition-colors shrink-0" />
-                </div>
+                  <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+                </button>
               );
             })
           )}
         </div>
 
-        {/* Manual Phone Input Form */}
-        <div className="p-4 border-t border-slate-200 bg-black/5">
-          <form onSubmit={handleCreateAndSelect} className="space-y-2.5">
-            <p className="text-[11px] font-normal text-slate-700">Or Message a New Number:</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <input
-                type="text"
-                placeholder="Phone (e.g. +971501234567)"
-                value={manualPhone}
-                onChange={(e) => setManualPhone(e.target.value)}
-                className="px-3 py-1.5 text-xs rounded-full border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
-              />
-              <input
-                type="text"
-                placeholder="Contact Name (optional)"
-                value={manualName}
-                onChange={(e) => setManualName(e.target.value)}
-                className="px-3 py-1.5 text-xs rounded-full border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={creating || !manualPhone.trim()}
-              className="w-full py-2 rounded-full bg-[#25d366] hover:bg-emerald-700 text-white font-normal text-xs  flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-              <span>{creating ? 'Starting...' : 'Start Chat with this Number'}</span>
-            </button>
-          </form>
-        </div>
+        <form onSubmit={handleCreateAndSelect} className="space-y-2.5 rounded-lg border border-border bg-muted p-3">
+          <p className="text-2xs font-medium text-foreground">Or message a new number:</p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <Input
+              placeholder="Phone (e.g. +971501234567)"
+              value={manualPhone}
+              onChange={(e) => setManualPhone(e.target.value)}
+              className="font-mono"
+            />
+            <Input placeholder="Contact name (optional)" value={manualName} onChange={(e) => setManualName(e.target.value)} />
+          </div>
+          <Button type="submit" variant="wa" className="w-full" disabled={creating || !manualPhone.trim()}>
+            <UserPlus />
+            {creating ? 'Starting…' : 'Start chat with this number'}
+          </Button>
+        </form>
       </div>
-    </div>
+    </Modal>
   );
 }

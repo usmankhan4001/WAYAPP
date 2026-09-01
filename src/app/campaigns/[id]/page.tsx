@@ -2,21 +2,20 @@
 
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, RefreshCw, Send, CheckCheck, Eye, MessageSquare, AlertCircle } from 'lucide-react';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
+
 import { LiveProgressCard } from '@/components/campaigns/LiveProgressCard';
 import { MessageLogTable } from '@/components/analytics/MessageLogTable';
 import { WhatsAppMockupPreview } from '@/components/templates/WhatsAppMockupPreview';
 import { SkeletonCard, SkeletonChart } from '@/components/ui/Skeleton';
+import { Button } from '@/components/ui/button';
 
-export default function CampaignDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const resolvedParams = use(params);
-  const id = resolvedParams.id;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyRecord = Record<string, any>;
 
-  const [data, setData] = useState<any>(null);
+export default function CampaignDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const [data, setData] = useState<AnyRecord | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchCampaign = () => {
@@ -31,6 +30,7 @@ export default function CampaignDetailPage({
     fetchCampaign();
     const interval = setInterval(fetchCampaign, 3000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const handleAction = async (action: 'START' | 'PAUSE' | 'RESUME' | 'CANCEL') => {
@@ -41,13 +41,15 @@ export default function CampaignDetailPage({
         body: JSON.stringify({ action }),
       });
       fetchCampaign();
-    } catch {}
+    } catch {
+      /* noop */
+    }
   };
 
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <SkeletonCard />
           <SkeletonCard />
           <SkeletonCard />
@@ -59,10 +61,10 @@ export default function CampaignDetailPage({
 
   if (!data?.campaign) {
     return (
-      <div className="p-8 text-center bg-white rounded-2xl border border-slate-200">
-        <p className="text-sm font-bold text-slate-800">Campaign not found</p>
-        <Link href="/campaigns" className="text-xs text-emerald-600 font-semibold mt-2 inline-block">
-          Back to Campaigns
+      <div className="rounded-xl bg-card p-8 text-center ring-1 ring-foreground/10">
+        <p className="text-sm font-semibold text-foreground">Campaign not found</p>
+        <Link href="/campaigns" className="mt-2 inline-block text-xs font-semibold text-primary">
+          Back to campaigns
         </Link>
       </div>
     );
@@ -72,44 +74,33 @@ export default function CampaignDetailPage({
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link
-            href="/campaigns"
-            className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
+          <Button variant="outline" size="icon" render={<Link href="/campaigns" />} aria-label="Back to campaigns">
+            <ArrowLeft />
+          </Button>
           <div>
-            <h1 className="text-xl font-bold text-slate-900">{campaign.name}</h1>
-            <p className="text-xs text-slate-500">
-              Template: <span className="font-mono text-slate-700">{campaign.template?.name}</span>
+            <h1 className="text-xl font-semibold tracking-tight text-foreground">{campaign.name}</h1>
+            <p className="text-xs text-muted-foreground">
+              Template: <span className="font-mono text-foreground">{campaign.template?.name}</span>
             </p>
           </div>
         </div>
-
-        <button
-          onClick={fetchCampaign}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 text-xs font-semibold"
-        >
-          <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-          <span>Refresh</span>
-        </button>
+        <Button variant="outline" size="sm" onClick={fetchCampaign}>
+          <RefreshCw />
+          Refresh
+        </Button>
       </div>
 
-      {/* Live Progress Card */}
       <LiveProgressCard campaign={campaign} stats={stats} onAction={handleAction} />
 
-      {/* Grid: Message Logs & Template Mockup Preview */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         <div className="lg:col-span-8">
           <MessageLogTable messages={campaign.messages || []} />
         </div>
-
-        <div className="lg:col-span-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center">
-          <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-4 self-start">
-            Broadcast Template
+        <div className="flex flex-col items-center rounded-xl bg-card p-5 ring-1 ring-foreground/10 lg:col-span-4">
+          <h3 className="mb-4 self-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Broadcast template
           </h3>
           <WhatsAppMockupPreview
             templateName={campaign.template?.name}

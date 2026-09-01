@@ -2,27 +2,27 @@
 
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import {
-  MessageSquare,
-  Search,
-  UserPlus,
-  Sparkles,
-  CheckCheck,
-  ShieldCheck,
-  AlertCircle,
-} from 'lucide-react';
+import { MessageSquare, Search, UserPlus, Sparkles, CheckCheck, ShieldCheck, AlertCircle } from 'lucide-react';
+
+import { cn } from '@/lib/utils';
+import { formatTimeAgo } from '@/lib/utils';
 import { ChatWindow } from '@/components/inbox/ChatWindow';
 import { NewChatModal } from '@/components/inbox/NewChatModal';
-import { formatTimeAgo } from '@/lib/utils';
 import { SkeletonConversation } from '@/components/ui/Skeleton';
+import { FilterTabs } from '@/components/ui/filter-tabs';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyRecord = Record<string, any>;
 
 function InboxContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const urlContactId = searchParams.get('contactId');
 
-  const [conversations, setConversations] = useState<any[]>([]);
-  const [selectedContact, setSelectedContact] = useState<any | null>(null);
-  const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
+  const [conversations, setConversations] = useState<AnyRecord[]>([]);
+  const [selectedContact, setSelectedContact] = useState<AnyRecord | null>(null);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [loading, setLoading] = useState(true);
@@ -32,26 +32,25 @@ function InboxContent() {
   const fetchConversations = useCallback(() => {
     const controller = new AbortController();
     const url = `/api/chat?filter=${filter}&limit=50${search ? `&search=${encodeURIComponent(search)}` : ''}`;
-
     fetch(url, { signal: controller.signal })
       .then((res) => res.json())
       .then((data) => {
         const list = Array.isArray(data) ? data : data?.conversations || [];
         setConversations(list);
-        if (list.length > 0 && !selectedContact && !urlContactId && typeof window !== 'undefined' && window.innerWidth >= 1024) {
-          const first = list[0];
-          const contactObj = first.contact || first;
-          setSelectedContact(contactObj);
-          setSelectedConversation(first.id ? first : null);
+        if (
+          list.length > 0 &&
+          !selectedContact &&
+          !urlContactId &&
+          typeof window !== 'undefined' &&
+          window.innerWidth >= 1024
+        ) {
+          setSelectedContact(list[0].contact || list[0]);
         }
       })
       .catch((err) => {
-        if (err.name !== 'AbortError') {
-          setError('Failed to load conversations. Please check your connection.');
-        }
+        if (err.name !== 'AbortError') setError('Failed to load conversations. Please check your connection.');
       })
       .finally(() => setLoading(false));
-
     return () => controller.abort();
   }, [filter, search, selectedContact, urlContactId]);
 
@@ -62,16 +61,12 @@ function InboxContent() {
         .then((list) => {
           if (Array.isArray(list)) {
             const found = list.find((c) => c.id === urlContactId);
-            if (found) {
-              setSelectedContact(found);
-            }
+            if (found) setSelectedContact(found);
           }
         })
         .catch(() => {});
-    } else {
-      if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-        setSelectedContact(null);
-      }
+    } else if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setSelectedContact(null);
     }
   }, [urlContactId]);
 
@@ -84,17 +79,13 @@ function InboxContent() {
     };
   }, [fetchConversations]);
 
-  const router = useRouter();
-
-  const handleSelect = (conv: any) => {
+  const handleSelect = (conv: AnyRecord) => {
     const contactObj = conv.contact || conv;
-    // Native app feel: push to router so the mobile Back button returns to the list
     router.push(`/inbox?contactId=${contactObj.id}`);
   };
 
   return (
-    <div className="h-full w-full flex overflow-hidden bg-[#f0f2f5] text-slate-900">
-      {/* New Chat Modal */}
+    <div className="flex h-full w-full overflow-hidden bg-muted text-foreground">
       <NewChatModal
         isOpen={isNewChatOpen}
         onClose={() => setIsNewChatOpen(false)}
@@ -104,99 +95,73 @@ function InboxContent() {
         }}
       />
 
-      {/* Left Column: WhatsApp Contact Threads Pane */}
+      {/* Conversation list */}
       <div
-        className={`w-full lg:w-96 lg:min-w-[360px] lg:max-w-[400px] h-full flex flex-col bg-white border-r border-slate-200/80 shrink-0 ${
+        className={cn(
+          'flex h-full w-full shrink-0 flex-col border-r border-border bg-card lg:w-96 lg:min-w-[360px] lg:max-w-[400px]',
           selectedContact ? 'hidden lg:flex' : 'flex'
-        }`}
+        )}
       >
-        {/* Top Header & New Chat Trigger */}
-        <div className="p-3.5 border-b border-slate-200/80 bg-slate-50/80 flex items-center justify-between shrink-0">
+        <div className="flex shrink-0 items-center justify-between border-b border-border p-3.5">
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold text-slate-900 tracking-tight">Chats</h2>
+            <h2 className="text-base font-semibold tracking-tight text-foreground">Chats</h2>
             {conversations.length > 0 && (
-              <span className="text-[11px] font-semibold bg-slate-200/80 text-slate-700 px-2 py-0.5 rounded-full">
+              <span className="rounded-full bg-muted px-2 py-0.5 text-2xs font-semibold text-muted-foreground">
                 {conversations.length}
               </span>
             )}
           </div>
-
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setIsNewChatOpen(true)}
-              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold text-xs flex items-center gap-1.5 shadow-2xs transition-all"
-              title="Start a new WhatsApp chat"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>New Chat</span>
-            </button>
-          </div>
+          <Button variant="wa" size="sm" onClick={() => setIsNewChatOpen(true)} title="Start a new WhatsApp chat">
+            <UserPlus />
+            <span>New chat</span>
+          </Button>
         </div>
 
-        {/* Search & Filter Bar */}
-        <div className="p-3 border-b border-slate-200/80 bg-white space-y-2.5 shrink-0">
+        <div className="shrink-0 space-y-2.5 border-b border-border p-3">
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search chats or phone..."
+            <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search chats or phone…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+              className="h-9 pl-8 text-xs"
             />
           </div>
-
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
-            <button
-              onClick={() => setFilter('all')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 active:scale-95 ${
-                filter === 'all'
-                  ? 'bg-emerald-600 text-white shadow-2xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setFilter('unread')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 flex items-center gap-1 active:scale-95 ${
-                filter === 'unread'
-                  ? 'bg-emerald-600 text-white shadow-2xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              <Sparkles className="w-3 h-3" />
-              <span>Unread</span>
-            </button>
-          </div>
+          <FilterTabs
+            size="sm"
+            options={[
+              { value: 'all', label: 'All' },
+              { value: 'unread', label: <span className="inline-flex items-center gap-1"><Sparkles className="size-3" />Unread</span> },
+            ]}
+            value={filter}
+            onValueChange={(v) => setFilter(v as 'all' | 'unread')}
+          />
         </div>
 
-        {/* Conversation List */}
-        <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+        <div className="flex-1 divide-y divide-border overflow-y-auto">
           {loading ? (
-            <div className="divide-y divide-slate-100">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <SkeletonConversation key={i} />
-              ))}
-            </div>
+            Array.from({ length: 6 }).map((_, i) => <SkeletonConversation key={i} />)
           ) : error ? (
-            <div className="p-8 text-center space-y-3">
-              <div className="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto">
-                <AlertCircle className="w-5 h-5" />
+            <div className="space-y-3 p-8 text-center">
+              <div className="mx-auto flex size-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                <AlertCircle className="size-5" />
               </div>
-              <p className="text-xs text-red-600 font-medium">{error}</p>
+              <p className="text-xs font-medium text-destructive">{error}</p>
               <button
-                onClick={() => { setError(null); fetchConversations(); }}
-                className="text-xs text-emerald-600 font-semibold hover:underline"
+                onClick={() => {
+                  setError(null);
+                  fetchConversations();
+                }}
+                className="text-xs font-semibold text-primary hover:underline"
               >
                 Retry
               </button>
             </div>
           ) : conversations.length === 0 ? (
-            <div className="p-8 text-center text-xs text-slate-400 space-y-2">
-              <MessageSquare className="w-8 h-8 text-slate-300 mx-auto mb-1" />
-              <p className="font-semibold text-slate-700">No chats found</p>
-              <p className="text-[11px] text-slate-400">Start a new conversation or adjust your search filter.</p>
+            <div className="space-y-2 p-8 text-center text-xs text-muted-foreground">
+              <MessageSquare className="mx-auto mb-1 size-8 text-muted-foreground/50" />
+              <p className="font-semibold text-foreground">No chats found</p>
+              <p className="text-2xs">Start a new conversation or adjust your search filter.</p>
             </div>
           ) : (
             conversations.map((c) => {
@@ -205,52 +170,44 @@ function InboxContent() {
               const contactName = `${contactObj.firstName || ''} ${contactObj.lastName || ''}`.trim() || 'Customer';
               const lastMsg = c.messages?.[0] || contactObj.chatMessages?.[0];
               const isOutbound = lastMsg?.direction === 'OUTBOUND';
-
               return (
                 <div
                   key={c.id || contactObj.id}
                   onClick={() => handleSelect(c)}
-                  className={`p-3.5 cursor-pointer transition-all flex items-start gap-3 select-none active:bg-slate-100 ${
-                    isSelected
-                      ? 'bg-emerald-50/70 border-l-4 border-emerald-600'
-                      : 'hover:bg-slate-50'
-                  }`}
+                  className={cn(
+                    'flex cursor-pointer select-none items-start gap-3 p-3.5 transition-colors active:bg-accent',
+                    isSelected ? 'border-l-4 border-primary bg-brand-subtle' : 'hover:bg-accent'
+                  )}
                 >
-                  {/* WhatsApp Profile Avatar */}
-                  <div className="w-11 h-11 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs ring-2 ring-emerald-100">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
                     {contactName.charAt(0).toUpperCase()}
                   </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1 mb-0.5">
-                      <span className="text-xs font-semibold text-slate-900 truncate">{contactName}</span>
-                      <span className="text-[10px] text-slate-400 shrink-0 font-mono">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-0.5 flex items-center justify-between gap-1">
+                      <span className="truncate text-xs font-semibold text-foreground">{contactName}</span>
+                      <span className="shrink-0 font-mono text-2xs text-muted-foreground">
                         {c.lastMessageAt ? formatTimeAgo(new Date(c.lastMessageAt)) : ''}
                       </span>
                     </div>
-
-                    <div className="flex items-center gap-1 text-[11px] text-slate-500 truncate mb-1">
+                    <div className="mb-1 flex items-center gap-1 truncate text-2xs text-muted-foreground">
                       {isOutbound && (
                         <CheckCheck
-                          className={`w-3.5 h-3.5 shrink-0 ${
+                          className={cn(
+                            'size-3.5 shrink-0',
                             lastMsg?.status === 'READ'
-                              ? 'text-[#53bdeb]'
+                              ? 'text-info'
                               : lastMsg?.status === 'DELIVERED'
-                              ? 'text-slate-400'
-                              : 'text-slate-300'
-                          }`}
+                              ? 'text-muted-foreground'
+                              : 'text-muted-foreground/50'
+                          )}
                         />
                       )}
-                      <span className="truncate">{lastMsg?.body || 'Media Attachment'}</span>
+                      <span className="truncate">{lastMsg?.body || 'Media attachment'}</span>
                     </div>
-
                     <div className="flex items-center justify-between gap-1">
-                      <span className="text-[10px] font-mono text-slate-400 truncate">
-                        {contactObj.phoneNumber}
-                      </span>
-
+                      <span className="truncate font-mono text-2xs text-muted-foreground">{contactObj.phoneNumber}</span>
                       {c.unreadCount > 0 && (
-                        <span className="min-w-4 h-4 px-1.5 rounded-full bg-emerald-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0 shadow-xs">
+                        <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1.5 text-2xs font-bold text-primary-foreground">
                           {c.unreadCount}
                         </span>
                       )}
@@ -263,8 +220,8 @@ function InboxContent() {
         </div>
       </div>
 
-      {/* Right Column: Full-Height Native WhatsApp Chat Window */}
-      <div className={`flex-1 h-full flex flex-col min-w-0 bg-[#efeae2] ${selectedContact ? 'flex' : 'hidden lg:flex'}`}>
+      {/* Chat window */}
+      <div className={cn('flex h-full min-w-0 flex-1 flex-col bg-chat-canvas', selectedContact ? 'flex' : 'hidden lg:flex')}>
         {selectedContact ? (
           <ChatWindow
             contact={selectedContact}
@@ -272,18 +229,18 @@ function InboxContent() {
             onBackMobile={() => router.push('/inbox')}
           />
         ) : (
-          <div className="h-full w-full flex flex-col items-center justify-center p-8 text-center bg-slate-50 space-y-4">
-            <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-emerald-600 shadow-sm">
-              <MessageSquare className="w-8 h-8" />
+          <div className="flex h-full w-full flex-col items-center justify-center space-y-4 bg-background p-8 text-center">
+            <div className="flex size-16 items-center justify-center rounded-2xl bg-card text-primary ring-1 ring-foreground/10">
+              <MessageSquare className="size-8" />
             </div>
             <div className="max-w-sm space-y-1">
-              <h3 className="text-base font-bold text-slate-900">WAYAPP for Web & Desktop</h3>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Select a customer thread from the left panel to begin live 1-to-1 WhatsApp chatting, send templates, or share media files.
+              <h3 className="text-base font-semibold text-foreground">WAYAPP for web &amp; desktop</h3>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Select a customer thread to begin live 1-to-1 WhatsApp chatting, send templates, or share media.
               </p>
             </div>
-            <div className="pt-4 flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+            <div className="flex items-center gap-1.5 pt-4 text-2xs font-medium text-muted-foreground">
+              <ShieldCheck className="size-3.5 text-primary" />
               <span>End-to-end Meta WhatsApp Cloud API connectivity</span>
             </div>
           </div>
@@ -297,8 +254,8 @@ export default function InboxPage() {
   return (
     <Suspense
       fallback={
-        <div className="h-full w-full flex items-center justify-center bg-black/5">
-          <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+        <div className="flex h-full w-full items-center justify-center bg-muted">
+          <div className="size-8 animate-spin rounded-full border-3 border-primary border-t-transparent" />
         </div>
       }
     >

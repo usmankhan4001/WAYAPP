@@ -18,9 +18,13 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { useConfirm } from '@/lib/hooks/use-confirm';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/EmptyState';
 
 export default function BotsManagementPage() {
+  const confirm = useConfirm();
   const [bots, setBots] = useState<any[]>([]);
   const [kbs, setKbs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -183,7 +187,7 @@ export default function BotsManagementPage() {
   };
 
   const handleDeleteBot = async (id: string) => {
-    if (!confirm('Delete this bot?')) return;
+    if (!(await confirm({ title: 'Delete this bot?', destructive: true, confirmLabel: 'Delete' }))) return;
     try {
       await fetch(`/api/bots/${id}`, { method: 'DELETE' });
       fetchBotsAndKbs();
@@ -235,8 +239,8 @@ export default function BotsManagementPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Bots & AI Agents</h1>
-        <p className="text-xs text-slate-500">
+        <h1 className="text-2xl font-black text-foreground tracking-tight">Bots & AI Agents</h1>
+        <p className="text-xs text-muted-foreground">
           Configure 24/7 AI conversation agents, Knowledge Base RAG retrieval, and keyword responders
         </p>
       </div>
@@ -244,13 +248,13 @@ export default function BotsManagementPage() {
         <div className="flex items-center gap-2">
           <Link
             href="/automations"
-            className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-500 hover:text-slate-900 transition-colors"
+            className="px-3 py-1.5 rounded-lg bg-card border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             &larr; Automations
           </Link>
           <Link
             href="/automations/knowledge"
-            className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-500 hover:text-slate-900 transition-colors"
+            className="px-3 py-1.5 rounded-lg bg-card border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             Knowledge Base &rarr;
           </Link>
@@ -261,7 +265,7 @@ export default function BotsManagementPage() {
             resetForm();
             setShowCreateModal(true);
           }}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs shadow-sm transition-all"
         >
           <Plus className="w-4 h-4" />
           <span>Create New Bot</span>
@@ -303,7 +307,7 @@ export default function BotsManagementPage() {
             return (
               <div
                 key={bot.id}
-                className={`card-base p-5 flex flex-col justify-between space-y-4 hover:border-slate-300 transition-all ${bot.isActive ? '' : 'opacity-60'}`}
+                className={`card-base p-5 flex flex-col justify-between space-y-4 hover:border-input transition-all ${bot.isActive ? '' : 'opacity-60'}`}
               >
                 <div className="space-y-3">
                   <div className="flex items-start justify-between">
@@ -314,21 +318,21 @@ export default function BotsManagementPage() {
                             ? 'bg-purple-50 border-purple-200 text-purple-600'
                             : isHttp
                             ? 'bg-blue-50 border-blue-200 text-blue-600'
-                            : 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                            : 'bg-brand-subtle border-transparent text-primary'
                         }`}
                       >
                         {isAi ? <Sparkles className="w-4 h-4" /> : isHttp ? <Globe className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-slate-900">{bot.name}</h4>
-                        <span className="text-[10px] text-slate-400 font-semibold uppercase">{bot.kind} BOT</span>
+                        <h4 className="text-sm font-bold text-foreground">{bot.name}</h4>
+                        <span className="text-2xs text-muted-foreground font-semibold uppercase">{bot.kind} BOT</span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => handleOpenTest(bot)}
-                        className="text-slate-400 hover:text-purple-600 transition-colors p-1"
+                        className="text-muted-foreground hover:text-purple-600 transition-colors p-1"
                         aria-label="Test bot"
                         title="Test bot"
                       >
@@ -336,7 +340,7 @@ export default function BotsManagementPage() {
                       </button>
                       <button
                         onClick={() => handleOpenEdit(bot)}
-                        className="text-slate-400 hover:text-slate-700 transition-colors p-1"
+                        className="text-muted-foreground hover:text-foreground transition-colors p-1"
                         aria-label="Edit bot"
                         title="Edit bot"
                       >
@@ -344,7 +348,7 @@ export default function BotsManagementPage() {
                       </button>
                       <button
                         onClick={() => handleToggleActive(bot)}
-                        className={`transition-colors p-1 ${bot.isActive ? 'text-emerald-600 hover:text-emerald-700' : 'text-slate-400 hover:text-slate-600'}`}
+                        className={`transition-colors p-1 ${bot.isActive ? 'text-primary hover:text-primary' : 'text-muted-foreground hover:text-muted-foreground'}`}
                         aria-label={bot.isActive ? 'Pause bot' : 'Activate bot'}
                         title={bot.isActive ? 'Pause bot' : 'Activate bot'}
                       >
@@ -352,7 +356,7 @@ export default function BotsManagementPage() {
                       </button>
                       <button
                         onClick={() => handleDeleteBot(bot.id)}
-                        className="text-slate-400 hover:text-rose-600 transition-colors p-1"
+                        className="text-muted-foreground hover:text-rose-600 transition-colors p-1"
                         aria-label="Delete bot"
                         title="Delete bot"
                       >
@@ -361,24 +365,24 @@ export default function BotsManagementPage() {
                     </div>
                   </div>
 
-                  <p className="text-xs text-slate-500 line-clamp-2">
+                  <p className="text-xs text-muted-foreground line-clamp-2">
                     {bot.description || 'No description provided.'}
                   </p>
 
                   {bot.knowledgeBase && (
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 border border-purple-200 text-purple-700 text-[11px]">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 border border-purple-200 text-purple-700 text-2xs">
                       <Brain className="w-3.5 h-3.5" />
                       <span>KB: {bot.knowledgeBase.name}</span>
                     </div>
                   )}
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+                <div className="pt-3 border-t border-border flex items-center justify-between text-2xs text-muted-foreground">
                   <span className="flex items-center gap-1">
-                    <Zap className="w-3 h-3 text-emerald-600" />
+                    <Zap className="w-3 h-3 text-primary" />
                     {bot.executionCount || 0} runs
                   </span>
-                  <span className={`font-semibold ${bot.isActive ? 'text-emerald-700' : 'text-slate-400'}`}>
+                  <span className={`font-semibold ${bot.isActive ? 'text-primary' : 'text-muted-foreground'}`}>
                     {bot.isActive ? 'Active' : 'Paused'}
                   </span>
                 </div>
@@ -389,34 +393,44 @@ export default function BotsManagementPage() {
       )}
 
       {/* Create Bot Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center">
-                  <Bot className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">{editingId ? 'Edit WhatsApp Bot' : 'Create WhatsApp Bot'}</h3>
-                  <p className="text-xs text-slate-500">Configure triggers, AI personality, and Knowledge Base</p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setShowCreateModal(false);
-                  resetForm();
-                }}
-                className="text-slate-400 hover:text-slate-700"
-                aria-label="Close"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateBot} className="space-y-4">
+      <Modal
+        open={showCreateModal}
+        onOpenChange={(o) => {
+          if (!o) {
+            setShowCreateModal(false);
+            resetForm();
+          }
+        }}
+        title={
+          <span className="inline-flex items-center gap-2">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-brand-subtle text-primary">
+              <Bot className="size-4" />
+            </span>
+            {editingId ? 'Edit WhatsApp bot' : 'Create WhatsApp bot'}
+          </span>
+        }
+        description="Configure triggers, AI personality and knowledge base"
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowCreateModal(false);
+                resetForm();
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" form="bot-form" disabled={saving || !name.trim()}>
+              {saving ? (editingId ? 'Saving…' : 'Creating…') : editingId ? 'Save changes' : 'Deploy bot'}
+            </Button>
+          </>
+        }
+      >
+        <form id="bot-form" onSubmit={handleCreateBot} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Bot Name</label>
+                <label className="block text-xs font-semibold text-foreground mb-1.5">Bot Name</label>
                 <input
                   type="text"
                   required
@@ -428,7 +442,7 @@ export default function BotsManagementPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Bot Kind</label>
+                <label className="block text-xs font-semibold text-foreground mb-1.5">Bot Kind</label>
                 <div className="grid grid-cols-3 gap-2">
                   {(['AI', 'KEYWORD', 'HTTP'] as const).map((k) => (
                     <button
@@ -437,8 +451,8 @@ export default function BotsManagementPage() {
                       onClick={() => setKind(k)}
                       className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all ${
                         kind === k
-                          ? 'bg-emerald-600 border-emerald-600 text-white'
-                          : 'bg-white border-slate-200 text-slate-500 hover:text-slate-900'
+                          ? 'bg-primary border-primary text-primary-foreground'
+                          : 'bg-card border-border text-muted-foreground hover:text-foreground'
                       }`}
                     >
                       {k}
@@ -451,7 +465,7 @@ export default function BotsManagementPage() {
                 <div className="space-y-3.5 p-4 rounded-2xl bg-purple-50/60 border border-purple-200">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[11px] font-semibold text-purple-700 mb-1">AI Provider</label>
+                      <label className="block text-2xs font-semibold text-purple-700 mb-1">AI Provider</label>
                       <select
                         value={aiProvider}
                         onChange={(e) => setAiProvider(e.target.value)}
@@ -465,7 +479,7 @@ export default function BotsManagementPage() {
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-semibold text-purple-700 mb-1">Attach Knowledge Base</label>
+                      <label className="block text-2xs font-semibold text-purple-700 mb-1">Attach Knowledge Base</label>
                       <select
                         value={selectedKbId}
                         onChange={(e) => setSelectedKbId(e.target.value)}
@@ -482,7 +496,7 @@ export default function BotsManagementPage() {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-purple-700 mb-1">API Key (Encrypted at rest)</label>
+                    <label className="block text-2xs font-semibold text-purple-700 mb-1">API Key (Encrypted at rest)</label>
                     <input
                       type="password"
                       placeholder="Paste provider API key (or leave empty to use server ENV)"
@@ -493,7 +507,7 @@ export default function BotsManagementPage() {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-purple-700 mb-1">System Instructions</label>
+                    <label className="block text-2xs font-semibold text-purple-700 mb-1">System Instructions</label>
                     <textarea
                       rows={3}
                       value={systemPrompt}
@@ -505,9 +519,9 @@ export default function BotsManagementPage() {
               )}
 
               {kind === 'KEYWORD' && (
-                <div className="space-y-3 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                <div className="space-y-3 p-4 rounded-2xl bg-muted border border-border">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Keywords (comma-separated)</label>
+                    <label className="block text-xs font-semibold text-foreground mb-1">Keywords (comma-separated)</label>
                     <input
                       type="text"
                       value={keywordList}
@@ -516,7 +530,7 @@ export default function BotsManagementPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Response Message</label>
+                    <label className="block text-xs font-semibold text-foreground mb-1">Response Message</label>
                     <textarea
                       rows={3}
                       value={replyText}
@@ -528,9 +542,9 @@ export default function BotsManagementPage() {
               )}
 
               {kind === 'HTTP' && (
-                <div className="space-y-3 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                <div className="space-y-3 p-4 rounded-2xl bg-muted border border-border">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Webhook Target URL</label>
+                    <label className="block text-xs font-semibold text-foreground mb-1">Webhook Target URL</label>
                     <input
                       type="url"
                       placeholder="https://api.yourdomain.com/whatsapp-hook"
@@ -542,56 +556,29 @@ export default function BotsManagementPage() {
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateModal(false);
-                    resetForm();
-                  }}
-                  className="btn-secondary text-xs"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving || !name.trim()}
-                  className="btn-primary text-xs"
-                >
-                  {saving ? (editingId ? 'Saving...' : 'Creating...') : editingId ? 'Save Changes' : 'Deploy Bot'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        </form>
+      </Modal>
 
       {/* Test Bot Panel */}
-      {testingBot && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center">
-                  <FlaskConical className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">Test &ldquo;{testingBot.name}&rdquo;</h3>
-                  <p className="text-xs text-slate-500">Simulates a reply without sending a real WhatsApp message</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setTestingBot(null)}
-                className="text-slate-400 hover:text-slate-700"
-                aria-label="Close"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
+      <Modal
+        open={!!testingBot}
+        onOpenChange={(o) => !o && setTestingBot(null)}
+        size="sm"
+        title={
+          <span className="inline-flex items-center gap-2">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+              <FlaskConical className="size-4" />
+            </span>
+            Test “{testingBot?.name}”
+          </span>
+        }
+        description="Simulates a reply without sending a real WhatsApp message"
+      >
+        {testingBot && (
+          <>
             <form onSubmit={handleRunTest} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Test Message (as if from a customer)</label>
+                <label className="block text-xs font-semibold text-foreground mb-1.5">Test Message (as if from a customer)</label>
                 <input
                   type="text"
                   required
@@ -629,24 +616,24 @@ export default function BotsManagementPage() {
                     {testResult.note || 'This message would not trigger the bot.'}
                   </div>
                 ) : (
-                  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 space-y-1.5">
-                    <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Bot Would Reply</span>
-                    <p className="text-xs text-slate-800 whitespace-pre-wrap">{testResult.reply || '(no reply text)'}</p>
+                  <div className="p-3 rounded-xl bg-brand-subtle border border-transparent space-y-1.5">
+                    <span className="text-2xs font-bold text-primary uppercase tracking-wider">Bot Would Reply</span>
+                    <p className="text-xs text-foreground whitespace-pre-wrap">{testResult.reply || '(no reply text)'}</p>
                     {testResult.usedKnowledgeBase && (
-                      <span className="inline-flex items-center gap-1 text-[10px] text-purple-700 font-semibold">
+                      <span className="inline-flex items-center gap-1 text-2xs text-purple-700 font-semibold">
                         <Brain className="w-3 h-3" /> Used Knowledge Base context
                       </span>
                     )}
                     {testResult.note && (
-                      <p className="text-[10px] text-amber-700">{testResult.note}</p>
+                      <p className="text-2xs text-amber-700">{testResult.note}</p>
                     )}
                   </div>
                 )}
               </div>
             )}
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </div>
   );
 }

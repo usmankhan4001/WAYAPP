@@ -1,81 +1,38 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import {
-  LayoutDashboard,
-  Send,
-  FileText,
-  Users,
-  BarChart3,
-  MessageSquare,
-  Settings,
-  ShieldCheck,
-  Zap,
-  X,
-  LogOut,
-} from 'lucide-react';
+import { ShieldCheck, X, LogOut } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
+import { getVisibleNav, isActiveHref } from '@/lib/navigation';
+import { useSession, useModules } from '@/components/providers/SessionProvider';
+import { useNotifications } from '@/components/common/NotificationProvider';
 import { PWAInstallPrompt } from '@/components/common/PWAInstallPrompt';
 import { DevicePermissionsModal } from '@/components/common/DevicePermissionsModal';
 
-const BASE_NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { id: 'inbox', label: 'Live Inbox', href: '/inbox', icon: MessageSquare },
-  { id: 'campaigns', label: 'Campaigns', href: '/campaigns', icon: Send, moduleId: 'campaigns' },
-  { id: 'automations', label: 'Automations', href: '/automations', icon: Zap, moduleIds: ['flows', 'ai_bots'] },
-  { id: 'templates', label: 'Templates', href: '/templates', icon: FileText },
-  { id: 'contacts', label: 'Contacts & CRM', href: '/contacts', icon: Users },
-  { id: 'analytics', label: 'Analytics & Funnel', href: '/analytics', icon: BarChart3 },
-  { id: 'settings', label: 'Settings & Modules', href: '/settings', icon: Settings },
-];
+const ROLE_LABEL: Record<string, string> = {
+  SUPER_ADMIN: 'Super Admin',
+  ADMIN: 'Admin',
+  MEMBER: 'Team Member',
+  VIEWER: 'Viewer',
+};
 
 interface SidebarProps {
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
 }
 
-export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
+function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [enabledModules, setEnabledModules] = useState<Record<string, boolean>>({});
+  const { user } = useSession();
+  const { enabledModules } = useModules();
+  const { unreadCount } = useNotifications();
   const [isPermissionsOpen, setIsPermissionsOpen] = useState(false);
 
-  useEffect(() => {
-    fetch('/api/auth/me')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.authenticated && data.user) {
-          setUser(data.user);
-        }
-      })
-      .catch(() => {});
-
-    fetch('/api/modules')
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data?.modules)) {
-          const map: Record<string, boolean> = {};
-          data.modules.forEach((m: any) => {
-            map[m.id] = m.isEnabled;
-          });
-          setEnabledModules(map);
-        }
-      })
-      .catch(() => {});
-  }, [pathname]);
-
-  const navItems = BASE_NAV_ITEMS.filter((item: any) => {
-    if (item.moduleId) {
-      return enabledModules[item.moduleId] !== false;
-    }
-    if (item.moduleIds && Array.isArray(item.moduleIds)) {
-      return item.moduleIds.some((id: string) => enabledModules[id] !== false);
-    }
-    return true;
-  });
+  const navItems = getVisibleNav(enabledModules);
 
   const handleLogout = async () => {
     try {
@@ -87,137 +44,126 @@ export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
     }
   };
 
-  const sidebarContent = (
-    <aside className="w-64 bg-white text-slate-800 flex flex-col shrink-0 border-r border-slate-200/80 h-full min-h-screen">
-      {/* Brand Header */}
-      <div className="h-14 px-4 flex items-center justify-between border-b border-slate-100">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-emerald-600 p-1.5 flex items-center justify-center text-white shadow-2xs">
-            <svg viewBox="0 0 512 512" fill="none" className="w-full h-full">
-              <path d="M120 180L180 340L256 220L332 340L392 180" stroke="#FFFFFF" strokeWidth="52" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="392" cy="180" r="32" fill="#34d399" />
+  return (
+    <aside className="flex h-full w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+      {/* Brand */}
+      <div className="flex h-14 items-center justify-between border-b border-sidebar-border px-4">
+        <Link href="/" onClick={onNavigate} className="flex items-center gap-2.5">
+          <span className="flex size-8 items-center justify-center rounded-lg bg-primary p-1.5 text-primary-foreground">
+            <svg viewBox="0 0 512 512" fill="none" className="size-full">
+              <path d="M120 180L180 340L256 220L332 340L392 180" stroke="currentColor" strokeWidth="52" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="392" cy="180" r="32" fill="currentColor" />
             </svg>
-          </div>
-          <div className="min-w-0">
-            <span className="font-bold text-sm text-slate-900 tracking-tight block truncate">
-              WAY<span className="text-emerald-600">APP</span>
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-semibold tracking-tight text-foreground">
+              WAY<span className="text-primary">APP</span>
             </span>
-            <p className="text-[10px] text-slate-400 font-medium truncate">WhatsApp Platform</p>
-          </div>
-        </div>
-
-        {/* Mobile close button */}
-        {onCloseMobile && (
+            <span className="block truncate text-2xs font-medium text-muted-foreground">WhatsApp Platform</span>
+          </span>
+        </Link>
+        {onNavigate && (
           <button
-            onClick={onCloseMobile}
-            className="md:hidden p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+            onClick={onNavigate}
+            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:hidden"
+            aria-label="Close navigation"
           >
-            <X className="w-4 h-4" />
+            <X className="size-4" />
           </button>
         )}
       </div>
 
-      {/* Nav Links */}
-      <nav className="flex-1 py-3 px-2.5 space-y-1 overflow-y-auto">
-        <div className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+      {/* Nav */}
+      <nav className="flex-1 space-y-1 overflow-y-auto px-2.5 py-3">
+        <p className="px-2 pb-1.5 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
           Navigation
-        </div>
+        </p>
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
-
+          const active = isActiveHref(pathname, item.href);
           return (
             <Link
-              key={item.href}
+              key={item.id}
               href={item.href}
-              onClick={onCloseMobile}
+              onClick={onNavigate}
+              aria-current={active ? 'page' : undefined}
               className={cn(
-                'w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all',
-                isActive
-                  ? 'bg-emerald-50 text-emerald-900 font-semibold shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                'flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                active
+                  ? 'bg-sidebar-accent font-semibold text-sidebar-accent-foreground'
+                  : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground'
               )}
             >
-              <div className="flex items-center gap-2.5">
-                <Icon
-                  className={cn(
-                    'w-4 h-4 transition-colors shrink-0',
-                    isActive ? 'text-emerald-600' : 'text-slate-400'
-                  )}
-                />
+              <span className="flex items-center gap-2.5">
+                <Icon className={cn('size-4 shrink-0', active ? 'text-primary' : 'text-muted-foreground')} />
                 <span>{item.label}</span>
-              </div>
-              {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />}
+              </span>
+              {item.badge === 'unread' && unreadCount > 0 ? (
+                <span className="rounded-full bg-primary px-1.5 text-2xs font-semibold text-primary-foreground">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              ) : active ? (
+                <span className="size-1.5 rounded-full bg-primary" />
+              ) : null}
             </Link>
           );
         })}
       </nav>
 
-      {/* User & Footer Info */}
-      <div className="p-3 border-t border-slate-100 space-y-2">
+      {/* Footer */}
+      <div className="space-y-2 border-t border-sidebar-border p-3">
         <div className="flex items-center gap-2">
-          <PWAInstallPrompt className="flex-1 py-1.5 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-medium text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-all" />
+          <PWAInstallPrompt className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90" />
           <button
             onClick={() => setIsPermissionsOpen(true)}
-            className="p-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200/80 transition-all shrink-0"
-            title="Device Permissions"
+            className="shrink-0 rounded-lg border border-border bg-card p-1.5 text-primary transition-colors hover:bg-accent"
+            title="Device permissions"
           >
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <ShieldCheck className="size-4" />
           </button>
         </div>
 
         {user && (
-          <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200/80">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-full bg-emerald-600 text-white font-semibold text-xs flex items-center justify-center shrink-0 shadow-2xs">
-                {user.name ? user.name.substring(0, 1).toUpperCase() : 'U'}
-              </div>
-              <div className="min-w-0">
-                <span className="text-[11px] font-semibold text-slate-800 block truncate">
-                  {user.name || user.email}
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card p-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+                {(user.name || user.email || 'U').substring(0, 1).toUpperCase()}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-xs font-semibold text-foreground">{user.name || user.email}</span>
+                <span className="block text-2xs font-semibold uppercase tracking-wider text-primary">
+                  {ROLE_LABEL[user.role ?? ''] ?? 'Viewer'}
                 </span>
-                <span className="text-[9px] text-emerald-700 font-semibold uppercase tracking-wider block">
-                  {user.role === 'SUPER_ADMIN' ? 'Super Admin' : user.role === 'ADMIN' ? 'Admin' : user.role === 'MEMBER' ? 'Team Member' : 'Viewer'}
-                </span>
-              </div>
+              </span>
             </div>
             <button
               onClick={handleLogout}
-              className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-              title="Logout"
+              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+              title="Sign out"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut className="size-3.5" />
             </button>
           </div>
         )}
 
-        <div className="flex items-center gap-1.5 text-[11px] text-slate-400 px-1 font-medium">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Meta Graph v21.0 Ready</span>
-        </div>
-
-        <DevicePermissionsModal
-          isOpen={isPermissionsOpen}
-          onClose={() => setIsPermissionsOpen(false)}
-        />
+        <DevicePermissionsModal isOpen={isPermissionsOpen} onClose={() => setIsPermissionsOpen(false)} />
       </div>
     </aside>
   );
+}
 
+export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
   return (
     <>
       <div className="hidden md:block">
-        {sidebarContent}
+        <SidebarBody />
       </div>
 
       {isMobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden flex">
-          <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-xs"
-            onClick={onCloseMobile}
-          />
-          <div className="relative z-50 w-64 max-w-[80vw] h-full shadow-xl">
-            {sidebarContent}
+        <div className="fixed inset-0 z-50 flex md:hidden">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs" onClick={onCloseMobile} />
+          <div className="relative z-50 h-full w-64 max-w-[80vw] shadow-xl">
+            <SidebarBody onNavigate={onCloseMobile} />
           </div>
         </div>
       )}

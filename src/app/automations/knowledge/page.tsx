@@ -15,8 +15,12 @@ import {
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { useConfirm } from '@/lib/hooks/use-confirm';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
 
 export default function KnowledgeBasePage() {
+  const confirm = useConfirm();
   const [kbs, setKbs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -87,7 +91,7 @@ export default function KnowledgeBasePage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this Knowledge Base?')) return;
+    if (!(await confirm({ title: 'Delete this knowledge base?', destructive: true, confirmLabel: 'Delete' }))) return;
     try {
       await fetch(`/api/knowledge-bases/${id}`, { method: 'DELETE' });
       fetchKbs();
@@ -99,8 +103,8 @@ export default function KnowledgeBasePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">AI Knowledge Base</h1>
-        <p className="text-xs text-slate-500">
+        <h1 className="text-2xl font-black text-foreground tracking-tight">AI Knowledge Base</h1>
+        <p className="text-xs text-muted-foreground">
           Train customer support AI bots with company factsheets, FAQs, and pricing notes
         </p>
       </div>
@@ -108,13 +112,13 @@ export default function KnowledgeBasePage() {
         <div className="flex items-center gap-2">
           <Link
             href="/automations"
-            className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-500 hover:text-slate-900 transition-colors"
+            className="px-3 py-1.5 rounded-lg bg-card border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             &larr; Automations Overview
           </Link>
           <Link
             href="/automations/bots"
-            className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-500 hover:text-slate-900 transition-colors"
+            className="px-3 py-1.5 rounded-lg bg-card border border-border text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             Bots & AI Agents &rarr;
           </Link>
@@ -174,15 +178,15 @@ export default function KnowledgeBasePage() {
                         <BookOpen className="w-4 h-4" />
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-slate-900">{kb.name}</h4>
-                        <span className="text-[10px] text-purple-600 font-semibold">{kb.sourceType}</span>
+                        <h4 className="text-sm font-bold text-foreground">{kb.name}</h4>
+                        <span className="text-2xs text-purple-600 font-semibold">{kb.sourceType}</span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setViewingKb(kb)}
-                        className="text-slate-400 hover:text-purple-600 transition-colors p-1"
+                        className="text-muted-foreground hover:text-purple-600 transition-colors p-1"
                         aria-label="View knowledge base content"
                         title="View full content"
                       >
@@ -190,7 +194,7 @@ export default function KnowledgeBasePage() {
                       </button>
                       <button
                         onClick={() => handleDelete(kb.id)}
-                        className="text-slate-400 hover:text-rose-600 transition-colors p-1"
+                        className="text-muted-foreground hover:text-rose-600 transition-colors p-1"
                         aria-label="Delete knowledge base"
                         title="Delete knowledge base"
                       >
@@ -201,18 +205,18 @@ export default function KnowledgeBasePage() {
 
                   <button
                     onClick={() => setViewingKb(kb)}
-                    className="w-full text-left text-xs text-slate-500 line-clamp-3 bg-slate-50 p-3 rounded-xl border border-slate-200 font-mono text-[11px] hover:border-purple-300 transition-colors"
+                    className="w-full text-left text-xs text-muted-foreground line-clamp-3 bg-muted p-3 rounded-xl border border-border font-mono text-2xs hover:border-purple-300 transition-colors"
                   >
                     {kb.contentMarkdown}
                   </button>
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+                <div className="pt-3 border-t border-border flex items-center justify-between text-2xs text-muted-foreground">
                   <span className="flex items-center gap-1.5">
                     <Layers className="w-3.5 h-3.5 text-purple-600" />
                     {chunkCount} indexing chunks
                   </span>
-                  <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                  <span className="text-primary font-semibold flex items-center gap-1">
                     <CheckCircle2 className="w-3 h-3" /> Ready
                   </span>
                 </div>
@@ -223,37 +227,36 @@ export default function KnowledgeBasePage() {
       )}
 
       {/* Generate Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">AI Knowledge Base Generator</h3>
-                  <p className="text-xs text-slate-500">Paste unorganized notes and AI will build a structured FAQ</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="text-slate-400 hover:text-slate-700"
-                aria-label="Close"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {errorMsg && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
-                {errorMsg}
-              </div>
-            )}
-
-            <form onSubmit={handleGenerateAndSave} className="space-y-3.5">
+      <Modal
+        open={showCreateModal}
+        onOpenChange={(o) => !o && setShowCreateModal(false)}
+        title={
+          <span className="inline-flex items-center gap-2">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+              <Sparkles className="size-4" />
+            </span>
+            AI knowledge base generator
+          </span>
+        }
+        description="Paste unorganized notes and AI will build a structured FAQ"
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" form="kb-form" disabled={generating || !name.trim() || !rawNotes.trim()}>
+              <Sparkles />
+              {generating ? 'Structuring…' : 'Generate & save'}
+            </Button>
+          </>
+        }
+      >
+        {errorMsg && (
+          <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">{errorMsg}</div>
+        )}
+        <form id="kb-form" onSubmit={handleGenerateAndSave} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Knowledge Base Title</label>
+                <label className="block text-xs font-semibold text-foreground mb-1.5">Knowledge Base Title</label>
                 <input
                   type="text"
                   required
@@ -265,7 +268,7 @@ export default function KnowledgeBasePage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label className="block text-xs font-semibold text-foreground mb-1.5">
                   Raw Business Notes, Product FAQ, or Pricing
                 </label>
                 <textarea
@@ -280,7 +283,7 @@ export default function KnowledgeBasePage() {
 
               <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-purple-50/60 border border-purple-200">
                 <div>
-                  <label className="block text-[11px] font-semibold text-purple-700 mb-1">AI Provider</label>
+                  <label className="block text-2xs font-semibold text-purple-700 mb-1">AI Provider</label>
                   <select
                     value={aiProvider}
                     onChange={(e) => setAiProvider(e.target.value)}
@@ -293,7 +296,7 @@ export default function KnowledgeBasePage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-purple-700 mb-1">API Key</label>
+                  <label className="block text-2xs font-semibold text-purple-700 mb-1">API Key</label>
                   <input
                     type="password"
                     placeholder="Or leave empty to use server ENV"
@@ -304,56 +307,30 @@ export default function KnowledgeBasePage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="btn-secondary text-xs"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={generating || !name.trim() || !rawNotes.trim()}
-                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-xs font-bold text-white disabled:opacity-50 flex items-center gap-1.5 shadow-sm"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>{generating ? 'Structuring Knowledge...' : 'Generate & Save'}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        </form>
+      </Modal>
 
       {/* View Content Modal */}
-      {viewingKb && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-2xl w-full shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center">
-                  <BookOpen className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">{viewingKb.name}</h3>
-                  <p className="text-xs text-slate-500">{viewingKb.sourceType} &bull; used by bots that select it</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setViewingKb(null)}
-                className="text-slate-400 hover:text-slate-700"
-                aria-label="Close"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="overflow-y-auto flex-1 text-xs text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-200 whitespace-pre-wrap font-mono">
-              {viewingKb.contentMarkdown}
-            </div>
+      <Modal
+        open={!!viewingKb}
+        onOpenChange={(o) => !o && setViewingKb(null)}
+        size="xl"
+        title={
+          <span className="inline-flex items-center gap-2">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+              <BookOpen className="size-4" />
+            </span>
+            {viewingKb?.name}
+          </span>
+        }
+        description={viewingKb ? `${viewingKb.sourceType} · used by bots that select it` : undefined}
+      >
+        {viewingKb && (
+          <div className="whitespace-pre-wrap rounded-lg border border-border bg-muted p-4 font-mono text-xs text-foreground">
+            {viewingKb.contentMarkdown}
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }

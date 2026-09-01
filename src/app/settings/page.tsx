@@ -36,6 +36,10 @@ import { MetaSetupGuideModal } from '@/components/common/MetaSetupGuideModal';
 import { MetaBillingSection } from '@/components/settings/MetaBillingSection';
 import { Skeleton, SkeletonTableRow } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { useConfirm } from '@/lib/hooks/use-confirm';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 const MODULE_ICONS: Record<string, any> = {
   Sparkles,
@@ -51,6 +55,7 @@ const MODULE_ICONS: Record<string, any> = {
 };
 
 export default function SettingsPage() {
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState<'gateway' | 'marketplace' | 'snippets' | 'billing' | 'api-keys' | 'audit-log'>('gateway');
 
   // Gateway Settings
@@ -302,7 +307,7 @@ export default function SettingsPage() {
   };
 
   const handleDeleteSnippet = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this snippet?')) return;
+    if (!(await confirm({ title: "Delete this snippet?", destructive: true, confirmLabel: "Delete" }))) return;
     try {
       const res = await fetch(`/api/chat/snippets?id=${id}`, { method: 'DELETE' });
       if (res.ok) fetchSnippets();
@@ -336,7 +341,7 @@ export default function SettingsPage() {
   };
 
   const handleRevokeApiKey = async (id: string) => {
-    if (!confirm('Revoke this API key? Any integration using it will stop working immediately.')) return;
+    if (!(await confirm({ title: "Revoke this API key?", description: "Any integration using it will stop working immediately.", destructive: true, confirmLabel: "Revoke" }))) return;
     try {
       const res = await fetch(`/api/settings/api-keys/${id}`, { method: 'DELETE' });
       if (res.ok) fetchApiKeys();
@@ -351,7 +356,7 @@ export default function SettingsPage() {
   };
 
   const handleDisconnect = async () => {
-    if (!confirm('Are you sure you want to disconnect Meta WhatsApp API? The setup gatekeeper will lock the platform until reconnected.')) return;
+    if (!(await confirm({ title: "Disconnect Meta WhatsApp API?", description: "The setup gatekeeper will lock the platform until reconnected.", destructive: true, confirmLabel: "Disconnect" }))) return;
     try {
       await fetch('/api/settings', {
         method: 'POST',
@@ -375,7 +380,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <div className="py-24 flex justify-center">
-        <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -397,8 +402,8 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-normal text-slate-900 tracking-tight">Settings & App Switchboard</h1>
-          <p className="text-xs text-slate-500">
+          <h1 className="text-2xl font-normal text-foreground tracking-tight">Settings & App Switchboard</h1>
+          <p className="text-xs text-muted-foreground">
             Configure official Meta Cloud API credentials, toggle modular apps on/off, and manage sales tools
           </p>
         </div>
@@ -406,15 +411,15 @@ export default function SettingsPage() {
         <div className="flex items-center gap-2 self-start">
           <button
             onClick={() => setIsGuideOpen(true)}
-            className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-black/5 text-xs font-normal text-slate-700 flex items-center gap-1.5 shadow-2xs"
+            className="px-3 py-1.5 rounded-xl border border-border bg-card hover:bg-black/5 text-xs font-normal text-foreground flex items-center gap-1.5 shadow-2xs"
           >
-            <BookOpen className="w-3.5 h-3.5 text-slate-500" />
+            <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
             <span>Meta Setup Guide</span>
           </button>
 
           <button
             onClick={handleDisconnect}
-            className="px-3 py-1.5 rounded-xl border border-rose-200 bg-white text-rose-700 hover:bg-rose-50 text-xs font-normal flex items-center gap-1.5 shadow-2xs"
+            className="px-3 py-1.5 rounded-xl border border-rose-200 bg-card text-rose-700 hover:bg-rose-50 text-xs font-normal flex items-center gap-1.5 shadow-2xs"
             title="Disconnect and re-enter setup"
           >
             <LogOut className="w-3.5 h-3.5" />
@@ -427,12 +432,12 @@ export default function SettingsPage() {
         <div
           className={`p-3 rounded-xl text-xs flex items-center gap-2 shadow-2xs ${
             notice.success
-              ? 'bg-black/5 text-emerald-800 border border-emerald-200'
+              ? 'bg-black/5 text-brand-subtle-foreground border border-transparent'
               : 'bg-rose-50 text-rose-800 border border-rose-200'
           }`}
         >
           {notice.success ? (
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
           ) : (
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
           )}
@@ -441,13 +446,13 @@ export default function SettingsPage() {
       )}
 
       {/* Main Tabs Navigation */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-1 overflow-x-auto">
+      <div className="flex items-center gap-2 border-b border-border pb-1 overflow-x-auto">
         <button
           onClick={() => setActiveTab('gateway')}
           className={`px-4 py-2 rounded-xl text-xs font-normal transition-all flex items-center gap-1.5 shrink-0 ${
             activeTab === 'gateway'
-              ? 'bg-slate-900 text-white '
-              : 'text-slate-600 hover:bg-slate-100'
+              ? 'bg-foreground text-white '
+              : 'text-muted-foreground hover:bg-accent'
           }`}
         >
           <Key className="w-3.5 h-3.5" />
@@ -458,13 +463,13 @@ export default function SettingsPage() {
           onClick={() => setActiveTab('marketplace')}
           className={`px-4 py-2 rounded-xl text-xs font-normal transition-all flex items-center gap-1.5 shrink-0 ${
             activeTab === 'marketplace'
-              ? 'bg-slate-900 text-white '
-              : 'text-slate-600 hover:bg-slate-100'
+              ? 'bg-foreground text-white '
+              : 'text-muted-foreground hover:bg-accent'
           }`}
         >
-          <Layers className="w-3.5 h-3.5 text-emerald-400" />
+          <Layers className="w-3.5 h-3.5 text-primary" />
           <span>App Marketplace & Modules</span>
-          <span className="px-1.5 py-0.2 rounded-full bg-black/50/20 text-[#1c1e21] text-[10px] font-normal">
+          <span className="px-1.5 py-0.2 rounded-full bg-black/10 text-foreground text-2xs font-normal">
             {modules.filter((m) => m.isEnabled).length}/{modules.length} ON
           </span>
         </button>
@@ -473,8 +478,8 @@ export default function SettingsPage() {
           onClick={() => setActiveTab('snippets')}
           className={`px-4 py-2 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 shrink-0 ${
             activeTab === 'snippets'
-              ? 'bg-slate-900 text-white shadow-2xs font-semibold'
-              : 'text-slate-600 hover:bg-slate-100'
+              ? 'bg-foreground text-white shadow-2xs font-semibold'
+              : 'text-muted-foreground hover:bg-accent'
           }`}
         >
           <Zap className="w-3.5 h-3.5 text-amber-500" />
@@ -485,11 +490,11 @@ export default function SettingsPage() {
           onClick={() => setActiveTab('billing')}
           className={`px-4 py-2 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 shrink-0 ${
             activeTab === 'billing'
-              ? 'bg-slate-900 text-white shadow-2xs font-semibold'
-              : 'text-slate-600 hover:bg-slate-100'
+              ? 'bg-foreground text-white shadow-2xs font-semibold'
+              : 'text-muted-foreground hover:bg-accent'
           }`}
         >
-          <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+          <CreditCard className="w-3.5 h-3.5 text-primary" />
           <span>Billing & Meta Rates</span>
         </button>
 
@@ -497,11 +502,11 @@ export default function SettingsPage() {
           onClick={() => setActiveTab('api-keys')}
           className={`px-4 py-2 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 shrink-0 ${
             activeTab === 'api-keys'
-              ? 'bg-slate-900 text-white shadow-2xs font-semibold'
-              : 'text-slate-600 hover:bg-slate-100'
+              ? 'bg-foreground text-white shadow-2xs font-semibold'
+              : 'text-muted-foreground hover:bg-accent'
           }`}
         >
-          <KeyRound className="w-3.5 h-3.5 text-emerald-400" />
+          <KeyRound className="w-3.5 h-3.5 text-primary" />
           <span>API Keys ({apiKeys.length})</span>
         </button>
 
@@ -509,11 +514,11 @@ export default function SettingsPage() {
           onClick={() => setActiveTab('audit-log')}
           className={`px-4 py-2 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 shrink-0 ${
             activeTab === 'audit-log'
-              ? 'bg-slate-900 text-white shadow-2xs font-semibold'
-              : 'text-slate-600 hover:bg-slate-100'
+              ? 'bg-foreground text-white shadow-2xs font-semibold'
+              : 'text-muted-foreground hover:bg-accent'
           }`}
         >
-          <History className="w-3.5 h-3.5 text-emerald-400" />
+          <History className="w-3.5 h-3.5 text-primary" />
           <span>Audit Log</span>
         </button>
       </div>
@@ -522,41 +527,41 @@ export default function SettingsPage() {
       {activeTab === 'gateway' && (
         <div className="space-y-4">
           {/* Connection Status Card */}
-          <div className="p-4 rounded-2xl bg-slate-900 text-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ">
+          <div className="p-4 rounded-2xl bg-foreground text-background flex flex-col sm:flex-row sm:items-center justify-between gap-3 ">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[10px] font-normal text-slate-400 uppercase tracking-wider">
+                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                <span className="text-2xs font-normal text-muted-foreground uppercase tracking-wider">
                   Direct Gateway Connection Status
                 </span>
               </div>
               <h3 className="text-xs font-normal text-white">
                 {settings.isMockMode ? 'Virtual Simulator Active' : 'Meta Cloud API v21.0 Live & Activated'}
               </h3>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-2xs text-muted-foreground">
                 {settings.isMockMode
                   ? 'Local virtual simulator mode is active.'
                   : 'Direct first-party connection to Meta Graph API v21.0 with 0% markup and zero proxy hops.'}
               </p>
             </div>
 
-            <label className="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 cursor-pointer self-start sm:self-auto">
+            <label className="flex items-center gap-2 bg-foreground/90 px-3 py-1.5 rounded-xl border border-border cursor-pointer self-start sm:self-auto">
               <input
                 type="checkbox"
                 checked={settings.isMockMode}
                 onChange={(e) => setSettings({ ...settings, isMockMode: e.target.checked })}
-                className="w-3.5 h-3.5 text-emerald-600 rounded"
+                className="w-3.5 h-3.5 text-primary rounded"
               />
-              <span className="text-xs font-medium text-slate-200">Mock Mode</span>
+              <span className="text-xs font-medium text-foreground">Mock Mode</span>
             </label>
           </div>
 
           <form onSubmit={handleSave} className="space-y-4">
             {/* Section 1: Meta Cloud API Credentials */}
-            <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3.5">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                <Key className="w-4 h-4 text-emerald-600" />
-                <h3 className="text-xs font-normal text-slate-900 uppercase tracking-wider">
+            <div className="p-5 rounded-2xl bg-card border border-border shadow-xs space-y-3.5">
+              <div className="flex items-center gap-2 pb-2 border-b border-border">
+                <Key className="w-4 h-4 text-primary" />
+                <h3 className="text-xs font-normal text-foreground uppercase tracking-wider">
                   Meta WhatsApp Cloud API Credentials
                 </h3>
               </div>
@@ -564,7 +569,7 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <div className="flex items-center gap-1 mb-1">
-                    <label className="text-xs font-normal text-slate-700">
+                    <label className="text-xs font-normal text-foreground">
                       Phone Number ID <span className="text-rose-500">*</span>
                     </label>
                     <InfoTooltip content="Found in Meta for Developers > WhatsApp > API Setup." />
@@ -574,13 +579,13 @@ export default function SettingsPage() {
                     placeholder="e.g. 100654321987654"
                     value={settings.phoneNumberId || ''}
                     onChange={(e) => setSettings({ ...settings, phoneNumberId: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-input font-mono"
                   />
                 </div>
 
                 <div>
                   <div className="flex items-center gap-1 mb-1">
-                    <label className="text-xs font-normal text-slate-700">
+                    <label className="text-xs font-normal text-foreground">
                       WhatsApp Business Account ID (WABA ID) <span className="text-rose-500">*</span>
                     </label>
                     <InfoTooltip content="Found in Meta Business Manager > WhatsApp Accounts." />
@@ -590,14 +595,14 @@ export default function SettingsPage() {
                     placeholder="e.g. 100987654321098"
                     value={settings.wabaId || ''}
                     onChange={(e) => setSettings({ ...settings, wabaId: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-input font-mono"
                   />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center gap-1 mb-1">
-                  <label className="text-xs font-normal text-slate-700">
+                  <label className="text-xs font-normal text-foreground">
                     Permanent System User Access Token <span className="text-rose-500">*</span>
                   </label>
                   <InfoTooltip content="Permanent Token with whatsapp_business_messaging and whatsapp_business_management permissions." />
@@ -607,64 +612,64 @@ export default function SettingsPage() {
                   placeholder="EAAG..."
                   value={settings.accessToken || ''}
                   onChange={(e) => setSettings({ ...settings, accessToken: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-input font-mono"
                 />
               </div>
 
               {/* Test Connection Button & Diagnostics */}
-              <div className="pt-2 border-t border-slate-100 space-y-3">
+              <div className="pt-2 border-t border-border space-y-3">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={handleTestConnection}
                       disabled={testing}
-                      className="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-black/5 text-slate-700 text-xs font-normal flex items-center gap-1.5 shadow-2xs"
+                      className="px-3.5 py-1.5 rounded-xl border border-border bg-card hover:bg-black/5 text-foreground text-xs font-normal flex items-center gap-1.5 shadow-2xs"
                     >
-                      <RefreshCw className={`w-3.5 h-3.5 ${testing ? 'animate-spin text-emerald-600' : 'text-slate-500'}`} />
+                      <RefreshCw className={`w-3.5 h-3.5 ${testing ? 'animate-spin text-primary' : 'text-muted-foreground'}`} />
                       <span>{testing ? 'Scanning Diagnostics...' : 'Deep Connection Diagnostics'}</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setIsPinModalOpen(true)}
-                      className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-black/5 text-xs font-normal shadow-2xs"
+                      className="px-3 py-1.5 rounded-xl border border-border text-foreground hover:bg-black/5 text-xs font-normal shadow-2xs"
                     >
                       1-Click Register Phone (2FA)
                     </button>
                   </div>
 
                   {testDetails?.phoneDetails && (
-                    <div className="text-xs text-[#1c1e21] font-normal flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <div className="text-xs text-foreground font-normal flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
                       <span>Verified: {testDetails.phoneDetails.verified_name || 'Account Active'}</span>
                     </div>
                   )}
                 </div>
 
                 {testDetails?.phoneDetails && (
-                  <div className="p-3 rounded-xl bg-black/5 border border-slate-200 grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+                  <div className="p-3 rounded-xl bg-black/5 border border-border grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
                     <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-normal">Display Phone</span>
-                      <p className="font-normal font-mono text-slate-800">{testDetails.phoneDetails.display_phone_number || 'N/A'}</p>
+                      <span className="text-2xs text-muted-foreground uppercase font-normal">Display Phone</span>
+                      <p className="font-normal font-mono text-foreground">{testDetails.phoneDetails.display_phone_number || 'N/A'}</p>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-normal">Display Name</span>
-                      <p className={`font-normal ${testDetails.phoneDetails.name_status === 'APPROVED' ? 'text-[#1c1e21]' : 'text-amber-700'}`}>
+                      <span className="text-2xs text-muted-foreground uppercase font-normal">Display Name</span>
+                      <p className={`font-normal ${testDetails.phoneDetails.name_status === 'APPROVED' ? 'text-foreground' : 'text-amber-700'}`}>
                         {testDetails.phoneDetails.name_status || (testDetails.phoneDetails.verified_name ? 'APPROVED' : 'PENDING')}
                       </p>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-normal">Quality Rating</span>
-                      <p className="font-normal text-[#1c1e21]">{testDetails.phoneDetails.quality_rating || 'GREEN'}</p>
+                      <span className="text-2xs text-muted-foreground uppercase font-normal">Quality Rating</span>
+                      <p className="font-normal text-foreground">{testDetails.phoneDetails.quality_rating || 'GREEN'}</p>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-normal">Messaging Tier</span>
-                      <p className="font-normal text-slate-800">{testDetails.phoneDetails.messaging_tier || 'STANDARD'}</p>
+                      <span className="text-2xs text-muted-foreground uppercase font-normal">Messaging Tier</span>
+                      <p className="font-normal text-foreground">{testDetails.phoneDetails.messaging_tier || 'STANDARD'}</p>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-normal">Registration Status</span>
-                      <p className="font-normal text-[#1c1e21]">{testDetails.phoneDetails.code_verification_status || 'VERIFIED'}</p>
+                      <span className="text-2xs text-muted-foreground uppercase font-normal">Registration Status</span>
+                      <p className="font-normal text-foreground">{testDetails.phoneDetails.code_verification_status || 'VERIFIED'}</p>
                     </div>
                   </div>
                 )}
@@ -672,10 +677,10 @@ export default function SettingsPage() {
             </div>
 
             {/* Section 2: Webhook Endpoint Setup */}
-            <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3.5">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                <Webhook className="w-4 h-4 text-emerald-600" />
-                <h3 className="text-xs font-normal text-slate-900 uppercase tracking-wider">
+            <div className="p-5 rounded-2xl bg-card border border-border shadow-xs space-y-3.5">
+              <div className="flex items-center gap-2 pb-2 border-b border-border">
+                <Webhook className="w-4 h-4 text-primary" />
+                <h3 className="text-xs font-normal text-foreground uppercase tracking-wider">
                   Meta Webhook Configuration
                 </h3>
               </div>
@@ -683,7 +688,7 @@ export default function SettingsPage() {
               <div className="space-y-3">
                 <div>
                   <div className="flex items-center gap-1 mb-1">
-                    <label className="text-xs font-normal text-slate-700">Webhook Callback URL</label>
+                    <label className="text-xs font-normal text-foreground">Webhook Callback URL</label>
                     <InfoTooltip content="Paste this Callback URL in Meta Developer Portal > WhatsApp > Configuration." />
                   </div>
                   <div className="flex gap-2">
@@ -691,14 +696,14 @@ export default function SettingsPage() {
                       type="text"
                       readOnly
                       value={webhookUrl}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono bg-black/5 text-slate-600"
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-input font-mono bg-black/5 text-muted-foreground"
                     />
                     <button
                       type="button"
                       onClick={handleCopyWebhook}
-                      className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-black/5 text-slate-700 text-xs font-normal flex items-center gap-1 shadow-2xs"
+                      className="px-3.5 py-2 rounded-xl border border-border bg-card hover:bg-black/5 text-foreground text-xs font-normal flex items-center gap-1 shadow-2xs"
                     >
-                      {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
                       <span>{copied ? 'Copied' : 'Copy'}</span>
                     </button>
                   </div>
@@ -707,20 +712,20 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <div className="flex items-center gap-1 mb-1">
-                      <label className="text-xs font-normal text-slate-700">Verify Token</label>
+                      <label className="text-xs font-normal text-foreground">Verify Token</label>
                       <InfoTooltip content="Verification token for the hub.challenge handshake." />
                     </div>
                     <input
                       type="text"
                       value={settings.webhookVerifyToken || ''}
                       onChange={(e) => setSettings({ ...settings, webhookVerifyToken: e.target.value })}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono"
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-input font-mono"
                     />
                   </div>
 
                   <div>
                     <div className="flex items-center gap-1 mb-1">
-                      <label className="text-xs font-normal text-slate-700">App Secret (HMAC SHA-256)</label>
+                      <label className="text-xs font-normal text-foreground">App Secret (HMAC SHA-256)</label>
                       <InfoTooltip content="App Secret from Meta App Settings > Basic for cryptographic signature verification." />
                     </div>
                     <input
@@ -728,7 +733,7 @@ export default function SettingsPage() {
                       placeholder="App Secret"
                       value={settings.appSecret || ''}
                       onChange={(e) => setSettings({ ...settings, appSecret: e.target.value })}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono"
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-input font-mono"
                     />
                   </div>
                 </div>
@@ -736,45 +741,45 @@ export default function SettingsPage() {
             </div>
 
             {/* Section 3: Business Profile & Throttling */}
-            <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3.5">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                <Sliders className="w-4 h-4 text-emerald-600" />
-                <h3 className="text-xs font-normal text-slate-900 uppercase tracking-wider">
+            <div className="p-5 rounded-2xl bg-card border border-border shadow-xs space-y-3.5">
+              <div className="flex items-center gap-2 pb-2 border-b border-border">
+                <Sliders className="w-4 h-4 text-primary" />
+                <h3 className="text-xs font-normal text-foreground uppercase tracking-wider">
                   Broadcast Defaults & Throttling
                 </h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-normal text-slate-700 mb-1">Business Display Name</label>
+                  <label className="block text-xs font-normal text-foreground mb-1">Business Display Name</label>
                   <input
                     type="text"
                     value={settings.businessName || ''}
                     onChange={(e) => setSettings({ ...settings, businessName: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-input"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-normal text-slate-700 mb-1">Default Country Code</label>
+                  <label className="block text-xs font-normal text-foreground mb-1">Default Country Code</label>
                   <input
                     type="text"
                     value={settings.defaultCountryCode || '+1'}
                     onChange={(e) => setSettings({ ...settings, defaultCountryCode: e.target.value })}
                     placeholder="+1 or +971"
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-input font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-normal text-slate-700 mb-1">Rate Limit (Msgs / Sec)</label>
+                  <label className="block text-xs font-normal text-foreground mb-1">Rate Limit (Msgs / Sec)</label>
                   <input
                     type="number"
                     min="1"
                     max="80"
                     value={settings.rateLimitPerSecond || 20}
                     onChange={(e) => setSettings({ ...settings, rateLimitPerSecond: parseInt(e.target.value, 10) || 20 })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-input font-mono"
                   />
                 </div>
               </div>
@@ -785,7 +790,7 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-normal  transition-all disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl bg-foreground hover:bg-foreground/90 text-white text-xs font-normal  transition-all disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save Configuration'}
               </button>
@@ -797,12 +802,12 @@ export default function SettingsPage() {
       {/* TAB 2: APP MARKETPLACE & MODULAR SWITCHBOARD */}
       {activeTab === 'marketplace' && (
         <div className="space-y-4">
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-white space-y-1 ">
+          <div className="p-4 rounded-2xl bg-linear-to-br from-foreground to-foreground text-white space-y-1 ">
             <h3 className="font-normal text-sm text-white flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-emerald-400" />
+              <Layers className="w-4 h-4 text-primary" />
               <span>Plug-and-Play Module Switchboard</span>
             </h3>
-            <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+            <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
               Enable only what your sales & operations team needs. When a module is toggled OFF, its navigation links, chat toolbars, and background workers are cleanly deactivated to keep your team's workflow fast, simple, and clutter-free.
             </p>
           </div>
@@ -824,8 +829,8 @@ export default function SettingsPage() {
                 onClick={() => setModuleCategoryFilter(cat.id)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-normal transition-all shrink-0 ${
                   moduleCategoryFilter === cat.id
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-black/5'
+                    ? 'bg-foreground text-white shadow-xs'
+                    : 'bg-card text-muted-foreground border border-border hover:bg-accent'
                 }`}
               >
                 {cat.label}
@@ -844,8 +849,8 @@ export default function SettingsPage() {
                   key={mod.id}
                   className={`p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between gap-3 ${
                     mod.isEnabled
-                      ? 'bg-white border-slate-200 shadow-xs'
-                      : 'bg-black/5/70 border-slate-200/60 opacity-75'
+                      ? 'bg-card border-border shadow-xs'
+                      : 'bg-black/5 border-border opacity-75'
                   }`}
                 >
                   <div className="space-y-2">
@@ -854,15 +859,15 @@ export default function SettingsPage() {
                         <div
                           className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${
                             mod.isEnabled
-                              ? 'bg-[#e6ffda] text-[#1c1e21]'
-                              : 'bg-slate-200 text-slate-500'
+                              ? 'bg-wa-bubble-out text-foreground'
+                              : 'bg-muted text-muted-foreground'
                           }`}
                         >
                           <IconComp className="w-4 h-4" />
                         </div>
                         <div>
-                          <h4 className="font-normal text-xs text-slate-900">{mod.name}</h4>
-                          <span className="text-[10px] font-normal text-slate-400 uppercase tracking-wider">
+                          <h4 className="font-normal text-xs text-foreground">{mod.name}</h4>
+                          <span className="text-2xs font-normal text-muted-foreground uppercase tracking-wider">
                             {mod.category}
                           </span>
                         </div>
@@ -873,26 +878,26 @@ export default function SettingsPage() {
                         type="button"
                         disabled={isToggling}
                         onClick={() => handleToggleModule(mod.id, mod.isEnabled)}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          mod.isEnabled ? 'bg-[#25d366]' : 'bg-slate-300'
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                          mod.isEnabled ? 'bg-whatsapp-green' : 'bg-input'
                         } ${isToggling ? 'opacity-50' : ''}`}
                       >
                         <span
-                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-card shadow-lg ring-0 transition duration-200 ease-in-out ${
                             mod.isEnabled ? 'translate-x-5' : 'translate-x-0'
                           }`}
                         />
                       </button>
                     </div>
 
-                    <p className="text-xs text-slate-600 leading-relaxed font-normal">{mod.description}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed font-normal">{mod.description}</p>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px]">
-                    <span className="font-medium text-slate-500">
-                      Status: <strong className={mod.isEnabled ? 'text-[#1c1e21]' : 'text-slate-500'}>{mod.isEnabled ? 'Active' : 'Disabled'}</strong>
+                  <div className="flex items-center justify-between pt-2 border-t border-border text-2xs">
+                    <span className="font-medium text-muted-foreground">
+                      Status: <strong className={mod.isEnabled ? 'text-foreground' : 'text-muted-foreground'}>{mod.isEnabled ? 'Active' : 'Disabled'}</strong>
                     </span>
-                    <span className="text-[10px] text-slate-400 font-mono">ID: {mod.id}</span>
+                    <span className="text-2xs text-muted-foreground font-mono">ID: {mod.id}</span>
                   </div>
                 </div>
               );
@@ -906,15 +911,15 @@ export default function SettingsPage() {
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="font-normal text-sm text-slate-900">Canned Sales Snippets & Shortcuts</h3>
-              <p className="text-xs text-slate-500">
+              <h3 className="font-normal text-sm text-foreground">Canned Sales Snippets & Shortcuts</h3>
+              <p className="text-xs text-muted-foreground">
                 Sales agents can type "/" in live chat to insert these pre-saved messages instantly.
               </p>
             </div>
 
             <button
               onClick={() => setIsAddingSnippet(!isAddingSnippet)}
-              className="px-3.5 py-1.5 rounded-xl bg-[#25d366] hover:bg-emerald-700 text-white text-xs font-normal flex items-center gap-1.5  transition-all self-start sm:self-auto"
+              className="px-3.5 py-1.5 rounded-xl bg-whatsapp-green hover:bg-primary/90 text-white text-xs font-normal flex items-center gap-1.5  transition-all self-start sm:self-auto"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{isAddingSnippet ? 'Cancel' : 'New Snippet'}</span>
@@ -923,35 +928,35 @@ export default function SettingsPage() {
 
           {/* Add Snippet Form Drawer */}
           {isAddingSnippet && (
-            <form onSubmit={handleCreateSnippet} className="p-4 rounded-2xl bg-white border border-slate-200  space-y-3 animate-in fade-in duration-150">
-              <h4 className="font-normal text-xs text-slate-900 uppercase tracking-wider">Create New Sales Shortcut</h4>
+            <form onSubmit={handleCreateSnippet} className="p-4 rounded-2xl bg-card border border-border  space-y-3 animate-in fade-in duration-150">
+              <h4 className="font-normal text-xs text-foreground uppercase tracking-wider">Create New Sales Shortcut</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-normal text-slate-700 mb-1">Shortcut Trigger (Starts with /)</label>
+                  <label className="block text-xs font-normal text-foreground mb-1">Shortcut Trigger (Starts with /)</label>
                   <input
                     type="text"
                     placeholder="/pricing or /brochure"
                     value={newShortcut}
                     onChange={(e) => setNewShortcut(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-300 font-mono"
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-input font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-normal text-slate-700 mb-1">Snippet Title</label>
+                  <label className="block text-xs font-normal text-foreground mb-1">Snippet Title</label>
                   <input
                     type="text"
                     placeholder="e.g. Standard Pricing List"
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-300"
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-input"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-normal text-slate-700 mb-1">Category</label>
+                  <label className="block text-xs font-normal text-foreground mb-1">Category</label>
                   <select
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-300 bg-white"
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-input bg-card"
                   >
                     <option value="GENERAL">General</option>
                     <option value="PRICING">Pricing & Plans</option>
@@ -962,13 +967,13 @@ export default function SettingsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-normal text-slate-700 mb-1">Message Content to Insert</label>
+                <label className="block text-xs font-normal text-foreground mb-1">Message Content to Insert</label>
                 <textarea
                   rows={3}
                   placeholder="Type the full WhatsApp text message..."
                   value={newContent}
                   onChange={(e) => setNewContent(e.target.value)}
-                  className="w-full p-2.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full p-2.5 text-xs rounded-xl border border-input focus:outline-hidden focus:ring-2 focus:ring-ring"
                 />
               </div>
 
@@ -976,13 +981,13 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setIsAddingSnippet(false)}
-                  className="px-3.5 py-1.5 text-xs font-normal rounded-xl bg-slate-100 text-slate-600"
+                  className="px-3.5 py-1.5 text-xs font-normal rounded-xl bg-muted text-muted-foreground"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 text-xs font-normal rounded-xl bg-[#25d366] text-white shadow-xs"
+                  className="px-4 py-1.5 text-xs font-normal rounded-xl bg-whatsapp-green text-white shadow-xs"
                 >
                   Save Shortcut
                 </button>
@@ -992,13 +997,13 @@ export default function SettingsPage() {
 
           {/* Search Box */}
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search shortcuts or message content..."
               value={snippetSearch}
               onChange={(e) => setSnippetSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 bg-white"
+              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-input bg-card"
             />
           </div>
 
@@ -1007,20 +1012,20 @@ export default function SettingsPage() {
             {filteredSnippets.map((s) => (
               <div
                 key={s.id}
-                className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs flex items-start justify-between gap-3"
+                className="p-3.5 rounded-2xl bg-card border border-border shadow-2xs flex items-start justify-between gap-3"
               >
                 <div className="space-y-1 min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono font-normal text-xs text-emerald-800 bg-[#e6ffda] px-2 py-0.5 rounded-full">
+                    <span className="font-mono font-normal text-xs text-brand-subtle-foreground bg-wa-bubble-out px-2 py-0.5 rounded-full">
                       {s.shortcut}
                     </span>
-                    <h4 className="font-normal text-xs text-slate-900 truncate">{s.title}</h4>
-                    <span className="text-[10px] font-normal px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                    <h4 className="font-normal text-xs text-foreground truncate">{s.title}</h4>
+                    <span className="text-2xs font-normal px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
                       {s.category}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-600 leading-relaxed font-sans whitespace-pre-wrap">{s.content}</p>
-                  <span className="text-[10px] text-slate-400 block pt-1">
+                  <p className="text-xs text-muted-foreground leading-relaxed font-sans whitespace-pre-wrap">{s.content}</p>
+                  <span className="text-2xs text-muted-foreground block pt-1">
                     Used in chat {s.usageCount || 0} times
                   </span>
                 </div>
@@ -1028,7 +1033,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => handleDeleteSnippet(s.id)}
-                  className="p-2 text-slate-400 hover:text-rose-600 rounded-full transition-colors shrink-0"
+                  className="p-2 text-muted-foreground hover:text-rose-600 rounded-full transition-colors shrink-0"
                   title="Delete shortcut"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -1037,7 +1042,7 @@ export default function SettingsPage() {
             ))}
 
             {filteredSnippets.length === 0 && (
-              <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400 text-xs">
+              <div className="p-8 text-center bg-card rounded-2xl border border-border text-muted-foreground text-xs">
                 No canned snippets found. Click "New Snippet" above to add your first sales shortcut!
               </div>
             )}
@@ -1053,15 +1058,15 @@ export default function SettingsPage() {
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="font-normal text-sm text-slate-900">Developer API Keys</h3>
-              <p className="text-xs text-slate-500">
-                Keys authenticate requests to the Public REST API (<code className="font-mono text-[11px]">/api/v1/*</code>) via the <code className="font-mono text-[11px]">X-API-Key</code> header.
+              <h3 className="font-normal text-sm text-foreground">Developer API Keys</h3>
+              <p className="text-xs text-muted-foreground">
+                Keys authenticate requests to the Public REST API (<code className="font-mono text-2xs">/api/v1/*</code>) via the <code className="font-mono text-2xs">X-API-Key</code> header.
               </p>
             </div>
 
             <button
               onClick={() => setIsCreatingKey(!isCreatingKey)}
-              className="px-3.5 py-1.5 rounded-xl bg-[#25d366] hover:bg-emerald-700 text-white text-xs font-normal flex items-center gap-1.5 transition-all self-start sm:self-auto"
+              className="px-3.5 py-1.5 rounded-xl bg-whatsapp-green hover:bg-primary/90 text-white text-xs font-normal flex items-center gap-1.5 transition-all self-start sm:self-auto"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{isCreatingKey ? 'Cancel' : 'New API Key'}</span>
@@ -1070,29 +1075,29 @@ export default function SettingsPage() {
 
           {/* Create Key Form */}
           {isCreatingKey && (
-            <form onSubmit={handleCreateApiKey} className="p-4 rounded-2xl bg-white border border-slate-200 space-y-3 animate-in fade-in duration-150">
-              <h4 className="font-normal text-xs text-slate-900 uppercase tracking-wider">Generate New API Key</h4>
+            <form onSubmit={handleCreateApiKey} className="p-4 rounded-2xl bg-card border border-border space-y-3 animate-in fade-in duration-150">
+              <h4 className="font-normal text-xs text-foreground uppercase tracking-wider">Generate New API Key</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-normal text-slate-700 mb-1">Key Name</label>
+                  <label className="block text-xs font-normal text-foreground mb-1">Key Name</label>
                   <input
                     type="text"
                     placeholder="e.g. Zapier Integration"
                     value={newKeyName}
                     onChange={(e) => setNewKeyName(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-300"
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-input"
                   />
                 </div>
                 <div>
                   <div className="flex items-center gap-1 mb-1">
-                    <label className="text-xs font-normal text-slate-700">Scopes (comma-separated)</label>
+                    <label className="text-xs font-normal text-foreground">Scopes (comma-separated)</label>
                     <InfoTooltip content="e.g. read, write, messages:send, contacts:write. Use '*' for full access." />
                   </div>
                   <input
                     type="text"
                     value={newKeyScopes}
                     onChange={(e) => setNewKeyScopes(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-300 font-mono"
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-input font-mono"
                   />
                 </div>
               </div>
@@ -1100,14 +1105,14 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setIsCreatingKey(false)}
-                  className="px-3.5 py-1.5 text-xs font-normal rounded-xl bg-slate-100 text-slate-600"
+                  className="px-3.5 py-1.5 text-xs font-normal rounded-xl bg-muted text-muted-foreground"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creatingKey || !newKeyName.trim()}
-                  className="px-4 py-1.5 text-xs font-normal rounded-xl bg-[#25d366] text-white shadow-xs disabled:opacity-50"
+                  className="px-4 py-1.5 text-xs font-normal rounded-xl bg-whatsapp-green text-white shadow-xs disabled:opacity-50"
                 >
                   {creatingKey ? 'Generating...' : 'Generate Key'}
                 </button>
@@ -1126,21 +1131,21 @@ export default function SettingsPage() {
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <p className="text-[11px] text-amber-800">
+              <p className="text-2xs text-amber-800">
                 This is the only time the full key is shown. It cannot be retrieved again — store it somewhere safe.
               </p>
               <div className="flex gap-2">
                 <input
                   readOnly
                   value={revealedKey.rawKey}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-amber-300 font-mono bg-white text-slate-800"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-amber-300 font-mono bg-card text-foreground"
                 />
                 <button
                   type="button"
                   onClick={handleCopyRawKey}
-                  className="px-3.5 py-2 rounded-xl border border-amber-300 bg-white hover:bg-amber-100 text-amber-800 text-xs font-normal flex items-center gap-1 shrink-0"
+                  className="px-3.5 py-2 rounded-xl border border-amber-300 bg-card hover:bg-amber-100 text-amber-800 text-xs font-normal flex items-center gap-1 shrink-0"
                 >
-                  {rawKeyCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  {rawKeyCopied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{rawKeyCopied ? 'Copied' : 'Copy'}</span>
                 </button>
               </div>
@@ -1151,7 +1156,7 @@ export default function SettingsPage() {
           {apiKeysLoading ? (
             <div className="space-y-2.5">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="p-3.5 rounded-2xl bg-white border border-slate-200">
+                <div key={i} className="p-3.5 rounded-2xl bg-card border border-border">
                   <Skeleton width={220} height={14} className="mb-2" />
                   <Skeleton width={140} height={11} />
                 </div>
@@ -1170,19 +1175,19 @@ export default function SettingsPage() {
               {apiKeys.map((k) => (
                 <div
                   key={k.id}
-                  className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs flex items-start justify-between gap-3"
+                  className="p-3.5 rounded-2xl bg-card border border-border shadow-2xs flex items-start justify-between gap-3"
                 >
                   <div className="space-y-1 min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-normal text-xs text-slate-900">{k.name}</h4>
-                      <span className="font-mono font-normal text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                      <h4 className="font-normal text-xs text-foreground">{k.name}</h4>
+                      <span className="font-mono font-normal text-2xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                         {k.keyPrefix}••••••••
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-500">
+                    <p className="text-2xs text-muted-foreground">
                       Scopes: <span className="font-mono">{k.scopes}</span>
                     </p>
-                    <p className="text-[10px] text-slate-400">
+                    <p className="text-2xs text-muted-foreground">
                       Created {new Date(k.createdAt).toLocaleDateString()}
                       {k.lastUsedAt ? ` • Last used ${new Date(k.lastUsedAt).toLocaleDateString()}` : ' • Never used'}
                       {k.user?.email ? ` • by ${k.user.email}` : ''}
@@ -1192,7 +1197,7 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => handleRevokeApiKey(k.id)}
-                    className="p-2 text-slate-400 hover:text-rose-600 rounded-full transition-colors shrink-0"
+                    className="p-2 text-muted-foreground hover:text-rose-600 rounded-full transition-colors shrink-0"
                     title="Revoke key"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -1208,8 +1213,8 @@ export default function SettingsPage() {
       {activeTab === 'audit-log' && (
         <div className="space-y-4">
           <div>
-            <h3 className="font-normal text-sm text-slate-900">Security & Admin Audit Log</h3>
-            <p className="text-xs text-slate-500">Track logins, settings changes, module toggles, and API key activity.</p>
+            <h3 className="font-normal text-sm text-foreground">Security & Admin Audit Log</h3>
+            <p className="text-xs text-muted-foreground">Track logins, settings changes, module toggles, and API key activity.</p>
           </div>
 
           {/* Filters */}
@@ -1217,7 +1222,7 @@ export default function SettingsPage() {
             <select
               value={auditActionFilter}
               onChange={(e) => setAuditActionFilter(e.target.value)}
-              className="px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white"
+              className="px-3 py-2 text-xs rounded-xl border border-input bg-card"
             >
               <option value="">All Actions</option>
               <option value="LOGIN_SUCCESS">Login Success</option>
@@ -1234,11 +1239,11 @@ export default function SettingsPage() {
               placeholder="Filter by actor email..."
               value={auditActorFilter}
               onChange={(e) => setAuditActorFilter(e.target.value)}
-              className="flex-1 px-3 py-2 text-xs rounded-xl border border-slate-300"
+              className="flex-1 px-3 py-2 text-xs rounded-xl border border-input"
             />
             <button
               onClick={() => fetchAuditLog(1)}
-              className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-black/5 text-slate-700 text-xs font-normal flex items-center gap-1.5 shadow-2xs"
+              className="px-3.5 py-2 rounded-xl border border-border bg-card hover:bg-black/5 text-foreground text-xs font-normal flex items-center gap-1.5 shadow-2xs"
             >
               <Search className="w-3.5 h-3.5" />
               <span>Filter</span>
@@ -1265,7 +1270,7 @@ export default function SettingsPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase text-[10px] font-semibold tracking-wider">
+                    <tr className="bg-muted border-b border-border text-muted-foreground uppercase text-2xs font-semibold tracking-wider">
                       <th className="py-2.5 px-4">Action</th>
                       <th className="py-2.5 px-4">Actor</th>
                       <th className="py-2.5 px-4">Target</th>
@@ -1275,26 +1280,26 @@ export default function SettingsPage() {
                   </thead>
                   <tbody>
                     {auditEntries.map((entry) => (
-                      <tr key={entry.id} className="border-b border-slate-100 last:border-0">
+                      <tr key={entry.id} className="border-b border-border last:border-0">
                         <td className="py-2.5 px-4">
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            className={`px-2 py-0.5 rounded-full text-2xs font-bold ${
                               entry.action.includes('FAILED')
                                 ? 'bg-rose-50 text-rose-700'
                                 : entry.action.includes('SUCCESS') || entry.action.includes('CREATED')
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : 'bg-slate-100 text-slate-700'
+                                ? 'bg-brand-subtle text-primary'
+                                : 'bg-muted text-foreground'
                             }`}
                           >
                             {entry.action.replace(/_/g, ' ')}
                           </span>
                         </td>
-                        <td className="py-2.5 px-4 text-slate-700">{entry.actorEmail || 'System'}</td>
-                        <td className="py-2.5 px-4 text-slate-500">
+                        <td className="py-2.5 px-4 text-foreground">{entry.actorEmail || 'System'}</td>
+                        <td className="py-2.5 px-4 text-muted-foreground">
                           {entry.targetType ? `${entry.targetType}${entry.targetId ? ` (${entry.targetId.slice(0, 8)}…)` : ''}` : '—'}
                         </td>
-                        <td className="py-2.5 px-4 text-slate-500 font-mono text-[11px]">{entry.ipAddress || '—'}</td>
-                        <td className="py-2.5 px-4 text-slate-500">{new Date(entry.createdAt).toLocaleString()}</td>
+                        <td className="py-2.5 px-4 text-muted-foreground font-mono text-2xs">{entry.ipAddress || '—'}</td>
+                        <td className="py-2.5 px-4 text-muted-foreground">{new Date(entry.createdAt).toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1309,15 +1314,15 @@ export default function SettingsPage() {
               <button
                 onClick={() => fetchAuditLog(auditPage - 1)}
                 disabled={auditPage <= 1}
-                className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs disabled:opacity-40"
+                className="px-3 py-1.5 rounded-xl border border-border bg-card text-xs disabled:opacity-40"
               >
                 Previous
               </button>
-              <span className="text-xs text-slate-500">Page {auditPage} of {auditTotalPages}</span>
+              <span className="text-xs text-muted-foreground">Page {auditPage} of {auditTotalPages}</span>
               <button
                 onClick={() => fetchAuditLog(auditPage + 1)}
                 disabled={auditPage >= auditTotalPages}
-                className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs disabled:opacity-40"
+                className="px-3 py-1.5 rounded-xl border border-border bg-card text-xs disabled:opacity-40"
               >
                 Next
               </button>
@@ -1330,53 +1335,42 @@ export default function SettingsPage() {
       <MetaSetupGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
 
       {/* 2FA Phone Registration Modal */}
-      {isPinModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 space-y-4">
-            <div>
-              <h3 className="text-sm font-normal text-slate-900">1-Click Phone Number 2FA Registration</h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Register your business phone number ID directly on the Meta Cloud API gateway with a 6-digit PIN.
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-normal text-slate-700 mb-1">
-                6-Digit 2FA PIN
-              </label>
-              <input
-                type="text"
-                maxLength={6}
-                value={pinInput}
-                onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
-                placeholder="123456"
-                className="w-full px-3 py-2 text-sm text-center font-mono font-normal tracking-widest rounded-full border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-              <p className="text-[10px] text-slate-400 mt-1">
-                Choose any 6-digit PIN to secure your WhatsApp Cloud number.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setIsPinModalOpen(false)}
-                className="px-3.5 py-1.5 rounded-full border border-slate-300 text-slate-700 text-xs font-normal hover:bg-black/5"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleRegisterPhone}
-                disabled={isRegistering || pinInput.length !== 6}
-                className="px-4 py-1.5 rounded-full bg-[#25d366] hover:bg-emerald-700 text-white text-xs font-normal disabled:opacity-50"
-              >
-                {isRegistering ? 'Registering...' : 'Register PIN'}
-              </button>
-            </div>
-          </div>
+      <Modal
+        open={isPinModalOpen}
+        onOpenChange={(o) => !o && setIsPinModalOpen(false)}
+        size="sm"
+        title="Phone number 2FA registration"
+        description="Register your business phone number ID on the Meta Cloud API gateway with a 6-digit PIN."
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setIsPinModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="wa"
+              onClick={handleRegisterPhone}
+              disabled={isRegistering || pinInput.length !== 6}
+            >
+              {isRegistering ? 'Registering…' : 'Register PIN'}
+            </Button>
+          </>
+        }
+      >
+        <div>
+          <label className="mb-1 block text-xs font-medium text-foreground">6-digit 2FA PIN</label>
+          <Input
+            maxLength={6}
+            value={pinInput}
+            onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
+            placeholder="123456"
+            className="text-center font-mono tracking-widest"
+          />
+          <p className="mt-1 text-2xs text-muted-foreground">
+            Choose any 6-digit PIN to secure your WhatsApp Cloud number.
+          </p>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

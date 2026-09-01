@@ -3,6 +3,10 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { AppShell } from '@/components/layout/AppShell';
 import { ToastProvider } from '@/components/ui/Toast';
+import { ThemeProvider } from '@/components/providers/ThemeProvider';
+import { SessionProvider } from '@/components/providers/SessionProvider';
+import { ConfirmProvider } from '@/lib/hooks/use-confirm';
+import { TooltipProvider } from '@/components/ui/Tooltip';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -43,7 +47,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full bg-slate-50">
+    <html lang="en" className="h-full bg-background" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
@@ -53,12 +57,20 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
-      <body className={`${inter.variable} font-sans antialiased min-h-full min-h-[100dvh] w-full bg-slate-50 text-slate-900 selection:bg-emerald-100 selection:text-emerald-900`}>
-        <ToastProvider>
-          <AppShell>
-            {children}
-          </AppShell>
-        </ToastProvider>
+      <body className={`${inter.variable} font-sans antialiased min-h-full min-h-dvh w-full bg-background text-foreground selection:bg-brand-subtle selection:text-brand-subtle-foreground`}>
+        <ThemeProvider>
+          <SessionProvider>
+            <TooltipProvider>
+              <ConfirmProvider>
+                <ToastProvider>
+                  <AppShell>
+                    {children}
+                  </AppShell>
+                </ToastProvider>
+              </ConfirmProvider>
+            </TooltipProvider>
+          </SessionProvider>
+        </ThemeProvider>
         <script
           dangerouslySetInnerHTML={{
             __html: `

@@ -35,7 +35,7 @@ graph TD
 
 ### Core Technologies
 - **Frontend / Fullstack:** [Next.js 15](https://nextjs.org/) (App Router, React 19, Server Actions, Route Handlers)
-- **Styling & UI:** Tailwind CSS v4, Lucide React icons, `@xyflow/react` (Visual Flow Canvas)
+- **Styling & UI:** Tailwind CSS v4 (CSS-first, token-driven — see `docs/DESIGN_SYSTEM.md` + `/design`), shadcn/ui `base-nova` primitives on Base UI (`src/components/ui/`), Lucide React icons, `@xyflow/react` (Visual Flow Canvas)
 - **Database & ORM:** PostgreSQL 18 with [Prisma ORM v6](https://www.prisma.io/)
 - **Authentication:** JWT Sessions (`jose`) stored in HTTP-only secure cookies + SHA-256 API Keys
 - **Background Worker:** Standalone Node.js process (`src/worker/index.ts`) with Token-Bucket Rate Limiter & Self-Healing Sweeper

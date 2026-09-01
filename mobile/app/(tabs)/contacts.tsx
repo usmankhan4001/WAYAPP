@@ -2,6 +2,9 @@ import React from 'react';
 import { View, Text, FlatList, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { mobileApiFetch } from '../../lib/api';
+import { theme } from '../../lib/theme';
+
+const c = theme.dark;
 
 export default function MobileContactsScreen() {
   const { data, isLoading } = useQuery({
@@ -16,7 +19,7 @@ export default function MobileContactsScreen() {
     <SafeAreaView style={styles.container}>
       {isLoading ? (
         <View style={styles.center}>
-          <ActivityIndicator color="#10b981" />
+          <ActivityIndicator color={c.primary} />
         </View>
       ) : (
         <FlatList
@@ -48,34 +51,34 @@ export default function MobileContactsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#020617' },
+  container: { flex: 1, backgroundColor: c.background },
   list: { padding: 12 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
+    backgroundColor: c.card,
     borderRadius: 14,
     padding: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: c.secondary,
   },
   avatar: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#1e293b',
+    backgroundColor: c.secondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
-  avatarText: { color: '#ffffff', fontWeight: '700', fontSize: 14 },
+  avatarText: { color: c.foreground, fontWeight: '700', fontSize: 14 },
   info: { flex: 1 },
-  name: { color: '#ffffff', fontSize: 13, fontWeight: '700' },
-  phone: { color: '#64748b', fontSize: 11, marginTop: 2 },
+  name: { color: c.foreground, fontSize: 13, fontWeight: '700' },
+  phone: { color: c['muted-foreground'], fontSize: 11, marginTop: 2 },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  badgeActive: { backgroundColor: '#064e3b' },
-  badgeInactive: { backgroundColor: '#451a03' },
-  badgeText: { color: '#ffffff', fontSize: 9, fontWeight: '700' },
+  badgeActive: { backgroundColor: c['brand-subtle'] },
+  badgeInactive: { backgroundColor: c['warning-subtle'] },
+  badgeText: { color: c.foreground, fontSize: 9, fontWeight: '700' },
 });

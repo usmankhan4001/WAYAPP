@@ -4,6 +4,9 @@ import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Notifications from 'expo-notifications';
 import { mobileApiFetch } from '../lib/api';
+import { theme } from '../lib/theme';
+
+const c = theme.dark;
 
 const queryClient = new QueryClient();
 
@@ -44,9 +47,9 @@ export default function RootLayout() {
       <StatusBar style="light" />
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: '#020617' },
-          headerTintColor: '#ffffff',
-          contentStyle: { backgroundColor: '#020617' },
+          headerStyle: { backgroundColor: c.background },
+          headerTintColor: c.foreground,
+          contentStyle: { backgroundColor: c.background },
         }}
       >
         <Stack.Screen name="index" options={{ headerShown: false }} />

@@ -2,21 +2,26 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { MessageSquare, Users, Send, Settings } from 'lucide-react-native';
 
+import { theme } from '../../lib/theme';
+
+// Shared design tokens (dark palette — the Expo app is dark-default).
+const t = theme.dark;
+
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: '#0f172a' },
-        headerTintColor: '#ffffff',
+        headerStyle: { backgroundColor: t.card },
+        headerTintColor: t.foreground,
         tabBarStyle: {
-          backgroundColor: '#0f172a',
-          borderTopColor: '#1e293b',
+          backgroundColor: t.card,
+          borderTopColor: t.border,
           height: 60,
           paddingBottom: 8,
           paddingTop: 6,
         },
-        tabBarActiveTintColor: '#10b981',
-        tabBarInactiveTintColor: '#64748b',
+        tabBarActiveTintColor: t.primary,
+        tabBarInactiveTintColor: t['muted-foreground'],
       }}
     >
       <Tabs.Screen

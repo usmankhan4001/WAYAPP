@@ -38,11 +38,11 @@ export function VariableMapper({
     <div className="space-y-4">
       {/* Header Media Mapping if template has IMAGE format */}
       {headerComp?.format === 'IMAGE' && (
-        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-          <label className="block text-xs font-bold text-slate-800">
-            Header Image URL <span className="text-red-500">*</span>
+        <div className="p-4 bg-muted rounded-xl border border-border space-y-2">
+          <label className="block text-xs font-bold text-foreground">
+            Header Image URL <span className="text-destructive">*</span>
           </label>
-          <p className="text-[11px] text-slate-500">
+          <p className="text-2xs text-muted-foreground">
             Provide a direct public image link (JPEG/PNG) to attach to the top of this template message.
           </p>
           <input
@@ -51,7 +51,7 @@ export function VariableMapper({
             placeholder="https://images.unsplash.com/... or https://example.com/promo.jpg"
             value={headerMediaUrl}
             onChange={(e) => onChangeHeaderUrl(e.target.value)}
-            className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full px-3 py-2 h-9 text-xs rounded-lg border border-input bg-transparent outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
       )}
@@ -60,7 +60,7 @@ export function VariableMapper({
       {uniqueVarIndices.length > 0 ? (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+            <span className="text-xs font-bold text-foreground uppercase tracking-wider">
               Map Template Variables ({uniqueVarIndices.length} placeholders)
             </span>
           </div>
@@ -71,20 +71,20 @@ export function VariableMapper({
               const exampleSample = bodyComp?.example?.body_text?.[0]?.[parseInt(varIdx, 10) - 1] || '';
 
               return (
-                <div key={varIdx} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                <div key={varIdx} className="p-3 bg-muted rounded-xl border border-border space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-emerald-700 font-mono">
+                    <span className="text-xs font-bold text-primary font-mono">
                       Placeholder {"{{" + varIdx + "}}"}
                     </span>
                     {exampleSample && (
-                      <span className="text-[10px] text-slate-400">Sample: &ldquo;{exampleSample}&rdquo;</span>
+                      <span className="text-2xs text-muted-foreground">Sample: &ldquo;{exampleSample}&rdquo;</span>
                     )}
                   </div>
 
                   <select
                     value={currentVal}
                     onChange={(e) => onChangeMapping(varIdx, e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-3 py-1.5 h-9 text-xs rounded-lg border border-input bg-transparent outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="">Select contact field...</option>
                     <optgroup label="Standard Contact Fields">
@@ -111,7 +111,7 @@ export function VariableMapper({
                         placeholder="Or enter static text value..."
                         value={currentVal}
                         onChange={(e) => onChangeMapping(varIdx, e.target.value)}
-                        className="w-full px-2.5 py-1 text-xs rounded-lg border border-slate-300 bg-white"
+                        className="w-full px-2.5 py-1 h-9 text-xs rounded-lg border border-input bg-transparent"
                       />
                     )}
                 </div>
@@ -120,7 +120,7 @@ export function VariableMapper({
           </div>
         </div>
       ) : (
-        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-center text-xs text-slate-500">
+        <div className="p-4 bg-muted rounded-xl border border-border text-center text-xs text-muted-foreground">
           This template contains no dynamic body placeholders.
         </div>
       )}
