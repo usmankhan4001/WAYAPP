@@ -37,6 +37,7 @@ import {
   Position,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { useToast } from '@/components/ui/Toast';
 
 // -------------------------------------------------------------
 // CUSTOM FLOW NODES
@@ -143,6 +144,7 @@ const nodeTypes = {
 export default function FlowEditorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const toast = useToast();
 
   const [flow, setFlow] = useState<any>(null);
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -260,7 +262,10 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
 
   const handleSave = async (publishState?: boolean) => {
     if (publishState === true && !nodes.some((n) => n.type === 'trigger')) {
-      window.alert("This flow has no Trigger node, so it will never start for real contacts. Add a Trigger node (top-left toolbar) before publishing.");
+      toast.warning(
+        'No trigger node',
+        'This flow will never start for real contacts. Add a Trigger node (top-left toolbar) before publishing.'
+      );
       return;
     }
 

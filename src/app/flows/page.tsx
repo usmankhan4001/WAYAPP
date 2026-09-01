@@ -77,46 +77,46 @@ export default function FlowsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Conversation Flows & Visual Builder</h1>
-        <p className="text-xs text-slate-500">
+        <h1 className="text-2xl font-black text-foreground tracking-tight">Conversation Flows & Visual Builder</h1>
+        <p className="text-xs text-muted-foreground">
           Automated multi-step qualification funnels, interactive Meta list messages, and drag-and-drop conversational journeys
         </p>
       </div>
 
       {/* Example Lead Qualification Flow Showcase Banner */}
-      <div className="bg-linear-to-r from-emerald-50 via-white to-white border border-emerald-200 rounded-3xl p-6 shadow-sm relative overflow-hidden">
+      <div className="bg-brand-subtle/40 border border-transparent rounded-3xl p-6 shadow-sm relative overflow-hidden">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
           <div className="space-y-2 max-w-2xl">
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-subtle text-brand-subtle-foreground">
                 Active Engine
               </span>
-              <span className="text-xs font-semibold text-slate-500">Example: Lead Qualification</span>
+              <span className="text-xs font-semibold text-muted-foreground">Example: Lead Qualification</span>
             </div>
-            <h2 className="text-lg font-bold text-slate-900 tracking-tight">
+            <h2 className="text-lg font-bold text-foreground tracking-tight">
               4-Step Interactive Lead Qualification Funnel
             </h2>
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-muted-foreground">
               Automatically engages inbound leads with a keyword trigger and quick-reply questions covering Business Activity, Region, Goal, and Timeline, tags qualified leads by temperature (<span className="text-rose-600 font-bold">HOT 🔥</span> / <span className="text-amber-600 font-bold">WARM 🟡</span>), and hands off to your team in the inbox. Duplicate and customize it for your own business.
             </p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-white border border-slate-200 rounded-2xl p-3 text-center">
-              <span className="text-[10px] font-medium text-slate-400 block">Step 1</span>
-              <span className="text-xs font-bold text-slate-900">Activity List</span>
+            <div className="bg-card border border-border rounded-2xl p-3 text-center">
+              <span className="text-[10px] font-medium text-muted-foreground block">Step 1</span>
+              <span className="text-xs font-bold text-foreground">Activity List</span>
             </div>
-            <div className="bg-white border border-slate-200 rounded-2xl p-3 text-center">
-              <span className="text-[10px] font-medium text-slate-400 block">Step 2</span>
-              <span className="text-xs font-bold text-slate-900">Region List</span>
+            <div className="bg-card border border-border rounded-2xl p-3 text-center">
+              <span className="text-[10px] font-medium text-muted-foreground block">Step 2</span>
+              <span className="text-xs font-bold text-foreground">Region List</span>
             </div>
-            <div className="bg-white border border-slate-200 rounded-2xl p-3 text-center">
-              <span className="text-[10px] font-medium text-slate-400 block">Step 3</span>
-              <span className="text-xs font-bold text-slate-900">Goal List</span>
+            <div className="bg-card border border-border rounded-2xl p-3 text-center">
+              <span className="text-[10px] font-medium text-muted-foreground block">Step 3</span>
+              <span className="text-xs font-bold text-foreground">Goal List</span>
             </div>
-            <div className="bg-white border border-slate-200 rounded-2xl p-3 text-center">
-              <span className="text-[10px] font-medium text-slate-400 block">Step 4</span>
-              <span className="text-xs font-bold text-slate-900">Timeline List</span>
+            <div className="bg-card border border-border rounded-2xl p-3 text-center">
+              <span className="text-[10px] font-medium text-muted-foreground block">Step 4</span>
+              <span className="text-xs font-bold text-foreground">Timeline List</span>
             </div>
           </div>
         </div>
@@ -125,7 +125,7 @@ export default function FlowsPage() {
       {/* Top Controls */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search chatbot flows..."
@@ -137,7 +137,7 @@ export default function FlowsPage() {
 
         <button
           onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs shadow-sm transition-all"
         >
           <Plus className="w-4 h-4" />
           <span>Create New Flow</span>
@@ -174,47 +174,47 @@ export default function FlowsPage() {
             return (
               <div
                 key={flow.id}
-                className="group card-base hover:border-slate-300 p-5 flex flex-col justify-between transition-all hover:shadow-md"
+                className="group card-base hover:border-foreground/20 p-5 flex flex-col justify-between transition-all hover:shadow-md"
               >
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center">
+                      <div className="w-9 h-9 rounded-xl bg-brand-subtle border border-transparent text-primary flex items-center justify-center">
                         <GitMerge className="w-4 h-4" />
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                        <h4 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
                           {flow.name}
                         </h4>
-                        <span className="text-[10px] text-slate-400">v{flow.version || 1}</span>
+                        <span className="text-[10px] text-muted-foreground">v{flow.version || 1}</span>
                       </div>
                     </div>
 
                     <span
                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
                         isPublished
-                          ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                          : 'bg-slate-100 border-slate-200 text-slate-500'
+                          ? 'bg-brand-subtle border-transparent text-primary'
+                          : 'bg-muted border-border text-muted-foreground'
                       }`}
                     >
                       {flow.status}
                     </span>
                   </div>
 
-                  <p className="text-xs text-slate-500 line-clamp-2 min-h-[32px]">
+                  <p className="text-xs text-muted-foreground line-clamp-2 min-h-[32px]">
                     {flow.description || 'No description provided.'}
                   </p>
                 </div>
 
-                <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
-                    <Zap className="w-3 h-3 text-emerald-600" />
+                <div className="pt-4 mt-4 border-t border-border flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                    <Zap className="w-3 h-3 text-primary" />
                     {flow._count?.runs || 0} executions
                   </span>
 
                   <Link
                     href={`/flows/${flow.id}`}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-800 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted hover:bg-muted text-xs font-semibold text-foreground transition-colors"
                   >
                     <span>Edit Canvas</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -228,21 +228,21 @@ export default function FlowsPage() {
 
       {/* Create Flow Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-2xl bg-brand-subtle border border-transparent text-primary flex items-center justify-center">
                   <GitMerge className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">Create Visual Flow</h3>
-                  <p className="text-xs text-slate-500">Initialize a new chatbot canvas</p>
+                  <h3 className="text-base font-bold text-foreground">Create Visual Flow</h3>
+                  <p className="text-xs text-muted-foreground">Initialize a new chatbot canvas</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="text-slate-400 hover:text-slate-700"
+                className="text-muted-foreground hover:text-foreground"
                 aria-label="Close"
               >
                 <X className="w-4 h-4" />
@@ -251,7 +251,7 @@ export default function FlowsPage() {
 
             <form onSubmit={handleCreateFlow} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Flow Name</label>
+                <label className="block text-xs font-semibold text-foreground mb-1.5">Flow Name</label>
                 <input
                   type="text"
                   required
@@ -263,7 +263,7 @@ export default function FlowsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Description (optional)</label>
+                <label className="block text-xs font-semibold text-foreground mb-1.5">Description (optional)</label>
                 <textarea
                   rows={2}
                   placeholder="Describe what this customer journey does..."
