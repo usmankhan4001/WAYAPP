@@ -84,7 +84,7 @@ export default function FlowsPage() {
       </div>
 
       {/* Example Lead Qualification Flow Showcase Banner */}
-      <div className="bg-gradient-to-r from-emerald-50 via-white to-white border border-emerald-200 rounded-3xl p-6 shadow-sm relative overflow-hidden">
+      <div className="bg-linear-to-r from-emerald-50 via-white to-white border border-emerald-200 rounded-3xl p-6 shadow-sm relative overflow-hidden">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
           <div className="space-y-2 max-w-2xl">
             <div className="flex items-center gap-2">

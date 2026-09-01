@@ -141,7 +141,7 @@ export function InitialSetupGatekeeper({ onActivationSuccess }: InitialSetupGate
   };
 
   return (
-    <div className="min-h-screen min-h-[100dvh] w-full bg-slate-50 flex flex-col justify-center items-center p-4 sm:p-6 overflow-y-auto">
+    <div className="min-h-screen min-h-dvh w-full bg-slate-50 flex flex-col justify-center items-center p-4 sm:p-6 overflow-y-auto">
       {/* Top Brand Banner */}
       <div className="max-w-xl w-full text-center space-y-2 mb-6">
         <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600 p-2.5 text-white shadow-lg ring-4 ring-emerald-500/20 mb-2">

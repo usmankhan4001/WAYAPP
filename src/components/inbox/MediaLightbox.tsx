@@ -73,7 +73,7 @@ export function MediaLightbox({ mediaUrl, mediaType, caption, onClose }: MediaLi
               href={mediaUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#25d366] hover:bg-[#20b858] rounded-full text-xs font-normal"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-whatsapp-green hover:bg-[#20b858] rounded-full text-xs font-normal"
             >
               <Download className="w-4 h-4" />
               <span>Download / Open Document</span>

@@ -61,7 +61,7 @@ export function PWAInstallPrompt({ className }: { className?: string }) {
         onClick={handleInstallClick}
         className={
           className ||
-          'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#25d366] hover:bg-[#20b858] text-white text-xs font-normal  shadow-emerald-600/20 transition-all'
+          'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-whatsapp-green hover:bg-[#20b858] text-white text-xs font-normal  shadow-emerald-600/20 transition-all'
         }
         title="Install WAYAPP as Standalone App on Desktop or Mobile"
       >
@@ -92,7 +92,7 @@ export function PWAInstallPrompt({ className }: { className?: string }) {
 
             <div className="space-y-2.5 bg-black/5 p-3.5 rounded-2xl border border-slate-200 text-xs text-slate-700">
               <div className="flex items-center gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-[#25d366] text-white font-normal text-[10px] flex items-center justify-center shrink-0">
+                <span className="w-5 h-5 rounded-full bg-whatsapp-green text-white font-normal text-[10px] flex items-center justify-center shrink-0">
                   1
                 </span>
                 <span className="flex items-center gap-1">
@@ -101,7 +101,7 @@ export function PWAInstallPrompt({ className }: { className?: string }) {
               </div>
 
               <div className="flex items-center gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-[#25d366] text-white font-normal text-[10px] flex items-center justify-center shrink-0">
+                <span className="w-5 h-5 rounded-full bg-whatsapp-green text-white font-normal text-[10px] flex items-center justify-center shrink-0">
                   2
                 </span>
                 <span className="flex items-center gap-1">
@@ -110,7 +110,7 @@ export function PWAInstallPrompt({ className }: { className?: string }) {
               </div>
 
               <div className="flex items-center gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-[#25d366] text-white font-normal text-[10px] flex items-center justify-center shrink-0">
+                <span className="w-5 h-5 rounded-full bg-whatsapp-green text-white font-normal text-[10px] flex items-center justify-center shrink-0">
                   3
                 </span>
                 <span>
@@ -121,7 +121,7 @@ export function PWAInstallPrompt({ className }: { className?: string }) {
 
             <button
               onClick={() => setShowIosGuide(false)}
-              className="w-full py-2 rounded-xl bg-[#25d366] hover:bg-[#20b858] text-white text-xs font-normal  transition-all"
+              className="w-full py-2 rounded-xl bg-whatsapp-green hover:bg-[#20b858] text-white text-xs font-normal  transition-all"
             >
               Got It
             </button>

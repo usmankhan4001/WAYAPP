@@ -214,7 +214,7 @@ export function CampaignWizard({ templates = [], groups = [], tags = [] }: Campa
               placeholder="e.g. VIP Seasonal Announcement"
               value={campaignName}
               onChange={(e) => setCampaignName(e.target.value)}
-              className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
             />
           </div>
 

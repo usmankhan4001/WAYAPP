@@ -253,7 +253,7 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
                     <select
                       value={columnMapping.phoneNumber}
                       onChange={(e) => setColumnMapping({ ...columnMapping, phoneNumber: e.target.value })}
-                      className="w-full text-xs rounded-xl border border-slate-300 bg-white p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      className="w-full text-xs rounded-xl border border-slate-300 bg-white p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                     >
                       <option value="">-- Select Column --</option>
                       {headers.map((h) => (
@@ -269,7 +269,7 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
                     <select
                       value={columnMapping.firstName}
                       onChange={(e) => setColumnMapping({ ...columnMapping, firstName: e.target.value })}
-                      className="w-full text-xs rounded-xl border border-slate-300 bg-white p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      className="w-full text-xs rounded-xl border border-slate-300 bg-white p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                     >
                       <option value="">-- None / Skip --</option>
                       {headers.map((h) => (
@@ -285,7 +285,7 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
                     <select
                       value={columnMapping.lastName}
                       onChange={(e) => setColumnMapping({ ...columnMapping, lastName: e.target.value })}
-                      className="w-full text-xs rounded-xl border border-slate-300 bg-white p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      className="w-full text-xs rounded-xl border border-slate-300 bg-white p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                     >
                       <option value="">-- None / Skip --</option>
                       {headers.map((h) => (
@@ -301,7 +301,7 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
                     <select
                       value={columnMapping.email}
                       onChange={(e) => setColumnMapping({ ...columnMapping, email: e.target.value })}
-                      className="w-full text-xs rounded-xl border border-slate-300 bg-white p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      className="w-full text-xs rounded-xl border border-slate-300 bg-white p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                     >
                       <option value="">-- None / Skip --</option>
                       {headers.map((h) => (
@@ -325,7 +325,7 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
                     <select
                       value={selectedGroupId}
                       onChange={(e) => setSelectedGroupId(e.target.value)}
-                      className="w-full text-xs rounded-xl border border-slate-300 bg-white p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      className="w-full text-xs rounded-xl border border-slate-300 bg-white p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                     >
                       <option value="">-- No Group Assignment --</option>
                       {groups.map((g) => (
@@ -341,7 +341,7 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
                     <select
                       value={selectedTagId}
                       onChange={(e) => setSelectedTagId(e.target.value)}
-                      className="w-full text-xs rounded-xl border border-slate-300 bg-white p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      className="w-full text-xs rounded-xl border border-slate-300 bg-white p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                     >
                       <option value="">-- No Tag Assignment --</option>
                       {tags.map((t) => (

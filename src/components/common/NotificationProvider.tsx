@@ -226,7 +226,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         <div className="fixed top-3 left-3 right-3 sm:top-auto sm:bottom-6 sm:right-6 sm:left-auto sm:max-w-sm z-50 animate-in slide-in-from-top-3 sm:slide-in-from-bottom-4 duration-300">
           <div className="bg-white text-slate-900 rounded-2xl p-3.5 sm:p-4 shadow-2xl border border-slate-200 flex items-start gap-3 ring-1 ring-emerald-500/30">
             {/* WhatsApp Emerald Icon */}
-            <div className="w-10 h-10 rounded-full bg-[#25d366] flex items-center justify-center shrink-0  text-white font-normal text-sm ring-2 ring-emerald-100">
+            <div className="w-10 h-10 rounded-full bg-whatsapp-green flex items-center justify-center shrink-0  text-white font-normal text-sm ring-2 ring-emerald-100">
               {activeToast.senderName.charAt(0).toUpperCase()}
             </div>
 

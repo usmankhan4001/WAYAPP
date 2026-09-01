@@ -150,7 +150,7 @@ export function VoiceNoteRecorder({ onSendVoiceNote, onCancel }: VoiceNoteRecord
         <button
           type="button"
           onClick={handleSend}
-          className="px-3.5 py-1.5 rounded-full bg-[#25d366] hover:bg-[#20b858] text-white text-xs font-normal flex items-center gap-1.5  shadow-emerald-600/30 transition-all"
+          className="px-3.5 py-1.5 rounded-full bg-whatsapp-green hover:bg-[#20b858] text-white text-xs font-normal flex items-center gap-1.5  shadow-emerald-600/30 transition-all"
         >
           <span>Send</span>
           <Send className="w-3.5 h-3.5" />

@@ -1,15 +1,111 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
 
-:root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  --border: #e2e8f0;
-  --input: #f1f5f9;
-  --ring: #10b981;
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-brand-50: #ecfdf5;
+  --color-brand-100: #d1fae5;
+  --color-brand-200: #a7f3d0;
+  --color-brand-300: #6ee7b7;
+  --color-brand-400: #34d399;
+  --color-brand-500: #10b981;
+  --color-brand-600: #059669;
+  --color-brand-700: #047857;
+  --color-brand-800: #065f46;
+  --color-brand-900: #064e3b;
+  --color-brand-950: #022c22;
+
+  --color-whatsapp-green: #25d366;
+  --color-whatsapp-darkGreen: #128c7e;
+  --color-whatsapp-deepTeal: #075e54;
+  --color-whatsapp-lightGreen: #dcf8c6;
+  --color-whatsapp-chatBg: #efeae2;
+  --color-whatsapp-chatBgDark: #0b141a;
+  --color-whatsapp-bubbleOut: #d9fdd3;
+  --color-whatsapp-bubbleIn: #ffffff;
+  --color-whatsapp-blue: #34b7f1;
+
+  --font-sans: Inter, system-ui, sans-serif;
+
+  --shadow-2xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+/* Modern WhatsApp Design System Components */
+
+@utility btn-primary {
+  @apply h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-sm font-semibold inline-flex items-center justify-center gap-2 shadow-xs transition-all disabled:opacity-50 disabled:pointer-events-none;
+}
+
+@utility btn-secondary {
+  @apply h-10 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-800 text-sm font-medium inline-flex items-center justify-center gap-2 shadow-2xs transition-all disabled:opacity-50 disabled:pointer-events-none;
+}
+
+@utility btn-ghost {
+  @apply h-9 px-3 rounded-lg text-slate-700 hover:bg-slate-100 active:scale-[0.98] text-sm font-medium inline-flex items-center justify-center gap-1.5 transition-all;
+}
+
+@utility input-base {
+  @apply h-10 text-sm rounded-xl border border-slate-200 bg-white px-3.5 text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-hidden transition-all w-full;
+}
+
+@utility card-base {
+  @apply bg-white rounded-2xl border border-slate-200/80 shadow-xs;
+}
+
+@utility badge-emerald {
+  @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80;
+}
+
+@utility badge-sky {
+  @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200/80;
+}
+
+@utility badge-violet {
+  @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200/80;
+}
+
+@utility badge-slate {
+  @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200/80;
+}
+
+@utility badge-rose {
+  @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/80;
+}
+
+@utility badge-amber {
+  @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/80;
+}
+
+@layer utilities {
+  :root {
+    --background: #f8fafc;
+    --foreground: #0f172a;
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    --border: #e2e8f0;
+    --input: #f1f5f9;
+    --ring: #10b981;
+  }
 }
 
 @layer base {
@@ -43,53 +139,6 @@
   input, textarea, select, [contenteditable="true"] {
     user-select: text;
     -webkit-user-select: text;
-  }
-}
-
-/* Modern WhatsApp Design System Components */
-@layer components {
-  .btn-primary {
-    @apply h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-sm font-semibold inline-flex items-center justify-center gap-2 shadow-xs transition-all disabled:opacity-50 disabled:pointer-events-none;
-  }
-
-  .btn-secondary {
-    @apply h-10 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-800 text-sm font-medium inline-flex items-center justify-center gap-2 shadow-2xs transition-all disabled:opacity-50 disabled:pointer-events-none;
-  }
-
-  .btn-ghost {
-    @apply h-9 px-3 rounded-lg text-slate-700 hover:bg-slate-100 active:scale-[0.98] text-sm font-medium inline-flex items-center justify-center gap-1.5 transition-all;
-  }
-
-  .input-base {
-    @apply h-10 text-sm rounded-xl border border-slate-200 bg-white px-3.5 text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all w-full;
-  }
-
-  .card-base {
-    @apply bg-white rounded-2xl border border-slate-200/80 shadow-xs;
-  }
-
-  .badge-emerald {
-    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80;
-  }
-
-  .badge-sky {
-    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200/80;
-  }
-
-  .badge-violet {
-    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200/80;
-  }
-
-  .badge-slate {
-    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200/80;
-  }
-
-  .badge-rose {
-    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/80;
-  }
-
-  .badge-amber {
-    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/80;
   }
 }
 

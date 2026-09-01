@@ -99,7 +99,7 @@ export function NewChatModal({ isOpen, onClose, onSelectContact }: NewChatModalP
               placeholder="Search contacts by name, email, or phone..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 text-xs rounded-full border border-slate-300 bg-black/5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
+              className="w-full pl-8 pr-3 py-2 text-xs rounded-full border border-slate-300 bg-black/5 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:bg-white"
             />
           </div>
         </div>
@@ -124,7 +124,7 @@ export function NewChatModal({ isOpen, onClose, onSelectContact }: NewChatModalP
                     onSelectContact(c);
                     onClose();
                   }}
-                  className="p-2.5 rounded-full hover:bg-black/5/70 cursor-pointer flex items-center justify-between group transition-all"
+                  className="p-2.5 rounded-full hover:bg-black/5 cursor-pointer flex items-center justify-between group transition-all"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="w-8 h-8 rounded-full bg-[#e6ffda] text-[#1c1e21] font-normal text-xs flex items-center justify-center shrink-0">
@@ -152,20 +152,20 @@ export function NewChatModal({ isOpen, onClose, onSelectContact }: NewChatModalP
                 placeholder="Phone (e.g. +971501234567)"
                 value={manualPhone}
                 onChange={(e) => setManualPhone(e.target.value)}
-                className="px-3 py-1.5 text-xs rounded-full border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                className="px-3 py-1.5 text-xs rounded-full border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-mono"
               />
               <input
                 type="text"
                 placeholder="Contact Name (optional)"
                 value={manualName}
                 onChange={(e) => setManualName(e.target.value)}
-                className="px-3 py-1.5 text-xs rounded-full border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="px-3 py-1.5 text-xs rounded-full border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             <button
               type="submit"
               disabled={creating || !manualPhone.trim()}
-              className="w-full py-2 rounded-full bg-[#25d366] hover:bg-emerald-700 text-white font-normal text-xs  flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
+              className="w-full py-2 rounded-full bg-whatsapp-green hover:bg-emerald-700 text-white font-normal text-xs  flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
             >
               <UserPlus className="w-3.5 h-3.5" />
               <span>{creating ? 'Starting...' : 'Start Chat with this Number'}</span>

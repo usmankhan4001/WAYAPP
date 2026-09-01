@@ -26,7 +26,7 @@ export default function InboxError({
         </p>
         <button
           onClick={reset}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#25d366] hover:bg-emerald-700 text-white text-sm font-normal  transition-all"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-whatsapp-green hover:bg-emerald-700 text-white text-sm font-normal  transition-all"
         >
           <RefreshCw className="w-4 h-4" />
           <span>Reload Inbox</span>

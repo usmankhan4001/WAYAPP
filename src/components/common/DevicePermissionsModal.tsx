@@ -256,7 +256,7 @@ export function DevicePermissionsModal({ isOpen, onClose }: DevicePermissionsMod
         {/* Permissions Cards */}
         <div className="space-y-2.5">
           {/* 1. Notifications */}
-          <div className="p-3.5 rounded-2xl border border-slate-200 bg-black/5/70 flex items-center justify-between gap-3">
+          <div className="p-3.5 rounded-2xl border border-slate-200 bg-black/5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                 <Bell className="w-4 h-4" />
@@ -296,7 +296,7 @@ export function DevicePermissionsModal({ isOpen, onClose }: DevicePermissionsMod
           </div>
 
           {/* 2. Microphone */}
-          <div className="p-3.5 rounded-2xl border border-slate-200 bg-black/5/70 flex items-center justify-between gap-3">
+          <div className="p-3.5 rounded-2xl border border-slate-200 bg-black/5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-9 h-9 rounded-xl bg-black/5 text-emerald-600 flex items-center justify-center shrink-0">
                 <Mic className="w-4 h-4" />
@@ -326,7 +326,7 @@ export function DevicePermissionsModal({ isOpen, onClose }: DevicePermissionsMod
               <button
                 type="button"
                 onClick={handleRequestMicrophone}
-                className="px-3 py-1.5 rounded-xl bg-[#25d366] hover:bg-[#20b858] text-white font-normal text-xs  shrink-0 transition-all active:scale-95"
+                className="px-3 py-1.5 rounded-xl bg-whatsapp-green hover:bg-[#20b858] text-white font-normal text-xs  shrink-0 transition-all active:scale-95"
               >
                 Enable
               </button>
@@ -336,7 +336,7 @@ export function DevicePermissionsModal({ isOpen, onClose }: DevicePermissionsMod
           </div>
 
           {/* 3. Camera */}
-          <div className="p-3.5 rounded-2xl border border-slate-200 bg-black/5/70 flex items-center justify-between gap-3">
+          <div className="p-3.5 rounded-2xl border border-slate-200 bg-black/5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
                 <Camera className="w-4 h-4" />
@@ -383,7 +383,7 @@ export function DevicePermissionsModal({ isOpen, onClose }: DevicePermissionsMod
               type="button"
               onClick={handleGrantAll}
               disabled={isRequesting}
-              className="w-full py-3 rounded-2xl bg-[#25d366] hover:bg-[#20b858] text-white font-normal text-xs  shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50 active:scale-98"
+              className="w-full py-3 rounded-2xl bg-whatsapp-green hover:bg-[#20b858] text-white font-normal text-xs  shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50 active:scale-98"
             >
               <Sparkles className="w-4 h-4" />
               <span>{isRequesting ? 'Requesting Permissions...' : 'Grant All Permissions in 1-Click'}</span>

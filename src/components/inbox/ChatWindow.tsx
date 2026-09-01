@@ -768,7 +768,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
   const currentStageObj = LEAD_STAGES.find((s) => s.id === leadStage) || LEAD_STAGES[0];
 
   return (
-    <div className="flex-1 h-full w-full flex bg-[#efeae2] overflow-hidden min-w-0">
+    <div className="flex-1 h-full w-full flex bg-whatsapp-chatBg overflow-hidden min-w-0">
       {/* Hidden Global File Input */}
       <input
         type="file"
@@ -924,12 +924,12 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
               handleFileSelected(e.dataTransfer.files[0]);
             }
           }}
-          className={`flex-1 overflow-y-auto p-4 md:p-6 space-y-3.5 bg-[#efeae2]/90 relative ${
-            isDragging ? 'ring-2 ring-emerald-500 ring-inset bg-black/5/50' : ''
+          className={`flex-1 overflow-y-auto p-4 md:p-6 space-y-3.5 bg-whatsapp-chatBg/90 relative ${
+            isDragging ? 'ring-2 ring-emerald-500 ring-inset bg-black/5' : ''
           }`}
         >
           {isDragging && (
-            <div className="absolute inset-0 bg-black/5/90 backdrop-blur-sm z-20 flex flex-col items-center justify-center text-[#1c1e21] pointer-events-none">
+            <div className="absolute inset-0 bg-black/5 backdrop-blur-sm z-20 flex flex-col items-center justify-center text-[#1c1e21] pointer-events-none">
               <ImageIcon className="w-12 h-12 mb-2 animate-bounce" />
               <p className="text-sm font-normal">Drop your image, video, or PDF file to attach</p>
             </div>
@@ -963,7 +963,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                       onClick={() => setHoveredMessageId(hoveredMessageId === m.id ? null : m.id)}
                       className={`max-w-[88%] sm:max-w-[75%] md:max-w-[65%] p-3 md:p-3.5 space-y-1.5 transition-all relative cursor-pointer sm:cursor-default shadow-2xs select-text ${
                         isOutbound
-                          ? 'bg-[#d9fdd3] text-slate-900 border border-[#c3f4bb] rounded-2xl rounded-tr-xs'
+                          ? 'bg-whatsapp-bubbleOut text-slate-900 border border-[#c3f4bb] rounded-2xl rounded-tr-xs'
                           : 'bg-white text-slate-900 border border-slate-200/80 rounded-2xl rounded-tl-xs'
                       }`}
                     >
@@ -1055,7 +1055,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                           <textarea
                             value={editMessageText}
                             onChange={(e) => setEditMessageText(e.target.value)}
-                            className="w-full text-[13px] rounded-full p-2 border border-emerald-400 bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none min-h-[60px]"
+                            className="w-full text-[13px] rounded-full p-2 border border-emerald-400 bg-white text-slate-900 focus:outline-hidden focus:ring-1 focus:ring-emerald-500 resize-none min-h-[60px]"
                             autoFocus
                           />
                           <div className="flex justify-end gap-1.5">
@@ -1068,7 +1068,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                             <button
                               onClick={() => handleEditSubmit(m.id)}
                               disabled={isSavingEdit}
-                              className="px-2 py-1 text-[10px] font-normal rounded bg-[#25d366] hover:bg-emerald-700 text-white"
+                              className="px-2 py-1 text-[10px] font-normal rounded bg-whatsapp-green hover:bg-emerald-700 text-white"
                             >
                               {isSavingEdit ? 'Saving...' : 'Save'}
                             </button>
@@ -1238,7 +1238,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                 type="button"
                 onClick={handleAiSuggestReply}
                 disabled={isAiLoading}
-                className="px-2.5 py-1 rounded-full text-xs font-normal bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white flex items-center gap-1 shadow-xs transition-all disabled:opacity-50"
+                className="px-2.5 py-1 rounded-full text-xs font-normal bg-linear-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white flex items-center gap-1 shadow-xs transition-all disabled:opacity-50"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>{isAiLoading ? 'Drafting...' : 'Suggest Reply'}</span>
@@ -1469,7 +1469,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                   }
                   value={text}
                   onChange={handleTextChange}
-                  className="flex-1 min-w-0 px-3.5 py-2 sm:py-2.5 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  className="flex-1 min-w-0 px-3.5 py-2 sm:py-2.5 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                 />
 
                 {!text.trim() && (
@@ -1561,7 +1561,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                 type="text"
                 value={invoiceItem}
                 onChange={(e) => setInvoiceItem(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
               />
             </div>
             <div>
@@ -1570,7 +1570,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                 type="number"
                 value={invoiceAmount}
                 onChange={(e) => setInvoiceAmount(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
               />
             </div>
             <div className="flex justify-end gap-2 pt-2">
@@ -1623,7 +1623,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                   placeholder="Search name or phone..."
                   value={forwardSearch}
                   onChange={handleSearchContactsForForward}
-                  className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                 />
               </div>
             </div>
@@ -1719,7 +1719,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                       setLeadStage(e.target.value);
                       handleSaveCrmDetails(e.target.value);
                     }}
-                    className="w-full px-2.5 py-1.5 text-xs font-normal rounded-full border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-2.5 py-1.5 text-xs font-normal rounded-full border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                   >
                     {LEAD_STAGES.map((st) => (
                       <option key={st.id} value={st.id}>
@@ -1825,7 +1825,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                     placeholder="Write a private sales note (visible only to team agents)..."
                     value={newNoteText}
                     onChange={(e) => setNewNoteText(e.target.value)}
-                    className="w-full p-2 text-xs rounded-full border border-amber-300 bg-amber-50/50 focus:outline-none focus:ring-2 focus:ring-amber-400 placeholder:text-amber-800/40"
+                    className="w-full p-2 text-xs rounded-full border border-amber-300 bg-amber-50/50 focus:outline-hidden focus:ring-2 focus:ring-amber-400 placeholder:text-amber-800/40"
                   />
                   <button
                     type="submit"

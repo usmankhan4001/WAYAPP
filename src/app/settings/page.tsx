@@ -464,7 +464,7 @@ export default function SettingsPage() {
         >
           <Layers className="w-3.5 h-3.5 text-emerald-400" />
           <span>App Marketplace & Modules</span>
-          <span className="px-1.5 py-0.2 rounded-full bg-black/50/20 text-[#1c1e21] text-[10px] font-normal">
+          <span className="px-1.5 py-0.2 rounded-full bg-black/10 text-[#1c1e21] text-[10px] font-normal">
             {modules.filter((m) => m.isEnabled).length}/{modules.length} ON
           </span>
         </button>
@@ -797,7 +797,7 @@ export default function SettingsPage() {
       {/* TAB 2: APP MARKETPLACE & MODULAR SWITCHBOARD */}
       {activeTab === 'marketplace' && (
         <div className="space-y-4">
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-white space-y-1 ">
+          <div className="p-4 rounded-2xl bg-linear-to-br from-slate-900 to-slate-800 text-white space-y-1 ">
             <h3 className="font-normal text-sm text-white flex items-center gap-1.5">
               <Layers className="w-4 h-4 text-emerald-400" />
               <span>Plug-and-Play Module Switchboard</span>
@@ -845,7 +845,7 @@ export default function SettingsPage() {
                   className={`p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between gap-3 ${
                     mod.isEnabled
                       ? 'bg-white border-slate-200 shadow-xs'
-                      : 'bg-black/5/70 border-slate-200/60 opacity-75'
+                      : 'bg-black/5 border-slate-200/60 opacity-75'
                   }`}
                 >
                   <div className="space-y-2">
@@ -873,8 +873,8 @@ export default function SettingsPage() {
                         type="button"
                         disabled={isToggling}
                         onClick={() => handleToggleModule(mod.id, mod.isEnabled)}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          mod.isEnabled ? 'bg-[#25d366]' : 'bg-slate-300'
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                          mod.isEnabled ? 'bg-whatsapp-green' : 'bg-slate-300'
                         } ${isToggling ? 'opacity-50' : ''}`}
                       >
                         <span
@@ -914,7 +914,7 @@ export default function SettingsPage() {
 
             <button
               onClick={() => setIsAddingSnippet(!isAddingSnippet)}
-              className="px-3.5 py-1.5 rounded-xl bg-[#25d366] hover:bg-emerald-700 text-white text-xs font-normal flex items-center gap-1.5  transition-all self-start sm:self-auto"
+              className="px-3.5 py-1.5 rounded-xl bg-whatsapp-green hover:bg-emerald-700 text-white text-xs font-normal flex items-center gap-1.5  transition-all self-start sm:self-auto"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{isAddingSnippet ? 'Cancel' : 'New Snippet'}</span>
@@ -968,7 +968,7 @@ export default function SettingsPage() {
                   placeholder="Type the full WhatsApp text message..."
                   value={newContent}
                   onChange={(e) => setNewContent(e.target.value)}
-                  className="w-full p-2.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full p-2.5 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
@@ -982,7 +982,7 @@ export default function SettingsPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 text-xs font-normal rounded-xl bg-[#25d366] text-white shadow-xs"
+                  className="px-4 py-1.5 text-xs font-normal rounded-xl bg-whatsapp-green text-white shadow-xs"
                 >
                   Save Shortcut
                 </button>
@@ -1061,7 +1061,7 @@ export default function SettingsPage() {
 
             <button
               onClick={() => setIsCreatingKey(!isCreatingKey)}
-              className="px-3.5 py-1.5 rounded-xl bg-[#25d366] hover:bg-emerald-700 text-white text-xs font-normal flex items-center gap-1.5 transition-all self-start sm:self-auto"
+              className="px-3.5 py-1.5 rounded-xl bg-whatsapp-green hover:bg-emerald-700 text-white text-xs font-normal flex items-center gap-1.5 transition-all self-start sm:self-auto"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{isCreatingKey ? 'Cancel' : 'New API Key'}</span>
@@ -1107,7 +1107,7 @@ export default function SettingsPage() {
                 <button
                   type="submit"
                   disabled={creatingKey || !newKeyName.trim()}
-                  className="px-4 py-1.5 text-xs font-normal rounded-xl bg-[#25d366] text-white shadow-xs disabled:opacity-50"
+                  className="px-4 py-1.5 text-xs font-normal rounded-xl bg-whatsapp-green text-white shadow-xs disabled:opacity-50"
                 >
                   {creatingKey ? 'Generating...' : 'Generate Key'}
                 </button>
@@ -1350,7 +1350,7 @@ export default function SettingsPage() {
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
                 placeholder="123456"
-                className="w-full px-3 py-2 text-sm text-center font-mono font-normal tracking-widest rounded-full border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 text-sm text-center font-mono font-normal tracking-widest rounded-full border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
               />
               <p className="text-[10px] text-slate-400 mt-1">
                 Choose any 6-digit PIN to secure your WhatsApp Cloud number.
@@ -1369,7 +1369,7 @@ export default function SettingsPage() {
                 type="button"
                 onClick={handleRegisterPhone}
                 disabled={isRegistering || pinInput.length !== 6}
-                className="px-4 py-1.5 rounded-full bg-[#25d366] hover:bg-emerald-700 text-white text-xs font-normal disabled:opacity-50"
+                className="px-4 py-1.5 rounded-full bg-whatsapp-green hover:bg-emerald-700 text-white text-xs font-normal disabled:opacity-50"
               >
                 {isRegistering ? 'Registering...' : 'Register PIN'}
               </button>

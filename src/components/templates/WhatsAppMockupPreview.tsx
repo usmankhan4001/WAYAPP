@@ -56,7 +56,7 @@ export function WhatsAppMockupPreview({
       </div>
 
       {/* Screen Area */}
-      <div className="rounded-[28px] overflow-hidden flex flex-col bg-[#0b141a] h-[520px] shadow-inner border border-slate-800/80 relative">
+      <div className="rounded-[28px] overflow-hidden flex flex-col bg-whatsapp-chatBgDark h-[520px] shadow-inner border border-slate-800/80 relative">
         {/* WhatsApp Header Bar */}
         <div className="bg-[#1f2c34] px-3.5 py-2.5 flex items-center gap-2.5 text-white shadow-sm shrink-0">
           <div className="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center text-[10px] font-bold">

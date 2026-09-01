@@ -149,7 +149,7 @@ export function MetaBillingSection() {
   return (
     <div className="space-y-6">
       {/* Top Banner: Meta Direct Billing Explanation */}
-      <div className="card-base p-5 bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-950 text-white relative overflow-hidden">
+      <div className="card-base p-5 bg-linear-to-r from-emerald-950 via-slate-900 to-slate-950 text-white relative overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1.5 max-w-xl">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
@@ -308,7 +308,7 @@ export function MetaBillingSection() {
             <select
               value={selectedCountryCode}
               onChange={(e) => setSelectedCountryCode(e.target.value)}
-              className="text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
             >
               {COUNTRY_RATES.map((c) => (
                 <option key={c.code} value={c.code}>

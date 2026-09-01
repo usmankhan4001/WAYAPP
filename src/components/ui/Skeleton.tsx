@@ -22,7 +22,7 @@ export function Skeleton({
   height,
   lines = 1,
 }: SkeletonProps) {
-  const baseClasses = 'animate-pulse bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 bg-[length:200%_100%]';
+  const baseClasses = 'animate-pulse bg-linear-to-r from-slate-200 via-slate-100 to-slate-200 bg-size-[200%_100%]';
 
   const variantClasses = {
     text: 'rounded-md h-4',

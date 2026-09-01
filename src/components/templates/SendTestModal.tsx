@@ -129,7 +129,7 @@ export function SendTestModal({ isOpen, onClose, template }: SendTestModalProps)
               placeholder="+971501234567 or +12025550143"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+              className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-mono"
             />
             <p className="text-[10px] text-slate-500 mt-1">Include country code with + symbol</p>
           </div>

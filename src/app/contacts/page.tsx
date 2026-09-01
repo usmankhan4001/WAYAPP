@@ -412,7 +412,7 @@ export default function ContactsPage() {
             placeholder="Search by name, phone, company..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3.5 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full pl-9 pr-3.5 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
           />
         </div>
 
@@ -722,7 +722,7 @@ export default function ContactsPage() {
                         <button
                           type="button"
                           onClick={toggleSelectAll}
-                          className="text-slate-400 hover:text-emerald-600 focus:outline-none"
+                          className="text-slate-400 hover:text-emerald-600 focus:outline-hidden"
                           title={allSelected ? 'Deselect all' : 'Select all'}
                         >
                           {allSelected ? (
@@ -760,7 +760,7 @@ export default function ContactsPage() {
                             <button
                               type="button"
                               onClick={() => toggleSelectRow(c.id)}
-                              className="text-slate-400 hover:text-emerald-600 focus:outline-none"
+                              className="text-slate-400 hover:text-emerald-600 focus:outline-hidden"
                             >
                               {isSelected ? (
                                 <CheckSquare className="w-4 h-4 text-emerald-600" />

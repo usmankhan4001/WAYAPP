@@ -535,7 +535,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                         type="text"
                         value={String(nodeData.label || '')}
                         onChange={(e) => handleUpdateSelectedNodeData('label', e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
                       />
                     </div>
 
@@ -581,7 +581,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                           rows={4}
                           value={String(nodeData.text || '')}
                           onChange={(e) => handleUpdateSelectedNodeData('text', e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none resize-none font-sans"
+                          className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-hidden resize-none font-sans"
                         />
                       </div>
                     )}
@@ -861,7 +861,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                 placeholder="Type customer reply..."
                 value={simInput}
                 onChange={(e) => setSimInput(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="flex-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
               />
               <button
                 type="submit"

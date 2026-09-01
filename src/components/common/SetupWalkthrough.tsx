@@ -77,7 +77,7 @@ export function SetupWalkthrough({
     <div className="card-base p-4 bg-slate-900 text-slate-100 relative overflow-hidden">
       <div className="flex items-center justify-between pb-3 border-b border-slate-800">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-black/50/20 text-emerald-400 flex items-center justify-center font-normal text-xs">
+          <div className="w-6 h-6 rounded-full bg-white/10 text-emerald-400 flex items-center justify-center font-normal text-xs">
             <Sparkles className="w-3.5 h-3.5" />
           </div>
           <div>

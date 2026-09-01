@@ -249,7 +249,7 @@ export default function AutomationsPage() {
       </div>
 
       {/* Pre-Built Industry Recipes Starter Banner (collapsed by default once rules exist, to reduce clutter) */}
-      <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl p-5 shadow-sm space-y-3">
+      <div className="bg-linear-to-r from-slate-900 to-slate-800 text-white rounded-2xl p-5 shadow-sm space-y-3">
         <button
           type="button"
           onClick={() => setShowRecipes((v) => !v)}

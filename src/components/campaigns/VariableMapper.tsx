@@ -51,7 +51,7 @@ export function VariableMapper({
             placeholder="https://images.unsplash.com/... or https://example.com/promo.jpg"
             value={headerMediaUrl}
             onChange={(e) => onChangeHeaderUrl(e.target.value)}
-            className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
           />
         </div>
       )}
@@ -84,7 +84,7 @@ export function VariableMapper({
                   <select
                     value={currentVal}
                     onChange={(e) => onChangeMapping(varIdx, e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                   >
                     <option value="">Select contact field...</option>
                     <optgroup label="Standard Contact Fields">

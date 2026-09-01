@@ -142,7 +142,7 @@ function InboxContent() {
               placeholder="Search chats or phone..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+              className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
             />
           </div>
 
@@ -264,7 +264,7 @@ function InboxContent() {
       </div>
 
       {/* Right Column: Full-Height Native WhatsApp Chat Window */}
-      <div className={`flex-1 h-full flex flex-col min-w-0 bg-[#efeae2] ${selectedContact ? 'flex' : 'hidden lg:flex'}`}>
+      <div className={`flex-1 h-full flex flex-col min-w-0 bg-whatsapp-chatBg ${selectedContact ? 'flex' : 'hidden lg:flex'}`}>
         {selectedContact ? (
           <ChatWindow
             contact={selectedContact}

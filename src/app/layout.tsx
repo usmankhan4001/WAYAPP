@@ -53,7 +53,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
-      <body className={`${inter.variable} font-sans antialiased min-h-full min-h-[100dvh] w-full bg-slate-50 text-slate-900 selection:bg-emerald-100 selection:text-emerald-900`}>
+      <body className={`${inter.variable} font-sans antialiased min-h-full min-h-dvh w-full bg-slate-50 text-slate-900 selection:bg-emerald-100 selection:text-emerald-900`}>
         <ToastProvider>
           <AppShell>
             {children}
