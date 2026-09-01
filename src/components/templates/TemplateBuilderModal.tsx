@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import { WhatsAppMockupPreview } from './WhatsAppMockupPreview';
 import { InfoTooltip } from '@/components/ui/Tooltip';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
 
 interface TemplateBuilderModalProps {
   isOpen: boolean;
@@ -272,31 +274,35 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 md:p-6 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-5xl overflow-hidden flex flex-col max-h-[92vh]">
-        {/* Modal Header */}
-        <div className="h-14 px-6 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/50">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-emerald-600" />
-            <h2 className="text-sm font-bold text-slate-900">
-              Meta WhatsApp Template Creator & Instant Approval Engine
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Modal Body: Split Form & Live Mockup */}
-        <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Form: 7 cols */}
-          <form onSubmit={handleSubmit} className="lg:col-span-7 space-y-5">
+    <Modal
+      open={isOpen}
+      onOpenChange={(o) => !o && onClose()}
+      size="xl"
+      contentClassName="max-h-[80vh]"
+      title={
+        <span className="inline-flex items-center gap-2">
+          <Sparkles className="size-4 text-primary" />
+          Meta WhatsApp template creator
+        </span>
+      }
+      description="Design a template and submit it to Meta for approval"
+      footer={
+        <>
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" form="template-builder-form" disabled={isSubmitting || validationErrors.length > 0}>
+            {isSubmitting ? 'Submitting to Meta…' : 'Submit for approval'}
+          </Button>
+        </>
+      }
+    >
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* Left Form: 7 cols */}
+        <form id="template-builder-form" onSubmit={handleSubmit} className="space-y-5 lg:col-span-7">
             {error && (
-              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2.5 text-xs text-rose-700">
-                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-xl flex items-start gap-2.5 text-xs text-destructive">
+                <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="font-bold">Submission Rejected</p>
                   <p className="mt-0.5">{error}</p>
@@ -307,7 +313,7 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
             {/* Template Identity */}
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-foreground mb-1">
                   Template Name (lower_snake_case) *
                 </label>
                 <input
@@ -318,13 +324,13 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
                   className="input-base font-mono text-xs"
                   required
                 />
-                <span className="text-[10px] text-slate-400">Only lowercase letters, numbers, and underscores.</span>
+                <span className="text-[10px] text-muted-foreground">Only lowercase letters, numbers, and underscores.</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 {/* Category */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Category *</label>
+                  <label className="block text-xs font-semibold text-foreground mb-1">Category *</label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value as any)}
@@ -338,7 +344,7 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
 
                 {/* Language */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Language *</label>
+                  <label className="block text-xs font-semibold text-foreground mb-1">Language *</label>
                   <select
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
@@ -355,9 +361,9 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
             </div>
 
             {/* Header Configuration */}
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+            <div className="p-4 bg-muted rounded-xl border border-border space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
                   Header (Optional)
                 </label>
                 <div className="flex items-center gap-1">
@@ -368,8 +374,8 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
                       onClick={() => setHeaderType(type)}
                       className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
                         headerType === type
-                          ? 'bg-emerald-600 text-white shadow-sm'
-                          : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                          ? 'bg-primary text-primary-foreground shadow-sm'
+                          : 'bg-white text-muted-foreground border border-border hover:bg-muted'
                       }`}
                     >
                       {type}
@@ -394,7 +400,7 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
                       placeholder="Sample value for Header {{1}} (e.g. 98214)"
                       value={headerSampleValue}
                       onChange={(e) => setHeaderSampleValue(e.target.value)}
-                      className="input-base text-xs font-mono bg-white"
+                      className="input-base text-xs font-mono bg-card"
                     />
                   )}
                 </div>
@@ -414,13 +420,13 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
             {/* Body Text & Variable Matrix */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
                   Body Text *
                 </label>
                 <button
                   type="button"
                   onClick={handleInsertBodyVar}
-                  className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-primary bg-brand-subtle px-2.5 py-1 rounded-lg"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add Variable &#123;&#123;{detectedBodyVars.length + 1}&#125;&#125;</span>
@@ -437,25 +443,25 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
                 required
               />
 
-              <div className="flex justify-between text-[10px] text-slate-400">
+              <div className="flex justify-between text-[10px] text-muted-foreground">
                 <span>Variables: &#123;&#123;1&#125;&#125;, &#123;&#123;2&#125;&#125;</span>
                 <span>{bodyText.length} / 1024 chars</span>
               </div>
 
               {/* Explicit Realistic Sample Variable Inputs */}
               {detectedBodyVars.length > 0 && (
-                <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl space-y-2">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                <div className="p-3 bg-warning-subtle border border-warning/20 rounded-xl space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-warning-subtle-foreground">
+                    <Sparkles className="w-3.5 h-3.5 text-warning" />
                     <span>Provide Realistic Sample Values (Required by Meta for Approval)</span>
                   </div>
-                  <p className="text-[11px] text-amber-800">
+                  <p className="text-[11px] text-warning-subtle-foreground">
                     Meta AI requires realistic sample text for every variable to verify policy compliance.
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                     {detectedBodyVars.map((v) => (
                       <div key={v} className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-amber-900 bg-amber-200/80 px-2 py-1 rounded">
+                        <span className="font-mono text-xs font-bold text-warning-subtle-foreground bg-warning/20 px-2 py-1 rounded">
                           &#123;&#123;{v}&#125;&#125;
                         </span>
                         <input
@@ -463,7 +469,7 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
                           value={sampleValues[v] || ''}
                           onChange={(e) => setSampleValues({ ...sampleValues, [v]: e.target.value })}
                           placeholder={`Realistic sample for {{${v}}}`}
-                          className="input-base text-xs bg-white flex-1"
+                          className="input-base text-xs bg-card flex-1"
                           required
                         />
                       </div>
@@ -475,7 +481,7 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
 
             {/* Footer */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Footer Text (Optional)</label>
+              <label className="block text-xs font-semibold text-foreground mb-1">Footer Text (Optional)</label>
               <input
                 type="text"
                 maxLength={60}
@@ -487,9 +493,9 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
             </div>
 
             {/* Interactive Buttons */}
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+            <div className="p-4 bg-muted rounded-xl border border-border space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
                   Interactive Buttons (Up to 10)
                 </label>
                 <div className="flex items-center gap-1">
@@ -497,7 +503,7 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
                     type="button"
                     onClick={() => handleAddButton('QUICK_REPLY')}
                     disabled={buttons.length >= 10}
-                    className="px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-[10px] font-bold text-slate-700"
+                    className="px-2 py-1 bg-card hover:bg-muted border border-border rounded text-[10px] font-bold text-foreground"
                   >
                     + Quick Reply
                   </button>
@@ -505,7 +511,7 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
                     type="button"
                     onClick={() => handleAddButton('URL')}
                     disabled={buttons.length >= 10}
-                    className="px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-[10px] font-bold text-slate-700"
+                    className="px-2 py-1 bg-card hover:bg-muted border border-border rounded text-[10px] font-bold text-foreground"
                   >
                     + URL Link
                   </button>
@@ -513,7 +519,7 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
                     type="button"
                     onClick={() => handleAddButton('PHONE_NUMBER')}
                     disabled={buttons.length >= 10}
-                    className="px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-[10px] font-bold text-slate-700"
+                    className="px-2 py-1 bg-card hover:bg-muted border border-border rounded text-[10px] font-bold text-foreground"
                   >
                     + Phone Call
                   </button>
@@ -521,19 +527,19 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
               </div>
 
               {buttons.length === 0 ? (
-                <p className="text-xs text-slate-400 italic">No buttons attached.</p>
+                <p className="text-xs text-muted-foreground italic">No buttons attached.</p>
               ) : (
                 <div className="space-y-2">
                   {buttons.map((btn, idx) => (
-                    <div key={idx} className="p-2.5 bg-white rounded-lg border border-slate-200 space-y-2">
+                    <div key={idx} className="p-2.5 bg-card rounded-lg border border-border space-y-2">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-brand-subtle px-1.5 py-0.5 rounded">
                           {btn.type.replace('_', ' ')}
                         </span>
                         <button
                           type="button"
                           onClick={() => handleRemoveButton(idx)}
-                          className="p-1 text-slate-400 hover:text-rose-600 rounded"
+                          className="p-1 text-muted-foreground hover:text-destructive rounded"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -604,37 +610,19 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
               )}
             </div>
 
-            {/* Submit Action */}
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="btn-secondary"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting || validationErrors.length > 0}
-                className="btn-primary"
-              >
-                {isSubmitting ? 'Submitting to Meta...' : 'Submit Template to Meta for Approval'}
-              </button>
-            </div>
-          </form>
+        </form>
 
-          {/* Right Live WhatsApp Mockup: 5 cols */}
-          <div className="lg:col-span-5 flex flex-col items-center">
-            <div className="w-full sticky top-0 space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-700 px-1">
-                <span>Real-Time WhatsApp Handset Preview</span>
-                <span className="text-[10px] text-emerald-600 font-semibold">Live Rendering</span>
-              </div>
-              <WhatsAppMockupPreview components={previewComponents} />
+        {/* Right Live WhatsApp Mockup: 5 cols */}
+        <div className="flex flex-col items-center lg:col-span-5">
+          <div className="sticky top-0 w-full space-y-2">
+            <div className="flex items-center justify-between px-1 text-xs font-bold text-foreground">
+              <span>Real-time WhatsApp handset preview</span>
+              <span className="text-[0.625rem] font-semibold text-primary">Live rendering</span>
             </div>
+            <WhatsAppMockupPreview components={previewComponents} />
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
