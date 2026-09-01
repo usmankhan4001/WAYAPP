@@ -48,6 +48,9 @@ import { LEAD_STAGES, getLeadStage } from '@/lib/constants/lead-stages';
 import { InfoTooltip, Tooltip } from '@/components/ui/Tooltip';
 import { StatusBadge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/Toast';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { AudioVoicePlayer } from './AudioVoicePlayer';
 import { VoiceNoteRecorder } from './VoiceNoteRecorder';
 import { MediaLightbox } from './MediaLightbox';
@@ -1536,115 +1539,90 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
       </div>
 
       {/* Invoice Generator Modal */}
-      {isInvoiceModalOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-card rounded-2xl border border-border shadow-2xl p-5 max-w-sm w-full space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h4 className="font-bold text-sm text-foreground flex items-center gap-1.5">
-                <CreditCard className="w-4 h-4 text-primary" />
-                <span>1-Click Payment Link Generator</span>
-              </h4>
-              <button onClick={() => setIsInvoiceModalOpen(false)} className="text-muted-foreground hover:text-muted-foreground p-1 rounded-lg" aria-label="Close">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-foreground mb-1">Item / Service Description</label>
-              <input
-                type="text"
-                value={invoiceItem}
-                onChange={(e) => setInvoiceItem(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-xl border border-border bg-muted focus:bg-card focus:outline-hidden focus:ring-2 focus:ring-ring/30 focus:border-ring transition-all"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-foreground mb-1">Amount ($ USD)</label>
-              <input
-                type="number"
-                value={invoiceAmount}
-                onChange={(e) => setInvoiceAmount(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-xl border border-border bg-muted focus:bg-card focus:outline-hidden focus:ring-2 focus:ring-ring/30 focus:border-ring transition-all"
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsInvoiceModalOpen(false)}
-                className="px-3 py-1.5 text-xs font-medium rounded-xl border border-border bg-card hover:bg-accent text-muted-foreground transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleInsertPaymentLink}
-                className="px-4 py-1.5 text-xs font-semibold rounded-xl bg-primary hover:bg-primary/90 text-white flex items-center gap-1 shadow-2xs transition-all active:scale-95"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Insert in Chat</span>
-              </button>
-            </div>
+      <Modal
+        open={isInvoiceModalOpen}
+        onOpenChange={(o) => !o && setIsInvoiceModalOpen(false)}
+        size="sm"
+        title={
+          <span className="inline-flex items-center gap-1.5">
+            <CreditCard className="size-4 text-primary" />
+            Payment link generator
+          </span>
+        }
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setIsInvoiceModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleInsertPaymentLink}>
+              <CheckCircle2 />
+              Insert in chat
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-foreground">Item / service description</label>
+            <Input value={invoiceItem} onChange={(e) => setInvoiceItem(e.target.value)} />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-foreground">Amount ($ USD)</label>
+            <Input type="number" value={invoiceAmount} onChange={(e) => setInvoiceAmount(e.target.value)} />
           </div>
         </div>
-      )}
+      </Modal>
 
       {/* Forward Message Modal */}
-      {isForwardModalOpen && forwardingMessage && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
-          <div className="bg-card rounded-2xl border border-border shadow-2xl p-5 max-w-sm w-full space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h4 className="font-bold text-sm text-foreground flex items-center gap-1.5">
-                <Forward className="w-4 h-4 text-blue-600" />
-                <span>Forward Message</span>
-              </h4>
-              <button onClick={() => setIsForwardModalOpen(false)} className="text-muted-foreground hover:text-muted-foreground p-1 rounded-lg" aria-label="Close">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            
-            {/* Message Preview */}
-            <div className="bg-muted p-3 rounded-xl border border-border text-[11px] text-foreground max-h-20 overflow-y-auto italic">
-              {forwardingMessage.body ? `"${forwardingMessage.body}"` : '[Media Message]'}
-            </div>
+      <Modal
+        open={isForwardModalOpen && !!forwardingMessage}
+        onOpenChange={(o) => !o && setIsForwardModalOpen(false)}
+        size="sm"
+        title={
+          <span className="inline-flex items-center gap-1.5">
+            <Forward className="size-4 text-info" />
+            Forward message
+          </span>
+        }
+      >
+        <div className="space-y-4">
+          <div className="max-h-20 overflow-y-auto rounded-lg border border-border bg-muted p-3 text-[0.6875rem] italic text-foreground">
+            {forwardingMessage?.body ? `"${forwardingMessage.body}"` : '[Media message]'}
+          </div>
 
-            {/* Contact Search */}
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold text-foreground">Select Contact</label>
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-2.5" />
-                <input
-                  type="text"
-                  placeholder="Search name or phone..."
-                  value={forwardSearch}
-                  onChange={handleSearchContactsForForward}
-                  className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-border bg-muted focus:bg-card focus:outline-hidden focus:ring-2 focus:ring-ring/30 focus:border-ring transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Contacts List */}
-            <div className="max-h-44 overflow-y-auto space-y-1">
-              {forwardContacts.map(c => (
-                <div key={c.id} className="flex items-center justify-between p-2 rounded-xl hover:bg-accent border border-transparent hover:border-border transition-all">
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-foreground truncate">{c.firstName} {c.lastName || ''}</p>
-                    <p className="text-[10px] text-muted-foreground font-mono">{c.phoneNumber}</p>
-                  </div>
-                  <button
-                    onClick={() => handleForwardSubmit(c.id)}
-                    disabled={isForwarding}
-                    className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-primary hover:bg-primary/90 text-white disabled:opacity-50 shadow-2xs transition-all active:scale-95"
-                  >
-                    Send
-                  </button>
-                </div>
-              ))}
-              {forwardContacts.length === 0 && (
-                <p className="text-xs text-muted-foreground text-center py-2">No contacts found</p>
-              )}
+          <div className="space-y-2">
+            <label className="block text-xs font-semibold text-foreground">Select contact</label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Search name or phone…"
+                value={forwardSearch}
+                onChange={handleSearchContactsForForward}
+                className="pl-8"
+              />
             </div>
           </div>
+
+          <div className="max-h-44 space-y-1 overflow-y-auto">
+            {forwardContacts.map((c) => (
+              <div key={c.id} className="flex items-center justify-between rounded-lg p-2 transition-colors hover:bg-accent">
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-semibold text-foreground">
+                    {c.firstName} {c.lastName || ''}
+                  </p>
+                  <p className="font-mono text-[0.625rem] text-muted-foreground">{c.phoneNumber}</p>
+                </div>
+                <Button size="xs" onClick={() => handleForwardSubmit(c.id)} disabled={isForwarding}>
+                  Send
+                </Button>
+              </div>
+            ))}
+            {forwardContacts.length === 0 && (
+              <p className="py-2 text-center text-xs text-muted-foreground">No contacts found</p>
+            )}
+          </div>
         </div>
-      )}
+      </Modal>
 
       {/* Right Sidebar: In-Chat Visual Lead CRM Panel */}
       {modules.lead_crm && (
