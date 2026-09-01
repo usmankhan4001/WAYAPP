@@ -35,24 +35,24 @@ export function ConversionFunnelChart({ funnel = [] }: ConversionFunnelProps) {
   const hasData = funnel.some((f) => f.count > 0);
 
   return (
-    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+    <div className="space-y-4 rounded-xl bg-card p-5 ring-1 ring-foreground/10">
+      <div className="flex items-center justify-between border-b border-border pb-2">
         <div>
           <div className="flex items-center gap-1.5">
-            <h3 className="text-sm font-bold text-slate-900">Message Conversion Funnel</h3>
-            <InfoTooltip content="Visualizes recipient progression from initial broadcast dispatch to open rates and customer replies." />
+            <h3 className="text-sm font-semibold text-foreground">Message conversion funnel</h3>
+            <InfoTooltip content="Recipient progression from broadcast dispatch to open rates and customer replies." />
           </div>
-          <p className="text-[11px] text-slate-500">Live webhook status state transitions</p>
+          <p className="text-[0.6875rem] text-muted-foreground">Live webhook status state transitions</p>
         </div>
-        <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold border border-slate-200">
-          Webhook Synced
+        <span className="rounded bg-muted px-2 py-0.5 text-[0.625rem] font-semibold text-muted-foreground">
+          Webhook synced
         </span>
       </div>
 
       {!hasData ? (
-        <div className="py-12 text-center text-xs text-slate-400 space-y-1">
-          <p className="font-semibold text-slate-600">No telemetry data recorded yet</p>
-          <p className="text-[11px]">Launch a broadcast campaign to view real-time delivery and read rates.</p>
+        <div className="space-y-1 py-12 text-center text-xs text-muted-foreground">
+          <p className="font-semibold text-foreground">No telemetry data recorded yet</p>
+          <p className="text-[0.6875rem]">Launch a broadcast campaign to view real-time delivery and read rates.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -63,12 +63,12 @@ export function ConversionFunnelChart({ funnel = [] }: ConversionFunnelProps) {
             return (
               <div key={step.name} className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2 font-semibold text-slate-800">
+                  <div className="flex items-center gap-2 font-semibold text-foreground">
                     <span
-                      className="w-5 h-5 rounded-md flex items-center justify-center text-white shrink-0"
+                      className="flex size-5 shrink-0 items-center justify-center rounded-md text-white"
                       style={{ backgroundColor: step.color }}
                     >
-                      <Icon className="w-3 h-3" />
+                      <Icon className="size-3" />
                     </span>
                     <div className="flex items-center gap-1">
                       <span>{step.name}</span>
@@ -76,14 +76,14 @@ export function ConversionFunnelChart({ funnel = [] }: ConversionFunnelProps) {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 font-mono">
-                    <span className="font-bold text-slate-900">{step.count.toLocaleString()}</span>
-                    <span className="text-[11px] text-slate-500 w-10 text-right">
+                    <span className="font-bold text-foreground">{step.count.toLocaleString()}</span>
+                    <span className="w-10 text-right text-[0.6875rem] text-muted-foreground">
                       {step.percentage}%
                     </span>
                   </div>
                 </div>
 
-                <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
                   <div
                     className="h-full rounded-full transition-all duration-300"
                     style={{
@@ -95,7 +95,7 @@ export function ConversionFunnelChart({ funnel = [] }: ConversionFunnelProps) {
 
                 {!isLast && (
                   <div className="flex justify-center py-0.5">
-                    <ArrowDown className="w-2.5 h-2.5 text-slate-300" />
+                    <ArrowDown className="size-2.5 text-muted-foreground/50" />
                   </div>
                 )}
               </div>
