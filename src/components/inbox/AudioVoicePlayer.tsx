@@ -84,7 +84,7 @@ export function AudioVoicePlayer({ src, isOutbound = false }: AudioVoicePlayerPr
   return (
     <div
       className={`flex items-center gap-2.5 p-2 rounded-xl ${
-        isOutbound ? 'bg-emerald-600/10 text-slate-900' : 'bg-slate-100 text-slate-900'
+        isOutbound ? 'bg-primary/10 text-foreground' : 'bg-muted text-foreground'
       } min-w-[240px] max-w-[280px]`}
     >
       <audio ref={audioRef} src={src} preload="metadata" />
@@ -95,8 +95,8 @@ export function AudioVoicePlayer({ src, isOutbound = false }: AudioVoicePlayerPr
         onClick={togglePlay}
         className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 shadow-xs transition-all active:scale-95 ${
           isOutbound
-            ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-            : 'bg-emerald-600 text-white hover:bg-emerald-700'
+            ? 'bg-primary text-white hover:bg-primary/90'
+            : 'bg-primary text-white hover:bg-primary/90'
         }`}
       >
         {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
@@ -111,7 +111,7 @@ export function AudioVoicePlayer({ src, isOutbound = false }: AudioVoicePlayerPr
             max={duration || 100}
             value={currentTime}
             onChange={handleSeek}
-            className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-emerald-500 bg-slate-300 dark:bg-slate-700"
+            className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-[var(--primary)] bg-muted"
           />
         </div>
 
@@ -127,8 +127,8 @@ export function AudioVoicePlayer({ src, isOutbound = false }: AudioVoicePlayerPr
         onClick={toggleSpeed}
         className={`px-1.5 py-0.5 rounded text-[10px] font-normal shrink-0 transition-all ${
           isOutbound
-            ? 'bg-emerald-700/80 hover:bg-emerald-800 text-white'
-            : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+            ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
+            : 'bg-muted hover:bg-accent text-foreground'
         }`}
       >
         {playbackRate}x

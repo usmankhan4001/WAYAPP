@@ -224,33 +224,33 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       {/* Prominent Native WhatsApp Notification Banner (Top of Mobile / Bottom Right of Desktop) */}
       {activeToast && (
         <div className="fixed top-3 left-3 right-3 sm:top-auto sm:bottom-6 sm:right-6 sm:left-auto sm:max-w-sm z-50 animate-in slide-in-from-top-3 sm:slide-in-from-bottom-4 duration-300">
-          <div className="bg-white text-slate-900 rounded-2xl p-3.5 sm:p-4 shadow-2xl border border-slate-200 flex items-start gap-3 ring-1 ring-emerald-500/30">
+          <div className="bg-card text-foreground rounded-2xl p-3.5 sm:p-4 shadow-2xl border border-border flex items-start gap-3 ring-1 ring-primary/30">
             {/* WhatsApp Emerald Icon */}
-            <div className="w-10 h-10 rounded-full bg-whatsapp-green flex items-center justify-center shrink-0  text-white font-normal text-sm ring-2 ring-emerald-100">
+            <div className="w-10 h-10 rounded-full bg-wa flex items-center justify-center shrink-0  text-white font-normal text-sm ring-2 ring-primary/20">
               {activeToast.senderName.charAt(0).toUpperCase()}
             </div>
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
-                <h4 className="text-xs font-normal text-slate-900 truncate">{activeToast.senderName}</h4>
+                <h4 className="text-xs font-normal text-foreground truncate">{activeToast.senderName}</h4>
                 <button
                   onClick={() => setActiveToast(null)}
-                  className="text-slate-400 hover:text-slate-700 p-1 -mr-1 rounded-full transition-colors"
+                  className="text-muted-foreground hover:text-foreground p-1 -mr-1 rounded-full transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
               <p className="text-[10px] text-[#1c1e21] font-mono font-medium">{activeToast.phoneNumber}</p>
-              <p className="text-xs text-slate-700 mt-1 line-clamp-2 leading-relaxed font-sans">
+              <p className="text-xs text-foreground mt-1 line-clamp-2 leading-relaxed font-sans">
                 {activeToast.body}
               </p>
 
-              <div className="mt-2.5 flex items-center justify-between pt-1 border-t border-slate-100">
-                <span className="text-[10px] text-slate-400">WhatsApp Live Alert</span>
+              <div className="mt-2.5 flex items-center justify-between pt-1 border-t border-border">
+                <span className="text-[10px] text-muted-foreground">WhatsApp Live Alert</span>
                 <Link
                   href={`/inbox?contactId=${activeToast.contactId || ''}`}
                   onClick={() => setActiveToast(null)}
-                  className="inline-flex items-center gap-1 text-xs font-normal text-[#1c1e21] hover:text-emerald-800 bg-black/5 hover:bg-[#e6ffda] px-3 py-1 rounded-full border border-emerald-200 transition-all"
+                  className="inline-flex items-center gap-1 text-xs font-normal text-[#1c1e21] hover:text-brand-subtle-foreground bg-black/5 hover:bg-[#e6ffda] px-3 py-1 rounded-full border border-transparent transition-all"
                 >
                   <span>Reply Now</span>
                   <ArrowRight className="w-3 h-3" />

@@ -47,6 +47,7 @@ import { formatDateTime, formatTimeAgo } from '@/lib/utils';
 import { LEAD_STAGES, getLeadStage } from '@/lib/constants/lead-stages';
 import { InfoTooltip, Tooltip } from '@/components/ui/Tooltip';
 import { StatusBadge } from '@/components/ui/badge';
+import { useToast } from '@/components/ui/Toast';
 import { AudioVoicePlayer } from './AudioVoicePlayer';
 import { VoiceNoteRecorder } from './VoiceNoteRecorder';
 import { MediaLightbox } from './MediaLightbox';
@@ -66,6 +67,7 @@ interface StagedMedia {
 }
 
 export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowProps) {
+  const toast = useToast();
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -242,10 +244,10 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
         setForwardingMessage(null);
       } else {
         const data = await res.json();
-        alert(data.error || 'Failed to forward message.');
+        toast.error("Forward failed", data.error);
       }
     } catch (err: any) {
-      alert(err.message || 'Error forwarding message.');
+      toast.error("Error forwarding message", err?.message);
     } finally {
       setIsForwarding(false);
     }
@@ -265,10 +267,10 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
         fetchMessages();
       } else {
         const data = await res.json();
-        alert(data.error || 'Failed to edit message.');
+        toast.error("Edit failed", data.error);
       }
     } catch (err: any) {
-      alert(err.message || 'Error editing message.');
+      toast.error("Error editing message", err?.message);
     } finally {
       setIsSavingEdit(false);
     }

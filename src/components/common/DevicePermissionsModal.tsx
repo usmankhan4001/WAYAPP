@@ -224,22 +224,22 @@ export function DevicePermissionsModal({ isOpen, onClose }: DevicePermissionsMod
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
-      <div className="bg-white text-slate-900 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-card text-foreground rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-border space-y-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+        <div className="flex items-center justify-between pb-2 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-black/5 text-emerald-600 flex items-center justify-center font-normal  ring-1 ring-emerald-100 shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-black/5 text-primary flex items-center justify-center font-normal  ring-1 ring-primary/20 shrink-0">
               <Shield className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-normal text-slate-900 leading-tight">Device Permissions Center</h3>
-              <p className="text-[11px] text-slate-500">Enable real-time alerts, mic voice notes & camera</p>
+              <h3 className="text-sm font-normal text-foreground leading-tight">Device Permissions Center</h3>
+              <p className="text-[11px] text-muted-foreground">Enable real-time alerts, mic voice notes & camera</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0"
+            className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -256,14 +256,14 @@ export function DevicePermissionsModal({ isOpen, onClose }: DevicePermissionsMod
         {/* Permissions Cards */}
         <div className="space-y-2.5">
           {/* 1. Notifications */}
-          <div className="p-3.5 rounded-2xl border border-slate-200 bg-black/5 flex items-center justify-between gap-3">
+          <div className="p-3.5 rounded-2xl border border-border bg-black/5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                 <Bell className="w-4 h-4" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <h4 className="text-xs font-normal text-slate-900">Notifications</h4>
+                  <h4 className="text-xs font-normal text-foreground">Notifications</h4>
                   {notificationStatus === 'granted' ? (
                     <span className="text-[10px] font-normal text-[#1c1e21] bg-[#e6ffda] px-2 py-0.5 rounded-full">
                       Active
@@ -278,7 +278,7 @@ export function DevicePermissionsModal({ isOpen, onClose }: DevicePermissionsMod
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-slate-500 truncate">WhatsApp incoming message desktop alerts</p>
+                <p className="text-[11px] text-muted-foreground truncate">WhatsApp incoming message desktop alerts</p>
               </div>
             </div>
 
@@ -291,19 +291,19 @@ export function DevicePermissionsModal({ isOpen, onClose }: DevicePermissionsMod
                 Enable
               </button>
             ) : (
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
             )}
           </div>
 
           {/* 2. Microphone */}
-          <div className="p-3.5 rounded-2xl border border-slate-200 bg-black/5 flex items-center justify-between gap-3">
+          <div className="p-3.5 rounded-2xl border border-border bg-black/5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-black/5 text-emerald-600 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-black/5 text-primary flex items-center justify-center shrink-0">
                 <Mic className="w-4 h-4" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <h4 className="text-xs font-normal text-slate-900">Microphone</h4>
+                  <h4 className="text-xs font-normal text-foreground">Microphone</h4>
                   {micStatus === 'granted' ? (
                     <span className="text-[10px] font-normal text-[#1c1e21] bg-[#e6ffda] px-2 py-0.5 rounded-full">
                       Active
@@ -318,7 +318,7 @@ export function DevicePermissionsModal({ isOpen, onClose }: DevicePermissionsMod
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-slate-500 truncate">Record & send WhatsApp audio voice notes</p>
+                <p className="text-[11px] text-muted-foreground truncate">Record & send WhatsApp audio voice notes</p>
               </div>
             </div>
 
@@ -326,24 +326,24 @@ export function DevicePermissionsModal({ isOpen, onClose }: DevicePermissionsMod
               <button
                 type="button"
                 onClick={handleRequestMicrophone}
-                className="px-3 py-1.5 rounded-xl bg-whatsapp-green hover:bg-[#20b858] text-white font-normal text-xs  shrink-0 transition-all active:scale-95"
+                className="px-3 py-1.5 rounded-xl bg-wa hover:bg-wa-hover text-white font-normal text-xs  shrink-0 transition-all active:scale-95"
               >
                 Enable
               </button>
             ) : (
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
             )}
           </div>
 
           {/* 3. Camera */}
-          <div className="p-3.5 rounded-2xl border border-slate-200 bg-black/5 flex items-center justify-between gap-3">
+          <div className="p-3.5 rounded-2xl border border-border bg-black/5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
                 <Camera className="w-4 h-4" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <h4 className="text-xs font-normal text-slate-900">Camera</h4>
+                  <h4 className="text-xs font-normal text-foreground">Camera</h4>
                   {cameraStatus === 'granted' ? (
                     <span className="text-[10px] font-normal text-[#1c1e21] bg-[#e6ffda] px-2 py-0.5 rounded-full">
                       Active
@@ -358,7 +358,7 @@ export function DevicePermissionsModal({ isOpen, onClose }: DevicePermissionsMod
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-slate-500 truncate">Take photos & record video in chat</p>
+                <p className="text-[11px] text-muted-foreground truncate">Take photos & record video in chat</p>
               </div>
             </div>
 
@@ -371,7 +371,7 @@ export function DevicePermissionsModal({ isOpen, onClose }: DevicePermissionsMod
                 Enable
               </button>
             ) : (
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
             )}
           </div>
         </div>
@@ -383,15 +383,15 @@ export function DevicePermissionsModal({ isOpen, onClose }: DevicePermissionsMod
               type="button"
               onClick={handleGrantAll}
               disabled={isRequesting}
-              className="w-full py-3 rounded-2xl bg-whatsapp-green hover:bg-[#20b858] text-white font-normal text-xs  shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50 active:scale-98"
+              className="w-full py-3 rounded-2xl bg-wa hover:bg-wa-hover text-white font-normal text-xs   flex items-center justify-center gap-2 transition-all disabled:opacity-50 active:scale-98"
             >
               <Sparkles className="w-4 h-4" />
               <span>{isRequesting ? 'Requesting Permissions...' : 'Grant All Permissions in 1-Click'}</span>
             </button>
           ) : (
-            <div className="p-3 bg-black/5 rounded-2xl border border-emerald-200 text-center">
-              <p className="text-xs font-normal text-emerald-800 flex items-center justify-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <div className="p-3 bg-black/5 rounded-2xl border border-transparent text-center">
+              <p className="text-xs font-normal text-brand-subtle-foreground flex items-center justify-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-primary" />
                 All device permissions are active & ready!
               </p>
             </div>
@@ -400,7 +400,7 @@ export function DevicePermissionsModal({ isOpen, onClose }: DevicePermissionsMod
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-2.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 text-xs font-normal transition-colors"
+            className="w-full py-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent text-xs font-normal transition-colors"
           >
             Done
           </button>

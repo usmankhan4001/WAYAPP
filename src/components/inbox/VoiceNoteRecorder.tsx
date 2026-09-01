@@ -116,7 +116,7 @@ export function VoiceNoteRecorder({ onSendVoiceNote, onCancel }: VoiceNoteRecord
   }
 
   return (
-    <div className="p-3 rounded-full bg-slate-900 text-white flex items-center justify-between gap-3 shadow-lg border border-slate-800 animate-in fade-in slide-in-from-bottom duration-200">
+    <div className="p-3 rounded-full bg-foreground text-background flex items-center justify-between gap-3 shadow-lg border border-transparent animate-in fade-in slide-in-from-bottom duration-200">
       {/* Recording Indicator & Timer */}
       <div className="flex items-center gap-3">
         <div className="w-3 h-3 rounded-full bg-rose-500 animate-pulse" />
@@ -124,14 +124,14 @@ export function VoiceNoteRecorder({ onSendVoiceNote, onCancel }: VoiceNoteRecord
 
         {/* Animated wave sound bars */}
         <div className="hidden sm:flex items-center gap-1">
-          <div className="w-1 bg-emerald-400 rounded-full h-3 animate-pulse" />
-          <div className="w-1 bg-emerald-400 rounded-full h-5 animate-pulse delay-75" />
-          <div className="w-1 bg-emerald-400 rounded-full h-2 animate-pulse delay-150" />
-          <div className="w-1 bg-emerald-400 rounded-full h-4 animate-pulse delay-100" />
-          <div className="w-1 bg-emerald-400 rounded-full h-6 animate-pulse delay-200" />
+          <div className="w-1 bg-primary rounded-full h-3 animate-pulse" />
+          <div className="w-1 bg-primary rounded-full h-5 animate-pulse delay-75" />
+          <div className="w-1 bg-primary rounded-full h-2 animate-pulse delay-150" />
+          <div className="w-1 bg-primary rounded-full h-4 animate-pulse delay-100" />
+          <div className="w-1 bg-primary rounded-full h-6 animate-pulse delay-200" />
         </div>
 
-        <span className="text-[11px] text-slate-400 font-medium hidden md:inline">
+        <span className="text-[11px] text-muted-foreground font-medium hidden md:inline">
           Recording WhatsApp Voice Note...
         </span>
       </div>
@@ -141,7 +141,7 @@ export function VoiceNoteRecorder({ onSendVoiceNote, onCancel }: VoiceNoteRecord
         <button
           type="button"
           onClick={handleCancel}
-          className="p-2 rounded-full bg-slate-800 hover:bg-rose-900/50 text-slate-400 hover:text-rose-400 transition-all"
+          className="p-2 rounded-full bg-background/10 hover:bg-destructive/20 text-muted-foreground hover:text-rose-400 transition-all"
           title="Delete recording"
         >
           <Trash2 className="w-4 h-4" />
@@ -150,7 +150,7 @@ export function VoiceNoteRecorder({ onSendVoiceNote, onCancel }: VoiceNoteRecord
         <button
           type="button"
           onClick={handleSend}
-          className="px-3.5 py-1.5 rounded-full bg-whatsapp-green hover:bg-[#20b858] text-white text-xs font-normal flex items-center gap-1.5  shadow-emerald-600/30 transition-all"
+          className="px-3.5 py-1.5 rounded-full bg-wa hover:bg-wa-hover text-white text-xs font-normal flex items-center gap-1.5   transition-all"
         >
           <span>Send</span>
           <Send className="w-3.5 h-3.5" />
