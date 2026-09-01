@@ -12,6 +12,8 @@ import {
   Sparkles,
   RefreshCw,
 } from 'lucide-react';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
 
 interface DevicePermissionsModalProps {
   isOpen: boolean;
@@ -220,40 +222,34 @@ export function DevicePermissionsModal({ isOpen, onClose }: DevicePermissionsMod
     setIsRequesting(false);
   };
 
-  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
-      <div className="bg-card text-foreground rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-border space-y-4 max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-2 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-black/5 text-primary flex items-center justify-center font-normal  ring-1 ring-primary/20 shrink-0">
-              <Shield className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-normal text-foreground leading-tight">Device Permissions Center</h3>
-              <p className="text-[11px] text-muted-foreground">Enable real-time alerts, mic voice notes & camera</p>
-            </div>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Error Alert */}
+    <Modal
+      open={isOpen}
+      onOpenChange={(o) => !o && onClose()}
+      title={
+        <span className="inline-flex items-center gap-2">
+          <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-primary ring-1 ring-primary/20">
+            <Shield className="size-4" />
+          </span>
+          Device permissions center
+        </span>
+      }
+      description="Enable real-time alerts, mic voice notes & camera"
+      footer={
+        <Button variant="outline" className="w-full" onClick={onClose}>
+          Done
+        </Button>
+      }
+    >
+      <div className="space-y-4">
         {errorMessage && (
-          <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2.5">
-            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+            <AlertCircle className="mt-0.5 size-4 shrink-0" />
             <span className="leading-snug">{errorMessage}</span>
           </div>
         )}
 
-        {/* Permissions Cards */}
         <div className="space-y-2.5">
           {/* 1. Notifications */}
           <div className="p-3.5 rounded-2xl border border-border bg-black/5 flex items-center justify-between gap-3">
@@ -376,36 +372,22 @@ export function DevicePermissionsModal({ isOpen, onClose }: DevicePermissionsMod
           </div>
         </div>
 
-        {/* Action Button */}
-        <div className="space-y-2 pt-2">
+        <div className="pt-2">
           {notificationStatus !== 'granted' || micStatus !== 'granted' || cameraStatus !== 'granted' ? (
-            <button
-              type="button"
-              onClick={handleGrantAll}
-              disabled={isRequesting}
-              className="w-full py-3 rounded-2xl bg-wa hover:bg-wa-hover text-white font-normal text-xs   flex items-center justify-center gap-2 transition-all disabled:opacity-50 active:scale-98"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span>{isRequesting ? 'Requesting Permissions...' : 'Grant All Permissions in 1-Click'}</span>
-            </button>
+            <Button variant="wa" className="w-full" onClick={handleGrantAll} disabled={isRequesting}>
+              <Sparkles />
+              {isRequesting ? 'Requesting permissions…' : 'Grant all permissions in 1 click'}
+            </Button>
           ) : (
-            <div className="p-3 bg-black/5 rounded-2xl border border-transparent text-center">
-              <p className="text-xs font-normal text-brand-subtle-foreground flex items-center justify-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-primary" />
-                All device permissions are active & ready!
+            <div className="rounded-lg bg-success-subtle p-3 text-center">
+              <p className="flex items-center justify-center gap-1.5 text-xs text-success-subtle-foreground">
+                <CheckCircle2 className="size-4" />
+                All device permissions are active &amp; ready!
               </p>
             </div>
           )}
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full py-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent text-xs font-normal transition-colors"
-          >
-            Done
-          </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

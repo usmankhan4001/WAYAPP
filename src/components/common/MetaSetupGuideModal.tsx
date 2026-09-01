@@ -16,6 +16,9 @@ import {
   Copy,
   Check,
 } from 'lucide-react';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface MetaSetupGuideModalProps {
   isOpen: boolean;
@@ -26,7 +29,6 @@ export function MetaSetupGuideModal({ isOpen, onClose }: MetaSetupGuideModalProp
   const [activeTab, setActiveTab] = useState<number>(1);
   const [copiedToken, setCopiedToken] = useState(false);
 
-  if (!isOpen) return null;
 
   const steps = [
     {
@@ -57,50 +59,60 @@ export function MetaSetupGuideModal({ isOpen, onClose }: MetaSetupGuideModalProp
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-foreground/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-card rounded-2xl shadow-2xl border border-border max-w-4xl w-full my-6 overflow-hidden flex flex-col max-h-[92vh]">
-        {/* Modal Header */}
-        <div className="px-5 py-4 border-b border-border flex items-center justify-between bg-black/5 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-whatsapp-green text-white flex items-center justify-center font-normal">
-              <BookOpen className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-sm sm:text-base font-normal text-foreground">
-                Meta WhatsApp Cloud API Production Setup Guide
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Step-by-step instructions to connect your official WhatsApp Business number and go live
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent flex items-center justify-center transition-colors"
+    <Modal
+      open={isOpen}
+      onOpenChange={(o) => !o && onClose()}
+      size="xl"
+      contentClassName="max-h-[70vh]"
+      title={
+        <span className="inline-flex items-center gap-2">
+          <span className="flex size-8 items-center justify-center rounded-lg bg-wa text-wa-foreground">
+            <BookOpen className="size-4" />
+          </span>
+          Meta WhatsApp Cloud API setup guide
+        </span>
+      }
+      description="Connect your official WhatsApp Business number and go live"
+      footer={
+        <div className="flex w-full items-center justify-between">
+          <Button
+            variant="outline"
+            onClick={() => setActiveTab((prev) => Math.max(1, prev - 1))}
+            disabled={activeTab === 1}
           >
-            <X className="w-5 h-5" />
-          </button>
+            Previous
+          </Button>
+          {activeTab < 5 ? (
+            <Button variant="wa" onClick={() => setActiveTab((prev) => Math.min(5, prev + 1))}>
+              Next step
+            </Button>
+          ) : (
+            <Button variant="wa" onClick={onClose}>
+              Ready &amp; done
+            </Button>
+          )}
         </div>
-
-        {/* Stepper Tabs Bar */}
-        <div className="flex border-b border-border bg-black/5 overflow-x-auto px-4 shrink-0">
+      }
+    >
+      <div className="space-y-6 text-xs leading-relaxed text-foreground">
+        {/* Stepper */}
+        <div className="-mx-4 flex overflow-x-auto border-b border-border px-4">
           {steps.map((s) => {
-            const Icon = s.icon;
             const isSelected = activeTab === s.num;
             return (
               <button
                 key={s.num}
                 onClick={() => setActiveTab(s.num)}
-                className={`py-3 px-3.5 text-xs font-normal border-b-2 flex items-center gap-2 whitespace-nowrap transition-all ${
-                  isSelected
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground'
-                }`}
+                className={cn(
+                  'flex items-center gap-2 whitespace-nowrap border-b-2 px-3.5 py-3 text-xs font-medium transition-colors',
+                  isSelected ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
+                )}
               >
                 <span
-                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-                    isSelected ? 'bg-whatsapp-green text-white' : 'bg-muted text-muted-foreground'
-                  }`}
+                  className={cn(
+                    'flex size-5 items-center justify-center rounded-full text-[0.625rem]',
+                    isSelected ? 'bg-wa text-wa-foreground' : 'bg-muted text-muted-foreground'
+                  )}
                 >
                   {s.num}
                 </span>
@@ -110,8 +122,7 @@ export function MetaSetupGuideModal({ isOpen, onClose }: MetaSetupGuideModalProp
           })}
         </div>
 
-        {/* Modal Content */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1 text-xs text-foreground leading-relaxed">
+        <div className="space-y-6">
           {/* STEP 1 */}
           {activeTab === 1 && (
             <div className="space-y-4">
@@ -281,35 +292,7 @@ export function MetaSetupGuideModal({ isOpen, onClose }: MetaSetupGuideModalProp
           )}
         </div>
 
-        {/* Modal Footer */}
-        <div className="px-6 py-3.5 border-t border-border bg-black/5 flex items-center justify-between shrink-0">
-          <button
-            onClick={() => setActiveTab((prev) => Math.max(1, prev - 1))}
-            disabled={activeTab === 1}
-            className="px-4 py-2 rounded-xl border border-input text-foreground text-xs font-normal hover:bg-accent disabled:opacity-40"
-          >
-            Previous Step
-          </button>
-
-          <div className="flex items-center gap-2">
-            {activeTab < 5 ? (
-              <button
-                onClick={() => setActiveTab((prev) => Math.min(5, prev + 1))}
-                className="px-5 py-2 rounded-xl bg-whatsapp-green hover:bg-primary/90 text-white text-xs font-normal "
-              >
-                Next Step
-              </button>
-            ) : (
-              <button
-                onClick={onClose}
-                className="px-6 py-2 rounded-xl bg-whatsapp-green hover:bg-primary/90 text-white text-xs font-normal "
-              >
-                Ready & Done
-              </button>
-            )}
-          </div>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }
