@@ -240,7 +240,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <p className="text-2xs text-[#1c1e21] font-mono font-medium">{activeToast.phoneNumber}</p>
+              <p className="text-2xs text-foreground font-mono font-medium">{activeToast.phoneNumber}</p>
               <p className="text-xs text-foreground mt-1 line-clamp-2 leading-relaxed font-sans">
                 {activeToast.body}
               </p>
@@ -250,7 +250,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
                 <Link
                   href={`/inbox?contactId=${activeToast.contactId || ''}`}
                   onClick={() => setActiveToast(null)}
-                  className="inline-flex items-center gap-1 text-xs font-normal text-[#1c1e21] hover:text-brand-subtle-foreground bg-black/5 hover:bg-[#e6ffda] px-3 py-1 rounded-full border border-transparent transition-all"
+                  className="inline-flex items-center gap-1 text-xs font-normal text-foreground hover:text-brand-subtle-foreground bg-black/5 hover:bg-wa-bubble-out px-3 py-1 rounded-full border border-transparent transition-all"
                 >
                   <span>Reply Now</span>
                   <ArrowRight className="w-3 h-3" />

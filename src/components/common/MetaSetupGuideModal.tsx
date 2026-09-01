@@ -135,7 +135,7 @@ export function MetaSetupGuideModal({ isOpen, onClose }: MetaSetupGuideModalProp
 
               <ol className="space-y-3 list-decimal list-inside bg-black/5 p-4 rounded-xl border border-border">
                 <li className="font-normal text-foreground">
-                  Go to <a href="https://developers.facebook.com" target="_blank" rel="noreferrer" className="text-[#1c1e21] underline inline-flex items-center gap-1">Meta for Developers <ExternalLink className="w-3 h-3" /></a> and log in with your Facebook account.
+                  Go to <a href="https://developers.facebook.com" target="_blank" rel="noreferrer" className="text-foreground underline inline-flex items-center gap-1">Meta for Developers <ExternalLink className="w-3 h-3" /></a> and log in with your Facebook account.
                 </li>
                 <li>Click <strong>&ldquo;My Apps&rdquo;</strong> in the top-right corner, then click <strong>&ldquo;Create App&rdquo;</strong>.</li>
                 <li>Select <strong>&ldquo;Other&rdquo;</strong> &gt; Next &gt; Select <strong>&ldquo;Business&rdquo;</strong> type.</li>
@@ -177,7 +177,7 @@ export function MetaSetupGuideModal({ isOpen, onClose }: MetaSetupGuideModalProp
 
                 <h5 className="font-normal text-foreground text-xs uppercase tracking-wider pt-2">B. How to Create a Permanent System User Token:</h5>
                 <ol className="space-y-2 list-decimal list-inside bg-black/5 p-3.5 rounded-xl border border-border">
-                  <li>Open <a href="https://business.facebook.com/settings" target="_blank" rel="noreferrer" className="text-[#1c1e21] underline inline-flex items-center gap-1">Meta Business Settings <ExternalLink className="w-3 h-3" /></a>.</li>
+                  <li>Open <a href="https://business.facebook.com/settings" target="_blank" rel="noreferrer" className="text-foreground underline inline-flex items-center gap-1">Meta Business Settings <ExternalLink className="w-3 h-3" /></a>.</li>
                   <li>In the left menu under <strong>Users</strong>, click <strong>System Users</strong> &gt; click <strong>&ldquo;Add&rdquo;</strong>.</li>
                   <li>Name it <code>WhatsApp Cloud Admin</code> and select Role: <strong>Admin</strong>.</li>
                   <li>Click <strong>&ldquo;Add Assets&rdquo;</strong> &gt; select <strong>Apps</strong> &gt; choose your WhatsApp App &gt; toggle <strong>Full Control (Manage App)</strong> &gt; Save.</li>
@@ -216,8 +216,8 @@ export function MetaSetupGuideModal({ isOpen, onClose }: MetaSetupGuideModalProp
                 <li>Click <strong>Verify and Save</strong>. Meta will perform an instant handshake.</li>
                 <li>Click <strong>&ldquo;Manage Webhook fields&rdquo;</strong> and subscribe to:
                   <ul className="list-disc list-inside pl-4 pt-1 space-y-1 font-mono text-2xs text-foreground">
-                    <li><strong className="text-[#1c1e21]">messages</strong> (Ingests delivery status changes and inbound customer chat replies)</li>
-                    <li><strong className="text-[#1c1e21]">message_template_status_update</strong> (Notifies you when Meta approves new templates)</li>
+                    <li><strong className="text-foreground">messages</strong> (Ingests delivery status changes and inbound customer chat replies)</li>
+                    <li><strong className="text-foreground">message_template_status_update</strong> (Notifies you when Meta approves new templates)</li>
                   </ul>
                 </li>
               </ol>
@@ -235,7 +235,7 @@ export function MetaSetupGuideModal({ isOpen, onClose }: MetaSetupGuideModalProp
               </div>
 
               <ol className="space-y-3 list-decimal list-inside bg-black/5 p-4 rounded-xl border border-border">
-                <li>Go to <a href="https://business.facebook.com/billing_hub" target="_blank" rel="noreferrer" className="text-[#1c1e21] underline inline-flex items-center gap-1">Meta Business Billing Hub <ExternalLink className="w-3 h-3" /></a> and add a credit card / payment method to your WhatsApp Business Account.</li>
+                <li>Go to <a href="https://business.facebook.com/billing_hub" target="_blank" rel="noreferrer" className="text-foreground underline inline-flex items-center gap-1">Meta Business Billing Hub <ExternalLink className="w-3 h-3" /></a> and add a credit card / payment method to your WhatsApp Business Account.</li>
                 <li>In Meta Developer Portal &gt; <strong>WhatsApp &gt; API Setup</strong>, scroll down to <strong>&ldquo;Step 5: Add a phone number&rdquo;</strong>.</li>
                 <li>Enter your business display name, category, and phone number.</li>
                 <li>Verify your number via SMS or Voice Call OTP.</li>
@@ -273,7 +273,7 @@ export function MetaSetupGuideModal({ isOpen, onClose }: MetaSetupGuideModalProp
                   </div>
                   <div className="p-3 rounded-xl bg-black/5 border border-border text-center">
                     <span className="text-2xs font-normal text-muted-foreground uppercase">Tier 4</span>
-                    <p className="text-sm font-normal text-[#1c1e21] mt-0.5">Unlimited</p>
+                    <p className="text-sm font-normal text-foreground mt-0.5">Unlimited</p>
                     <span className="text-2xs text-muted-foreground">unlimited volume</span>
                   </div>
                 </div>

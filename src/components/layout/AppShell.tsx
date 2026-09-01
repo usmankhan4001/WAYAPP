@@ -12,7 +12,7 @@ import { NotificationProvider } from '@/components/common/NotificationProvider';
 import { MetaSetupGuideModal } from '@/components/common/MetaSetupGuideModal';
 import { InitialSetupGatekeeper } from '@/components/common/InitialSetupGatekeeper';
 
-const BARE_ROUTES = ['/login', '/register', '/setup'];
+const BARE_ROUTES = ['/login', '/register', '/setup', '/design'];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

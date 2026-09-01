@@ -469,7 +469,7 @@ export default function SettingsPage() {
         >
           <Layers className="w-3.5 h-3.5 text-primary" />
           <span>App Marketplace & Modules</span>
-          <span className="px-1.5 py-0.2 rounded-full bg-black/10 text-[#1c1e21] text-2xs font-normal">
+          <span className="px-1.5 py-0.2 rounded-full bg-black/10 text-foreground text-2xs font-normal">
             {modules.filter((m) => m.isEnabled).length}/{modules.length} ON
           </span>
         </button>
@@ -640,7 +640,7 @@ export default function SettingsPage() {
                   </div>
 
                   {testDetails?.phoneDetails && (
-                    <div className="text-xs text-[#1c1e21] font-normal flex items-center gap-1.5">
+                    <div className="text-xs text-foreground font-normal flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
                       <span>Verified: {testDetails.phoneDetails.verified_name || 'Account Active'}</span>
                     </div>
@@ -655,13 +655,13 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <span className="text-2xs text-muted-foreground uppercase font-normal">Display Name</span>
-                      <p className={`font-normal ${testDetails.phoneDetails.name_status === 'APPROVED' ? 'text-[#1c1e21]' : 'text-amber-700'}`}>
+                      <p className={`font-normal ${testDetails.phoneDetails.name_status === 'APPROVED' ? 'text-foreground' : 'text-amber-700'}`}>
                         {testDetails.phoneDetails.name_status || (testDetails.phoneDetails.verified_name ? 'APPROVED' : 'PENDING')}
                       </p>
                     </div>
                     <div>
                       <span className="text-2xs text-muted-foreground uppercase font-normal">Quality Rating</span>
-                      <p className="font-normal text-[#1c1e21]">{testDetails.phoneDetails.quality_rating || 'GREEN'}</p>
+                      <p className="font-normal text-foreground">{testDetails.phoneDetails.quality_rating || 'GREEN'}</p>
                     </div>
                     <div>
                       <span className="text-2xs text-muted-foreground uppercase font-normal">Messaging Tier</span>
@@ -669,7 +669,7 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <span className="text-2xs text-muted-foreground uppercase font-normal">Registration Status</span>
-                      <p className="font-normal text-[#1c1e21]">{testDetails.phoneDetails.code_verification_status || 'VERIFIED'}</p>
+                      <p className="font-normal text-foreground">{testDetails.phoneDetails.code_verification_status || 'VERIFIED'}</p>
                     </div>
                   </div>
                 )}
@@ -859,7 +859,7 @@ export default function SettingsPage() {
                         <div
                           className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${
                             mod.isEnabled
-                              ? 'bg-[#e6ffda] text-[#1c1e21]'
+                              ? 'bg-wa-bubble-out text-foreground'
                               : 'bg-muted text-muted-foreground'
                           }`}
                         >
@@ -895,7 +895,7 @@ export default function SettingsPage() {
 
                   <div className="flex items-center justify-between pt-2 border-t border-border text-2xs">
                     <span className="font-medium text-muted-foreground">
-                      Status: <strong className={mod.isEnabled ? 'text-[#1c1e21]' : 'text-muted-foreground'}>{mod.isEnabled ? 'Active' : 'Disabled'}</strong>
+                      Status: <strong className={mod.isEnabled ? 'text-foreground' : 'text-muted-foreground'}>{mod.isEnabled ? 'Active' : 'Disabled'}</strong>
                     </span>
                     <span className="text-2xs text-muted-foreground font-mono">ID: {mod.id}</span>
                   </div>
@@ -1016,7 +1016,7 @@ export default function SettingsPage() {
               >
                 <div className="space-y-1 min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono font-normal text-xs text-brand-subtle-foreground bg-[#e6ffda] px-2 py-0.5 rounded-full">
+                    <span className="font-mono font-normal text-xs text-brand-subtle-foreground bg-wa-bubble-out px-2 py-0.5 rounded-full">
                       {s.shortcut}
                     </span>
                     <h4 className="font-normal text-xs text-foreground truncate">{s.title}</h4>

@@ -10,6 +10,7 @@
     "start": "next start",
     "worker": "tsx src/worker/index.ts",
     "lint": "next lint",
+    "lint:design": "node scripts/check-design-system.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "db:generate": "prisma generate",

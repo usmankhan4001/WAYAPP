@@ -53,9 +53,16 @@ src/
 
 ## 3. Strict Coding Rules (Must Never Be Broken)
 
-### 1. Styling
-- **Rule:** **NEVER** use inline `style={{ ... }}` in JSX.
-- **Enforcement:** Always use Tailwind CSS utility classes and `cn()` from `@/lib/utils`.
+### 1. Styling — the design system
+- **Read `docs/DESIGN_SYSTEM.md` first.** Live gallery at `/design` (dev only).
+- **Tailwind CSS v4** (CSS-first, no `tailwind.config.ts`). Colours edited in `design-tokens/tokens.ts` → `npm run tokens:build`.
+- **Use semantic tokens**, not raw palette: `bg-card` `text-muted-foreground` `border-border` `bg-primary`. Never `bg-white` / `text-slate-*` (breaks dark mode). Never raw hex in `className`.
+- **`--primary`/`--brand`** = product UI (emerald, tenant-overridable). **`--wa`** (`#25D366`, fixed) = messaging surfaces ONLY (`<Button variant="wa">`, bubbles, ticks).
+- **Use the primitives in `src/components/ui/`**: `<Button>` `<Badge>`/`<StatusBadge>` `<Input>` `<Card>` `<Modal>` (not hand-rolled `fixed inset-0`), `useConfirm()` (not `confirm()`), `toast` (not `alert()`), `<PageHeader>` `<DataTable>` `<Stat>` `<FilterTabs>`.
+- Import `@base-ui/react` ONLY inside `src/components/ui/`.
+- Type scale only; `text-2xs` is the smallest sanctioned size — no `text-[10px]`.
+- **NEVER** inline `style={{}}` except runtime-dynamic dimensions/data colours (`<Skeleton>`, chart bars, user-picked hex dots).
+- **Enforcement:** `npm run lint:design` (`scripts/check-design-system.mjs`) — wire into CI.
 
 ### 2. Error Handling
 - **Rule:** **NEVER** use empty catch blocks (`.catch(() => {})` or `catch (err) {}` with no handling).
