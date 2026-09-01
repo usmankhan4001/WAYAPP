@@ -1,35 +1,37 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Download, Check, Smartphone, Share, PlusSquare, X } from 'lucide-react';
+import { Download, Smartphone, Share, PlusSquare } from 'lucide-react';
+
+import { cn } from '@/lib/utils';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/Toast';
 
 export function PWAInstallPrompt({ className }: { className?: string }) {
+  const toast = useToast();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIos, setIsIos] = useState(false);
   const [showIosGuide, setShowIosGuide] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const isStandalone =
-        window.matchMedia('(display-mode: standalone)').matches ||
-        (window.navigator as any).standalone === true ||
-        document.referrer.includes('android-app://');
-      setIsInstalled(isStandalone);
+    if (typeof window === 'undefined') return;
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window.navigator as any).standalone === true ||
+      document.referrer.includes('android-app://');
+    setIsInstalled(isStandalone);
+    setIsIos(/iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase()));
 
-      // Detect iOS
-      const userAgent = window.navigator.userAgent.toLowerCase();
-      const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
-      setIsIos(isIosDevice);
-
-      const handleBeforeInstall = (e: Event) => {
-        e.preventDefault();
-        setDeferredPrompt(e);
-      };
-
-      window.addEventListener('beforeinstallprompt', handleBeforeInstall);
-      return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
-    }
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
   }, []);
 
   const handleInstallClick = async () => {
@@ -37,18 +39,15 @@ export function PWAInstallPrompt({ className }: { className?: string }) {
       setShowIosGuide(true);
       return;
     }
-
     if (deferredPrompt) {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        setIsInstalled(true);
-      }
+      if (outcome === 'accepted') setIsInstalled(true);
       setDeferredPrompt(null);
     } else {
-      // Fallback for browsers that don't emit beforeinstallprompt (e.g. desktop safari/firefox)
-      alert(
-        'To install WAYAPP:\n• On Desktop Chrome/Edge: Click the install icon in the address bar (top right)\n• On Mobile: Tap browser menu (⋮) -> "Add to Home screen"'
+      toast.info(
+        'Install WAYAPP',
+        'Desktop Chrome/Edge: use the install icon in the address bar. Mobile: browser menu → "Add to Home screen".'
       );
     }
   };
@@ -57,77 +56,50 @@ export function PWAInstallPrompt({ className }: { className?: string }) {
 
   return (
     <>
-      <button
-        onClick={handleInstallClick}
-        className={
-          className ||
-          'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-whatsapp-green hover:bg-[#20b858] text-white text-xs font-normal  shadow-emerald-600/20 transition-all'
-        }
-        title="Install WAYAPP as Standalone App on Desktop or Mobile"
-      >
-        <Download className="w-3.5 h-3.5" />
-        <span>Install App</span>
-      </button>
-
-      {/* iOS Installation Guide Modal */}
-      {showIosGuide && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Smartphone className="w-5 h-5 text-emerald-600" />
-                <h3 className="text-sm font-normal text-slate-900">Install on iPhone / iPad</h3>
-              </div>
-              <button
-                onClick={() => setShowIosGuide(false)}
-                className="p-1 rounded-full text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-600 leading-relaxed">
-              To install WAYAPP on iOS and receive real-time notifications:
-            </p>
-
-            <div className="space-y-2.5 bg-black/5 p-3.5 rounded-2xl border border-slate-200 text-xs text-slate-700">
-              <div className="flex items-center gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-whatsapp-green text-white font-normal text-[10px] flex items-center justify-center shrink-0">
-                  1
-                </span>
-                <span className="flex items-center gap-1">
-                  Tap the <strong>Share</strong> button <Share className="w-3.5 h-3.5 text-blue-600 inline" /> in Safari
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-whatsapp-green text-white font-normal text-[10px] flex items-center justify-center shrink-0">
-                  2
-                </span>
-                <span className="flex items-center gap-1">
-                  Scroll down and tap <strong>Add to Home Screen</strong> <PlusSquare className="w-3.5 h-3.5 text-slate-700 inline" />
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-whatsapp-green text-white font-normal text-[10px] flex items-center justify-center shrink-0">
-                  3
-                </span>
-                <span>
-                  Tap <strong>Add</strong> in the top-right corner
-                </span>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setShowIosGuide(false)}
-              className="w-full py-2 rounded-xl bg-whatsapp-green hover:bg-[#20b858] text-white text-xs font-normal  transition-all"
-            >
-              Got It
-            </button>
-          </div>
-        </div>
+      {className ? (
+        <button onClick={handleInstallClick} className={className} title="Install WAYAPP as a standalone app">
+          <Download className="size-3.5" />
+          <span>Install app</span>
+        </button>
+      ) : (
+        <Button variant="wa" size="sm" onClick={handleInstallClick} title="Install WAYAPP as a standalone app">
+          <Download />
+          <span>Install app</span>
+        </Button>
       )}
+
+      <Modal
+        open={showIosGuide}
+        onOpenChange={setShowIosGuide}
+        size="sm"
+        title={
+          <span className="inline-flex items-center gap-2">
+            <Smartphone className="size-5 text-primary" />
+            Install on iPhone / iPad
+          </span>
+        }
+        description="To install WAYAPP on iOS and receive real-time notifications:"
+        footer={
+          <Button className="w-full" onClick={() => setShowIosGuide(false)}>
+            Got it
+          </Button>
+        }
+      >
+        <div className="space-y-2.5 rounded-lg bg-muted p-3.5 text-xs text-foreground">
+          {[
+            <>Tap the <strong>Share</strong> button <Share className="inline size-3.5 text-info" /> in Safari</>,
+            <>Scroll down and tap <strong>Add to Home Screen</strong> <PlusSquare className="inline size-3.5" /></>,
+            <>Tap <strong>Add</strong> in the top-right corner</>,
+          ].map((step, i) => (
+            <div key={i} className="flex items-center gap-2.5">
+              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[0.625rem] font-semibold text-primary-foreground">
+                {i + 1}
+              </span>
+              <span className="flex items-center gap-1">{step}</span>
+            </div>
+          ))}
+        </div>
+      </Modal>
     </>
   );
 }

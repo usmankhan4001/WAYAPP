@@ -2,19 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import {
-  CheckCircle2,
-  Circle,
-  ArrowRight,
-  ShieldCheck,
-  Webhook,
-  FileText,
-  Users,
-  Send,
-  X,
-  ChevronRight,
-  Sparkles,
-} from 'lucide-react';
+import { CheckCircle2, Circle, X, Sparkles } from 'lucide-react';
 
 interface SetupWalkthroughProps {
   hasCredentials?: boolean;
@@ -74,15 +62,15 @@ export function SetupWalkthrough({
   if (isDismissed || completedCount === steps.length) return null;
 
   return (
-    <div className="card-base p-4 bg-slate-900 text-slate-100 relative overflow-hidden">
-      <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+    <div className="overflow-hidden rounded-xl bg-card p-4 text-card-foreground ring-1 ring-foreground/10">
+      <div className="flex items-center justify-between border-b border-border pb-3">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-white/10 text-emerald-400 flex items-center justify-center font-normal text-xs">
-            <Sparkles className="w-3.5 h-3.5" />
+          <div className="flex size-6 items-center justify-center rounded-full bg-brand-subtle text-brand-subtle-foreground">
+            <Sparkles className="size-3.5" />
           </div>
           <div>
-            <h3 className="text-xs font-normal text-white">Getting Started Checklist</h3>
-            <p className="text-[11px] text-slate-400">
+            <h3 className="text-xs font-semibold text-foreground">Getting started checklist</h3>
+            <p className="text-[0.6875rem] text-muted-foreground">
               {completedCount} of {steps.length} setup steps completed
             </p>
           </div>
@@ -90,39 +78,38 @@ export function SetupWalkthrough({
 
         <button
           onClick={() => setIsDismissed(true)}
-          className="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-800 transition-colors"
+          className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           title="Dismiss"
         >
-          <X className="w-4 h-4" />
+          <X className="size-4" />
         </button>
       </div>
 
-      {/* Grid Steps */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 pt-3">
+      <div className="grid grid-cols-1 gap-2.5 pt-3 sm:grid-cols-3 lg:grid-cols-5">
         {steps.map((step) => (
           <Link
             key={step.id}
             href={step.href}
-            className={`p-3 rounded-xl border transition-all flex flex-col justify-between active:scale-[0.98] ${
+            className={`flex flex-col justify-between rounded-lg border p-3 transition-all active:scale-[0.98] ${
               step.done
-                ? 'bg-slate-800/40 border-slate-800/80 text-slate-400'
-                : 'bg-slate-800/90 border-slate-700 hover:border-emerald-500/60 text-slate-200 shadow-2xs'
+                ? 'border-border bg-muted/40 text-muted-foreground'
+                : 'border-border bg-muted/70 text-foreground hover:border-primary/50'
             }`}
           >
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono text-slate-400">Step 0{step.id}</span>
+                <span className="font-mono text-[0.625rem] text-muted-foreground">Step 0{step.id}</span>
                 {step.done ? (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <CheckCircle2 className="size-3.5 text-primary" />
                 ) : (
-                  <Circle className="w-3.5 h-3.5 text-slate-500" />
+                  <Circle className="size-3.5 text-muted-foreground" />
                 )}
               </div>
-              <h4 className={`text-xs font-semibold ${step.done ? 'line-through text-slate-500' : 'text-slate-100'}`}>
+              <h4 className={`text-xs font-semibold ${step.done ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
                 {step.title}
               </h4>
             </div>
-            <span className="text-[10px] text-slate-400 mt-2 block line-clamp-1">{step.desc}</span>
+            <span className="mt-2 line-clamp-1 block text-[0.625rem] text-muted-foreground">{step.desc}</span>
           </Link>
         ))}
       </div>
