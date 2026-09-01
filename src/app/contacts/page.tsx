@@ -2,89 +2,85 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import {
   Users,
   UserPlus,
   Upload,
   Search,
-  Tag,
+  Tag as TagIcon,
   Trash2,
   Edit2,
-  Filter,
   Download,
   Kanban,
-  Table,
-  DollarSign,
+  Table as TableIcon,
   MessageSquare,
-  Building,
-  MapPin,
-  TrendingUp,
-  Award,
-  CheckSquare,
-  Square,
-  MinusSquare,
   CheckCircle2,
   XCircle,
   FolderPlus,
-  Tag as TagIcon,
   X,
-  AlertTriangle,
   Loader2,
 } from 'lucide-react';
+
+import { cn } from '@/lib/utils';
+import { LEAD_STAGES, getLeadStage } from '@/lib/constants/lead-stages';
+import { useConfirm } from '@/lib/hooks/use-confirm';
 import { CsvImportModal } from '@/components/contacts/CsvImportModal';
 import { GroupTagModal } from '@/components/contacts/GroupTagModal';
 import { ContactFormModal } from '@/components/contacts/ContactFormModal';
 import { InfoTooltip, Tooltip } from '@/components/ui/Tooltip';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { PageHeader } from '@/components/ui/page-header';
+import { SegmentedControl } from '@/components/ui/filter-tabs';
+import { Stat, StatGrid } from '@/components/ui/stat';
+import { Button } from '@/components/ui/button';
+import { Badge, StatusBadge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useToast } from '@/components/ui/Toast';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
-const LEAD_STAGES = [
-  { id: 'NEW_LEAD', label: 'New Lead', color: 'bg-blue-100 text-blue-800 border-blue-200' },
-  { id: 'CONTACTED', label: 'Contacted', color: 'bg-amber-100 text-amber-800 border-amber-200' },
-  { id: 'QUALIFIED', label: 'Qualified', color: 'bg-purple-100 text-purple-800 border-purple-200' },
-  { id: 'PROPOSAL_SENT', label: 'Proposal Sent', color: 'bg-indigo-100 text-indigo-800 border-indigo-200' },
-  { id: 'WON', label: 'Deal Won', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
-  { id: 'LOST', label: 'Deal Lost', color: 'bg-rose-100 text-rose-800 border-rose-200' },
-];
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyRecord = Record<string, any>;
+
+const selectClass =
+  'h-9 rounded-lg border border-input bg-transparent px-3 text-xs font-medium outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
 
 export default function ContactsPage() {
   const router = useRouter();
-  const [contacts, setContacts] = useState<any[]>([]);
-  const [groups, setGroups] = useState<any[]>([]);
-  const [tags, setTags] = useState<any[]>([]);
+  const confirm = useConfirm();
+  const toast = useToast();
+
+  const [contacts, setContacts] = useState<AnyRecord[]>([]);
+  const [groups, setGroups] = useState<AnyRecord[]>([]);
+  const [tags, setTags] = useState<AnyRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
 
-  // Filters
   const [search, setSearch] = useState('');
-  const [selectedGroupId, setSelectedGroupId] = useState<string>('ALL');
-  const [selectedTagId, setSelectedTagId] = useState<string>('ALL');
+  const [selectedGroupId, setSelectedGroupId] = useState('ALL');
+  const [selectedTagId, setSelectedTagId] = useState('ALL');
 
-  // Bulk Selection State
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isBulkOperating, setIsBulkOperating] = useState(false);
-  const [bulkMessage, setBulkMessage] = useState<string | null>(null);
 
-  // Modals
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isGroupTagOpen, setIsGroupTagOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingContact, setEditingContact] = useState<any | null>(null);
-
-  // Bulk Action Menus
-  const [bulkGroupMenuOpen, setBulkGroupMenuOpen] = useState(false);
-  const [bulkTagMenuOpen, setBulkTagMenuOpen] = useState(false);
+  const [editingContact, setEditingContact] = useState<AnyRecord | null>(null);
 
   const downloadSampleCsv = () => {
     const csvContent =
       'phoneNumber,firstName,lastName,email,company,city,tags\n' +
       '+971501234567,Ahmed,Al-Maktoum,ahmed@example.com,Dubai Holdings,Dubai,"VIP, Premium"\n' +
       '+966501234567,Sara,Al-Saud,sara@example.com,Riyadh Capital,Riyadh,"Lead, Retail"\n' +
-      '+974501234567,Tariq,Mansoor,tariq@example.com,Doha Trading,Doha,Customer\n' +
-      '+15550192834,John,Smith,john.smith@example.com,Acme Corp,New York,"VIP, Partner"\n' +
-      '+447700900077,Emma,Watson,emma.watson@example.com,London Tech,London,Lead\n';
-
+      '+15550192834,John,Smith,john.smith@example.com,Acme Corp,New York,"VIP, Partner"\n';
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -93,13 +89,13 @@ export default function ContactsPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const fetchContacts = () => {
     let url = `/api/contacts?search=${encodeURIComponent(search)}`;
     if (selectedGroupId !== 'ALL') url += `&groupId=${selectedGroupId}`;
     if (selectedTagId !== 'ALL') url += `&tagId=${selectedTagId}`;
-
     fetch(url)
       .then((res) => res.json())
       .then((data) => setContacts(Array.isArray(data) ? data : []))
@@ -125,38 +121,34 @@ export default function ContactsPage() {
 
   useEffect(() => {
     fetchContacts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, selectedGroupId, selectedTagId]);
 
-  // Selection helpers
-  const allSelected = useMemo(() => {
-    return contacts.length > 0 && contacts.every((c) => selectedIds.includes(c.id));
-  }, [contacts, selectedIds]);
+  const allSelected = useMemo(
+    () => contacts.length > 0 && contacts.every((c) => selectedIds.includes(c.id)),
+    [contacts, selectedIds]
+  );
+  const isIndeterminate = selectedIds.length > 0 && !allSelected;
 
-  const isIndeterminate = useMemo(() => {
-    return selectedIds.length > 0 && !allSelected;
-  }, [selectedIds, allSelected]);
-
-  const toggleSelectAll = () => {
-    if (allSelected) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(contacts.map((c) => c.id));
-    }
-  };
-
-  const toggleSelectRow = (id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
-  };
+  const toggleSelectAll = () => setSelectedIds(allSelected ? [] : contacts.map((c) => c.id));
+  const toggleSelectRow = (id: string) =>
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   const handleDeleteContact = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this contact?')) return;
+    const ok = await confirm({
+      title: 'Delete this contact?',
+      description: 'The contact and their conversation history will be removed.',
+      destructive: true,
+      confirmLabel: 'Delete',
+    });
+    if (!ok) return;
     try {
       await fetch(`/api/contacts?id=${id}`, { method: 'DELETE' });
-      setSelectedIds((prev) => prev.filter((item) => item !== id));
+      setSelectedIds((prev) => prev.filter((x) => x !== id));
       fetchContacts();
-    } catch {}
+    } catch {
+      /* noop */
+    }
   };
 
   const handleUpdateStage = async (contactId: string, newStage: string) => {
@@ -167,10 +159,11 @@ export default function ContactsPage() {
         body: JSON.stringify({ contactId, leadStage: newStage }),
       });
       if (res.ok) fetchContacts();
-    } catch {}
+    } catch {
+      /* noop */
+    }
   };
 
-  // Pipeline Metrics Calculation
   const totalContactsCount = contacts.length;
   const activePipelineDeals = contacts.filter((c) => c.leadStage && c.leadStage !== 'LOST').length;
   const totalPipelineValue = contacts
@@ -180,16 +173,36 @@ export default function ContactsPage() {
     .filter((c) => c.leadStage === 'WON')
     .reduce((sum, c) => sum + (c.dealValue || 0), 0);
 
-  // Bulk Operations
+  const bulkPatch = async (body: AnyRecord, successMsg: string) => {
+    setIsBulkOperating(true);
+    try {
+      const res = await fetch('/api/contacts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedIds, ...body }),
+      });
+      if (res.ok) {
+        toast.success(successMsg);
+        fetchContacts();
+      } else {
+        toast.error('Bulk action failed');
+      }
+    } catch (err) {
+      toast.error('Network error', err instanceof Error ? err.message : undefined);
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
+
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
-    if (
-      !confirm(
-        `Are you sure you want to permanently delete ${selectedIds.length} selected contact(s)? This will also remove their conversation history.`
-      )
-    )
-      return;
-
+    const ok = await confirm({
+      title: `Delete ${selectedIds.length} contact${selectedIds.length > 1 ? 's' : ''}?`,
+      description: 'Their conversation history will also be removed. This cannot be undone.',
+      destructive: true,
+      confirmLabel: 'Delete',
+    });
+    if (!ok) return;
     setIsBulkOperating(true);
     try {
       const res = await fetch('/api/contacts', {
@@ -199,243 +212,118 @@ export default function ContactsPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        setBulkMessage(`Successfully deleted ${selectedIds.length} contacts.`);
+        toast.success(`Deleted ${selectedIds.length} contacts`);
         setSelectedIds([]);
         fetchContacts();
-        setTimeout(() => setBulkMessage(null), 4000);
       } else {
-        alert(data.error || 'Failed to delete contacts');
+        toast.error(data.error || 'Failed to delete contacts');
       }
-    } catch (err: any) {
-      alert(err.message || 'Network error');
+    } catch (err) {
+      toast.error('Network error', err instanceof Error ? err.message : undefined);
     } finally {
       setIsBulkOperating(false);
     }
   };
 
-  const handleBulkAssignGroup = async (groupId: string) => {
-    if (selectedIds.length === 0 || !groupId) return;
-    setIsBulkOperating(true);
-    setBulkGroupMenuOpen(false);
-    try {
-      const res = await fetch('/api/contacts', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ids: selectedIds,
-          addGroupId: groupId,
-        }),
-      });
-      if (res.ok) {
-        setBulkMessage(`Assigned group to ${selectedIds.length} contact(s).`);
-        fetchContacts();
-        setTimeout(() => setBulkMessage(null), 4000);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsBulkOperating(false);
-    }
-  };
-
-  const handleBulkAssignTag = async (tagId: string) => {
-    if (selectedIds.length === 0 || !tagId) return;
-    setIsBulkOperating(true);
-    setBulkTagMenuOpen(false);
-    try {
-      const res = await fetch('/api/contacts', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ids: selectedIds,
-          addTagId: tagId,
-        }),
-      });
-      if (res.ok) {
-        setBulkMessage(`Assigned tag to ${selectedIds.length} contact(s).`);
-        fetchContacts();
-        setTimeout(() => setBulkMessage(null), 4000);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsBulkOperating(false);
-    }
-  };
-
-  const handleBulkStatusChange = async (newStatus: 'ACTIVE' | 'UNSUBSCRIBED') => {
-    if (selectedIds.length === 0) return;
-    setIsBulkOperating(true);
-    try {
-      const res = await fetch('/api/contacts', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ids: selectedIds,
-          status: newStatus,
-        }),
-      });
-      if (res.ok) {
-        setBulkMessage(`Updated status to ${newStatus} for ${selectedIds.length} contact(s).`);
-        fetchContacts();
-        setTimeout(() => setBulkMessage(null), 4000);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsBulkOperating(false);
-    }
-  };
+  const Chips = ({ items, tone }: { items: AnyRecord[]; tone: 'group' | 'tag' }) =>
+    items?.length ? (
+      <div className="flex flex-wrap gap-1">
+        {items.map((it) => (
+          <Badge
+            key={it.groupId || it.tagId || it.id}
+            variant={tone === 'tag' ? 'info' : 'secondary'}
+            className="text-[0.625rem]"
+          >
+            {it.group?.name || it.tag?.name || it.name}
+          </Badge>
+        ))}
+      </div>
+    ) : (
+      <span className="text-[0.6875rem] text-muted-foreground">-</span>
+    );
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-1.5">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Contacts & Audience Groups</h1>
-            <InfoTooltip content="Manage individual customer records, normalized E.164 phone numbers, static list groups, and tag taxonomies with bulk editing & delete options." />
-          </div>
-          <p className="text-xs text-slate-500">
-            Categorize your audience into visual pipeline stages, static groups, and tag taxonomies
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* View Toggle */}
-          <div className="flex items-center bg-slate-200 p-0.5 rounded-xl text-xs font-bold">
-            <button
-              onClick={() => setViewMode('table')}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${
-                viewMode === 'table' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600'
-              }`}
+      <PageHeader
+        title={
+          <span className="inline-flex items-center gap-1.5">
+            Contacts &amp; audience groups
+            <InfoTooltip content="Customer records, E.164 phone numbers, static groups and tag taxonomies with bulk editing." />
+          </span>
+        }
+        description="Categorize your audience into pipeline stages, static groups and tags."
+        actions={
+          <>
+            <SegmentedControl
+              options={[
+                { value: 'table', label: <span className="inline-flex items-center gap-1.5"><TableIcon className="size-3.5" />Table</span> },
+                { value: 'kanban', label: <span className="inline-flex items-center gap-1.5"><Kanban className="size-3.5" />Pipeline</span> },
+              ]}
+              value={viewMode}
+              onValueChange={(v) => setViewMode(v as 'table' | 'kanban')}
+            />
+            <Tooltip content="Download a sample CSV template.">
+              <Button variant="outline" size="sm" onClick={downloadSampleCsv}>
+                <Download />
+                <span className="hidden md:inline">CSV template</span>
+              </Button>
+            </Tooltip>
+            <Button variant="outline" size="sm" onClick={() => setIsImportOpen(true)}>
+              <Upload />
+              Import CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setIsGroupTagOpen(true)}>
+              <TagIcon />
+              Groups &amp; tags
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditingContact(null);
+                setIsFormOpen(true);
+              }}
             >
-              <Table className="w-3.5 h-3.5" />
-              <span>Table View</span>
-            </button>
-            <button
-              onClick={() => setViewMode('kanban')}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${
-                viewMode === 'kanban' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600'
-              }`}
-            >
-              <Kanban className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Pipeline Board</span>
-            </button>
-          </div>
+              <UserPlus />
+              Add contact
+            </Button>
+          </>
+        }
+      />
 
-          <Tooltip content="Download a sample CSV file template formatted with phone numbers, names, email, and attributes.">
-            <button
-              onClick={downloadSampleCsv}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-sm transition-all"
-            >
-              <Download className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="hidden md:inline">CSV Template</span>
-            </button>
-          </Tooltip>
+      <StatGrid>
+        <Stat label="Total contacts" value={totalContactsCount.toLocaleString()} hint="Active audience directory" icon={<Users />} />
+        <Stat label="Active deals" value={activePipelineDeals} hint="Deals in pipeline stages" />
+        <Stat label="Pipeline est. value" value={`$${totalPipelineValue.toLocaleString()}`} hint="Weighted pipeline forecast" />
+        <Stat
+          label="Closed won revenue"
+          value={`$${totalWonRevenue.toLocaleString()}`}
+          hint="Total closed deals"
+          className="bg-success-subtle text-success-subtle-foreground ring-success/20"
+        />
+      </StatGrid>
 
-          <button
-            onClick={() => setIsImportOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-sm transition-all"
-          >
-            <Upload className="w-3.5 h-3.5 text-blue-600" />
-            <span>Import CSV</span>
-          </button>
-
-          <button
-            onClick={() => setIsGroupTagOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-sm transition-all"
-          >
-            <Tag className="w-3.5 h-3.5 text-purple-600" />
-            <span>Groups & Tags</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setEditingContact(null);
-              setIsFormOpen(true);
-            }}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-sm transition-all"
-          >
-            <UserPlus className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Add Contact</span>
-          </button>
-        </div>
-      </div>
-
-      {/* CRM Pipeline KPI Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-1">
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Contacts</span>
-          <p className="text-2xl font-black text-slate-900 font-mono">{totalContactsCount.toLocaleString()}</p>
-          <span className="text-[10px] text-emerald-700 font-semibold">Active audience directory</span>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-1">
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Active Deals</span>
-          <p className="text-2xl font-black text-blue-700 font-mono">{activePipelineDeals}</p>
-          <span className="text-[10px] text-slate-500">Deals in pipeline stages</span>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-1">
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Pipeline Est. Value</span>
-          <p className="text-2xl font-black text-purple-700 font-mono">${totalPipelineValue.toLocaleString()}</p>
-          <span className="text-[10px] text-purple-600 font-semibold">Weighted pipeline forecast</span>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 shadow-2xs space-y-1">
-          <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Closed Won Revenue</span>
-          <p className="text-2xl font-black text-emerald-900 font-mono">${totalWonRevenue.toLocaleString()}</p>
-          <span className="text-[10px] text-emerald-700 font-semibold">Total closed deals</span>
-        </div>
-      </div>
-
-      {/* Bulk Feedback Banner */}
-      {bulkMessage && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center justify-between animate-in fade-in duration-200">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span className="font-semibold">{bulkMessage}</span>
-          </div>
-          <button onClick={() => setBulkMessage(null)} className="text-emerald-700 hover:text-emerald-900">
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
-
-      {/* Filters Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs">
+      {/* Filters */}
+      <div className="flex flex-col gap-3 rounded-xl bg-card p-3.5 ring-1 ring-foreground/10 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search by name, phone, company..."
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search by name, phone, company…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3.5 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+            className="h-9 pl-9 text-xs"
           />
         </div>
-
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <select
-            value={selectedGroupId}
-            onChange={(e) => setSelectedGroupId(e.target.value)}
-            className="px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white font-medium text-slate-700"
-          >
-            <option value="ALL">All Groups</option>
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <select value={selectedGroupId} onChange={(e) => setSelectedGroupId(e.target.value)} className={selectClass}>
+            <option value="ALL">All groups</option>
             {groups.map((g) => (
               <option key={g.id} value={g.id}>
                 {g.name} ({g._count?.contacts || 0})
               </option>
             ))}
           </select>
-
-          <select
-            value={selectedTagId}
-            onChange={(e) => setSelectedTagId(e.target.value)}
-            className="px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white font-medium text-slate-700"
-          >
-            <option value="ALL">All Tags</option>
+          <select value={selectedTagId} onChange={(e) => setSelectedTagId(e.target.value)} className={selectClass}>
+            <option value="ALL">All tags</option>
             {tags.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name} ({t._count?.contacts || 0})
@@ -445,240 +333,146 @@ export default function ContactsPage() {
         </div>
       </div>
 
-      {/* Floating Bulk Action Bar */}
+      {/* Bulk action bar */}
       {selectedIds.length > 0 && (
-        <div className="bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl border border-slate-800 flex flex-wrap items-center justify-between gap-3 animate-in slide-in-from-top-2 duration-200">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-foreground px-4 py-3 text-background">
           <div className="flex items-center gap-2.5">
-            <span className="px-2.5 py-1 rounded-lg bg-emerald-500 text-slate-950 font-black text-xs">
-              {selectedIds.length} Selected
+            <span className="rounded-md bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground">
+              {selectedIds.length} selected
             </span>
-            <span className="text-xs text-slate-300 hidden sm:inline">Bulk actions for selected contacts:</span>
+            <span className="hidden text-xs opacity-70 sm:inline">Bulk actions:</span>
           </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Bulk Assign Group Dropdown */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setBulkGroupMenuOpen(!bulkGroupMenuOpen);
-                  setBulkTagMenuOpen(false);
-                }}
-                disabled={isBulkOperating}
-                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-all"
+          <div className="flex flex-wrap items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={<Button variant="secondary" size="sm" disabled={isBulkOperating} />}
               >
-                <FolderPlus className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Assign Group</span>
-              </button>
+                <FolderPlus />
+                Assign group
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="max-h-56 w-48 overflow-y-auto">
+                <DropdownMenuLabel>Select group</DropdownMenuLabel>
+                {groups.length === 0 ? (
+                  <DropdownMenuItem disabled>No groups available</DropdownMenuItem>
+                ) : (
+                  groups.map((g) => (
+                    <DropdownMenuItem key={g.id} onClick={() => bulkPatch({ addGroupId: g.id }, `Group assigned to ${selectedIds.length} contact(s)`)}>
+                      <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: g.color }} />
+                      <span className="truncate">{g.name}</span>
+                    </DropdownMenuItem>
+                  ))
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-              {bulkGroupMenuOpen && (
-                <div className="absolute top-full mt-1.5 left-0 z-30 w-48 bg-white rounded-xl shadow-2xl border border-slate-200 py-1.5 text-slate-800 max-h-48 overflow-y-auto">
-                  <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase">Select Group</div>
-                  {groups.length === 0 ? (
-                    <p className="px-3 py-1.5 text-xs text-slate-400">No groups available</p>
-                  ) : (
-                    groups.map((g) => (
-                      <button
-                        key={g.id}
-                        type="button"
-                        onClick={() => handleBulkAssignGroup(g.id)}
-                        className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-100 flex items-center gap-2 font-medium"
-                      >
-                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: g.color }} />
-                        <span className="truncate">{g.name}</span>
-                      </button>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger render={<Button variant="secondary" size="sm" disabled={isBulkOperating} />}>
+                <TagIcon />
+                Assign tag
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="max-h-56 w-48 overflow-y-auto">
+                <DropdownMenuLabel>Select tag</DropdownMenuLabel>
+                {tags.length === 0 ? (
+                  <DropdownMenuItem disabled>No tags available</DropdownMenuItem>
+                ) : (
+                  tags.map((t) => (
+                    <DropdownMenuItem key={t.id} onClick={() => bulkPatch({ addTagId: t.id }, `Tag assigned to ${selectedIds.length} contact(s)`)}>
+                      <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: t.color }} />
+                      <span className="truncate">{t.name}</span>
+                    </DropdownMenuItem>
+                  ))
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-            {/* Bulk Assign Tag Dropdown */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => {
-                  setBulkTagMenuOpen(!bulkTagMenuOpen);
-                  setBulkGroupMenuOpen(false);
-                }}
-                disabled={isBulkOperating}
-                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-all"
-              >
-                <TagIcon className="w-3.5 h-3.5 text-blue-400" />
-                <span>Assign Tag</span>
-              </button>
-
-              {bulkTagMenuOpen && (
-                <div className="absolute top-full mt-1.5 left-0 z-30 w-48 bg-white rounded-xl shadow-2xl border border-slate-200 py-1.5 text-slate-800 max-h-48 overflow-y-auto">
-                  <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase">Select Tag</div>
-                  {tags.length === 0 ? (
-                    <p className="px-3 py-1.5 text-xs text-slate-400">No tags available</p>
-                  ) : (
-                    tags.map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => handleBulkAssignTag(t.id)}
-                        className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-100 flex items-center gap-2 font-medium"
-                      >
-                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: t.color }} />
-                        <span className="truncate">{t.name}</span>
-                      </button>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Bulk Status Update */}
-            <button
-              type="button"
-              onClick={() => handleBulkStatusChange('ACTIVE')}
-              disabled={isBulkOperating}
-              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-semibold flex items-center gap-1.5 transition-all"
-              title="Set selected contacts as Active"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Set Active</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleBulkStatusChange('UNSUBSCRIBED')}
-              disabled={isBulkOperating}
-              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-semibold flex items-center gap-1.5 transition-all"
-              title="Set selected contacts as Unsubscribed"
-            >
-              <XCircle className="w-3.5 h-3.5" />
-              <span>Opt Out</span>
-            </button>
-
-            {/* Bulk Delete Button */}
-            <button
-              type="button"
-              onClick={handleBulkDelete}
-              disabled={isBulkOperating}
-              className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-rose-600/30 transition-all disabled:opacity-50"
-            >
-              {isBulkOperating ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Trash2 className="w-3.5 h-3.5" />
-              )}
-              <span>Delete ({selectedIds.length})</span>
-            </button>
-
-            {/* Clear Selection */}
-            <button
-              type="button"
-              onClick={() => setSelectedIds([])}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-              title="Clear selection"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <Button variant="secondary" size="sm" disabled={isBulkOperating} onClick={() => bulkPatch({ status: 'ACTIVE' }, 'Marked active')}>
+              <CheckCircle2 className="text-success" />
+              Set active
+            </Button>
+            <Button variant="secondary" size="sm" disabled={isBulkOperating} onClick={() => bulkPatch({ status: 'UNSUBSCRIBED' }, 'Marked unsubscribed')}>
+              <XCircle className="text-warning" />
+              Opt out
+            </Button>
+            <Button variant="destructive" size="sm" disabled={isBulkOperating} onClick={handleBulkDelete}>
+              {isBulkOperating ? <Loader2 className="animate-spin" /> : <Trash2 />}
+              Delete ({selectedIds.length})
+            </Button>
+            <Button variant="ghost" size="icon-sm" onClick={() => setSelectedIds([])} title="Clear selection">
+              <X />
+            </Button>
           </div>
         </div>
       )}
 
-      {/* Loading Skeleton */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <SkeletonCard key={i} />
           ))}
         </div>
       ) : viewMode === 'kanban' ? (
-        /* KANBAN PIPELINE BOARD */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5 overflow-x-auto pb-4">
+        <div className="grid grid-cols-1 gap-3.5 overflow-x-auto pb-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {LEAD_STAGES.map((stage) => {
-            const stageContacts = contacts.filter(
-              (c) => (c.leadStage || 'NEW_LEAD') === stage.id
-            );
+            const stageContacts = contacts.filter((c) => (c.leadStage || 'NEW_LEAD') === stage.id);
             const stageTotalVal = stageContacts.reduce((sum, c) => sum + (c.dealValue || 0), 0);
-
             return (
-              <div
-                key={stage.id}
-                className="bg-slate-100/70 p-3 rounded-2xl border border-slate-200 flex flex-col space-y-2.5 min-w-[220px]"
-              >
-                {/* Column Header */}
+              <div key={stage.id} className="flex min-w-[220px] flex-col gap-2.5 rounded-xl bg-muted/60 p-3 ring-1 ring-foreground/10">
                 <div className="flex items-center justify-between pb-1">
                   <div className="flex items-center gap-1.5">
-                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${stage.color}`}>
-                      {stage.label}
-                    </span>
-                    <span className="text-xs font-bold text-slate-400 font-mono">
-                      {stageContacts.length}
-                    </span>
+                    <StatusBadge tone={stage.tone}>{stage.label}</StatusBadge>
+                    <span className="font-mono text-xs font-bold text-muted-foreground">{stageContacts.length}</span>
                   </div>
                   {stageTotalVal > 0 && (
-                    <span className="text-[10px] font-bold text-slate-600 font-mono">
-                      ${stageTotalVal.toLocaleString()}
-                    </span>
+                    <span className="font-mono text-[0.625rem] font-bold text-muted-foreground">${stageTotalVal.toLocaleString()}</span>
                   )}
                 </div>
 
-                {/* Cards Stream */}
-                <div className="space-y-2 flex-1 overflow-y-auto max-h-[600px]">
+                <div className="max-h-[600px] flex-1 space-y-2 overflow-y-auto">
                   {stageContacts.map((contact) => (
-                    <div
-                      key={contact.id}
-                      className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs hover:border-slate-300 space-y-2 transition-all"
-                    >
+                    <div key={contact.id} className="space-y-2 rounded-lg bg-card p-3 ring-1 ring-foreground/10">
                       <div className="flex items-start justify-between gap-1">
                         <div className="min-w-0">
-                          <h4 className="font-bold text-xs text-slate-900 truncate">
-                            {contact.firstName
-                              ? `${contact.firstName} ${contact.lastName || ''}`.trim()
-                              : contact.phoneNumber}
+                          <h4 className="truncate text-xs font-semibold text-foreground">
+                            {contact.firstName ? `${contact.firstName} ${contact.lastName || ''}`.trim() : contact.phoneNumber}
                           </h4>
-                          <p className="text-[11px] text-slate-500 font-mono truncate">{contact.phoneNumber}</p>
+                          <p className="truncate font-mono text-[0.6875rem] text-muted-foreground">{contact.phoneNumber}</p>
                         </div>
                         {contact.dealValue > 0 && (
-                          <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold text-[10px] font-mono shrink-0">
+                          <Badge variant="success" className="shrink-0 font-mono text-[0.625rem]">
                             ${contact.dealValue}
-                          </span>
+                          </Badge>
                         )}
                       </div>
 
-                      {/* Company & City */}
                       {(contact.company || contact.city) && (
-                        <div className="text-[10px] text-slate-500 flex items-center gap-2">
+                        <div className="flex items-center gap-2 text-[0.625rem] text-muted-foreground">
                           {contact.company && <span className="truncate">🏢 {contact.company}</span>}
                           {contact.city && <span className="truncate">📍 {contact.city}</span>}
                         </div>
                       )}
 
-                      {/* Tags */}
                       {contact.tags?.length > 0 && (
                         <div className="flex flex-wrap gap-1">
-                          {contact.tags.map((t: any) => (
-                            <span
-                              key={t.tagId || t.tag?.id}
-                              className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-blue-50 text-blue-700"
-                            >
+                          {contact.tags.map((t: AnyRecord) => (
+                            <Badge key={t.tagId || t.tag?.id} variant="info" className="text-[0.5625rem]">
                               {t.tag?.name || t.name}
-                            </span>
+                            </Badge>
                           ))}
                         </div>
                       )}
 
-                      {/* Card Footer Actions */}
-                      <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 text-[10px]">
+                      <div className="flex items-center justify-between border-t border-border pt-1.5 text-[0.625rem]">
                         <button
                           onClick={() => router.push(`/inbox?contactId=${contact.id}`)}
-                          className="text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-1"
+                          className="flex items-center gap-1 font-semibold text-primary hover:text-primary/80"
                         >
-                          <MessageSquare className="w-3 h-3" />
+                          <MessageSquare className="size-3" />
                           <span>Chat</span>
                         </button>
-
-                        {/* Stage Selector */}
                         <select
                           value={contact.leadStage || 'NEW_LEAD'}
                           onChange={(e) => handleUpdateStage(contact.id, e.target.value)}
-                          className="text-[10px] font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded px-1 py-0.5"
+                          className="rounded border border-input bg-transparent px-1 py-0.5 text-[0.625rem] font-semibold outline-none"
                         >
                           {LEAD_STAGES.map((s) => (
                             <option key={s.id} value={s.id}>
@@ -689,9 +483,8 @@ export default function ContactsPage() {
                       </div>
                     </div>
                   ))}
-
                   {stageContacts.length === 0 && (
-                    <div className="p-4 text-center text-slate-400 text-[11px] border border-dashed border-slate-200 rounded-xl">
+                    <div className="rounded-lg border border-dashed border-border p-4 text-center text-[0.6875rem] text-muted-foreground">
                       No contacts in this stage
                     </div>
                   )}
@@ -701,155 +494,85 @@ export default function ContactsPage() {
           })}
         </div>
       ) : (
-        /* TABLE VIEW */
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
           {contacts.length === 0 ? (
             <EmptyState
               icon={Users}
               title="No contacts in database"
               description="Upload a customer CSV file or add your first WhatsApp recipient."
-              actionLabel="Import Contacts CSV"
+              actionLabel="Import contacts CSV"
               onAction={() => setIsImportOpen(true)}
             />
           ) : (
-            <div>
-              {/* Desktop Table View */}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
+            <>
+              {/* Desktop */}
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full border-collapse text-left text-xs">
                   <thead>
-                    <tr className="bg-slate-50/70 border-b border-slate-200 text-slate-500 uppercase text-[10px] font-semibold">
-                      <th className="py-3 px-3 w-10 text-center">
-                        <button
-                          type="button"
-                          onClick={toggleSelectAll}
-                          className="text-slate-400 hover:text-emerald-600 focus:outline-hidden"
-                          title={allSelected ? 'Deselect all' : 'Select all'}
-                        >
-                          {allSelected ? (
-                            <CheckSquare className="w-4 h-4 text-emerald-600" />
-                          ) : isIndeterminate ? (
-                            <MinusSquare className="w-4 h-4 text-emerald-600" />
-                          ) : (
-                            <Square className="w-4 h-4" />
-                          )}
-                        </button>
+                    <tr className="border-b border-border bg-muted/50 text-[0.625rem] font-semibold uppercase text-muted-foreground">
+                      <th className="w-10 px-3 py-3 text-center">
+                        <Checkbox
+                          checked={allSelected}
+                          indeterminate={isIndeterminate}
+                          onCheckedChange={toggleSelectAll}
+                          aria-label="Select all"
+                        />
                       </th>
-                      <th className="py-3 px-4">Contact</th>
-                      <th className="py-3 px-4">Phone Number (E.164)</th>
-                      <th className="py-3 px-4">Lead Stage</th>
-                      <th className="py-3 px-4">Assigned Groups</th>
-                      <th className="py-3 px-4">Tags</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
+                      <th className="px-4 py-3">Contact</th>
+                      <th className="px-4 py-3">Phone (E.164)</th>
+                      <th className="px-4 py-3">Lead stage</th>
+                      <th className="px-4 py-3">Groups</th>
+                      <th className="px-4 py-3">Tags</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                  <tbody className="divide-y divide-border text-foreground">
                     {contacts.map((c) => {
                       const contactName = `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Customer';
                       const isSelected = selectedIds.includes(c.id);
-                      const stageObj = LEAD_STAGES.find((s) => s.id === c.leadStage) || LEAD_STAGES[0];
-
+                      const stage = getLeadStage(c.leadStage);
                       return (
-                        <tr
-                          key={c.id}
-                          className={`transition-colors ${
-                            isSelected ? 'bg-emerald-50/60' : 'hover:bg-slate-50/80'
-                          }`}
-                        >
-                          <td className="py-3 px-3 text-center">
-                            <button
-                              type="button"
-                              onClick={() => toggleSelectRow(c.id)}
-                              className="text-slate-400 hover:text-emerald-600 focus:outline-hidden"
-                            >
-                              {isSelected ? (
-                                <CheckSquare className="w-4 h-4 text-emerald-600" />
-                              ) : (
-                                <Square className="w-4 h-4" />
-                              )}
-                            </button>
+                        <tr key={c.id} className={cn('transition-colors', isSelected ? 'bg-brand-subtle' : 'hover:bg-accent')}>
+                          <td className="px-3 py-3 text-center">
+                            <Checkbox checked={isSelected} onCheckedChange={() => toggleSelectRow(c.id)} aria-label={`Select ${contactName}`} />
                           </td>
-                          <td className="py-3 px-4">
-                            <p className="font-bold text-slate-900">{contactName}</p>
-                            {c.email && <p className="text-[11px] text-slate-400">{c.email}</p>}
+                          <td className="px-4 py-3">
+                            <p className="font-semibold text-foreground">{contactName}</p>
+                            {c.email && <p className="text-[0.6875rem] text-muted-foreground">{c.email}</p>}
                           </td>
-                          <td className="py-3 px-4 font-mono font-medium text-slate-800">
-                            {c.phoneNumber}
+                          <td className="px-4 py-3 font-mono font-medium">{c.phoneNumber}</td>
+                          <td className="px-4 py-3">
+                            <StatusBadge tone={stage.tone}>{stage.label}</StatusBadge>
                           </td>
-                          <td className="py-3 px-4">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${stageObj.color}`}>
-                              {stageObj.label}
-                            </span>
+                          <td className="px-4 py-3">
+                            <Chips items={c.groups} tone="group" />
                           </td>
-                          <td className="py-3 px-4">
-                            <div className="flex flex-wrap gap-1">
-                              {c.groups?.length > 0 ? (
-                                c.groups.map((g: any) => (
-                                  <span
-                                    key={g.groupId || g.id}
-                                    className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-200"
-                                  >
-                                    {g.group?.name || g.name}
-                                  </span>
-                                ))
-                              ) : (
-                                <span className="text-[11px] text-slate-400">-</span>
-                              )}
-                            </div>
+                          <td className="px-4 py-3">
+                            <Chips items={c.tags} tone="tag" />
                           </td>
-                          <td className="py-3 px-4">
-                            <div className="flex flex-wrap gap-1">
-                              {c.tags?.length > 0 ? (
-                                c.tags.map((t: any) => (
-                                  <span
-                                    key={t.tagId || t.id}
-                                    className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700"
-                                  >
-                                    {t.tag?.name || t.name}
-                                  </span>
-                                ))
-                              ) : (
-                                <span className="text-[11px] text-slate-400">-</span>
-                              )}
-                            </div>
+                          <td className="px-4 py-3">
+                            <Badge variant={c.status === 'ACTIVE' ? 'success' : 'secondary'}>{c.status}</Badge>
                           </td>
-                          <td className="py-3 px-4">
-                            <span
-                              className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                                c.status === 'ACTIVE'
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : 'bg-slate-100 text-slate-600'
-                              }`}
-                            >
-                              {c.status}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-right">
+                          <td className="px-4 py-3 text-right">
                             <div className="flex items-center justify-end gap-1">
-                              <button
-                                onClick={() => router.push(`/inbox?contactId=${c.id}`)}
-                                className="p-1.5 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
-                                title="Direct 1-to-1 Chat"
-                              >
-                                <MessageSquare className="w-3.5 h-3.5" />
-                              </button>
-                              <button
+                              <Button variant="ghost" size="icon-sm" onClick={() => router.push(`/inbox?contactId=${c.id}`)} title="Direct chat">
+                                <MessageSquare className="text-primary" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
                                 onClick={() => {
                                   setEditingContact(c);
                                   setIsFormOpen(true);
                                 }}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
-                                title="Edit Contact"
+                                title="Edit contact"
                               >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteContact(c.id)}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-slate-100 transition-colors"
-                                title="Delete Contact"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                                <Edit2 />
+                              </Button>
+                              <Button variant="ghost" size="icon-sm" onClick={() => handleDeleteContact(c.id)} title="Delete contact">
+                                <Trash2 />
+                              </Button>
                             </div>
                           </td>
                         </tr>
@@ -859,114 +582,64 @@ export default function ContactsPage() {
                 </table>
               </div>
 
-              {/* Mobile Stacked Cards Stream */}
-              <div className="md:hidden divide-y divide-slate-100">
+              {/* Mobile */}
+              <div className="divide-y divide-border md:hidden">
                 {contacts.map((c) => {
                   const contactName = `${c.firstName || ''} ${c.lastName || ''}`.trim() || 'Customer';
                   const isSelected = selectedIds.includes(c.id);
-                  const stageObj = LEAD_STAGES.find((s) => s.id === c.leadStage) || LEAD_STAGES[0];
-
+                  const stage = getLeadStage(c.leadStage);
                   return (
-                    <div
-                      key={c.id}
-                      className={`p-3.5 space-y-2.5 transition-colors ${
-                        isSelected ? 'bg-emerald-50/60' : 'hover:bg-slate-50/60'
-                      }`}
-                    >
+                    <div key={c.id} className={cn('space-y-2.5 p-3.5 transition-colors', isSelected && 'bg-brand-subtle')}>
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <button
-                            type="button"
-                            onClick={() => toggleSelectRow(c.id)}
-                            className="text-slate-400 hover:text-emerald-600 shrink-0"
-                          >
-                            {isSelected ? (
-                              <CheckSquare className="w-4 h-4 text-emerald-600" />
-                            ) : (
-                              <Square className="w-4 h-4" />
-                            )}
-                          </button>
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <Checkbox checked={isSelected} onCheckedChange={() => toggleSelectRow(c.id)} aria-label={`Select ${contactName}`} />
                           <div className="min-w-0">
-                            <h4 className="font-bold text-slate-900 text-xs truncate">{contactName}</h4>
-                            <p className="text-[11px] font-mono text-slate-500">{c.phoneNumber}</p>
+                            <h4 className="truncate text-xs font-semibold text-foreground">{contactName}</h4>
+                            <p className="font-mono text-[0.6875rem] text-muted-foreground">{c.phoneNumber}</p>
                           </div>
                         </div>
-
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${stageObj.color}`}>
-                          {stageObj.label}
-                        </span>
+                        <StatusBadge tone={stage.tone} className="shrink-0">
+                          {stage.label}
+                        </StatusBadge>
                       </div>
 
-                      {/* Groups & Tags */}
-                      <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
-                        {c.groups?.map((g: any) => (
-                          <span
-                            key={g.groupId || g.id}
-                            className="px-2 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-700 border border-slate-200"
-                          >
-                            {g.group?.name || g.name}
-                          </span>
-                        ))}
-                        {c.tags?.map((t: any) => (
-                          <span
-                            key={t.tagId || t.id}
-                            className="px-2 py-0.5 rounded-full font-semibold bg-blue-50 text-blue-700"
-                          >
-                            {t.tag?.name || t.name}
-                          </span>
-                        ))}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Chips items={c.groups} tone="group" />
+                        <Chips items={c.tags} tone="tag" />
                       </div>
 
-                      {/* Mobile Row Action Bar */}
-                      <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                          c.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                        }`}>
-                          {c.status}
-                        </span>
-
+                      <div className="flex items-center justify-between border-t border-border pt-1">
+                        <Badge variant={c.status === 'ACTIVE' ? 'success' : 'secondary'}>{c.status}</Badge>
                         <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => router.push(`/inbox?contactId=${c.id}`)}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-semibold text-xs inline-flex items-center gap-1 shadow-2xs transition-all"
-                          >
-                            <MessageSquare className="w-3 h-3" />
-                            <span>Chat</span>
-                          </button>
-                          <button
+                          <Button variant="wa" size="sm" onClick={() => router.push(`/inbox?contactId=${c.id}`)}>
+                            <MessageSquare />
+                            Chat
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
                             onClick={() => {
                               setEditingContact(c);
                               setIsFormOpen(true);
                             }}
-                            className="p-1 text-slate-400 hover:text-slate-700 p-1"
                           >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteContact(c.id)}
-                            className="p-1 text-slate-400 hover:text-rose-600 p-1"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                            <Edit2 />
+                          </Button>
+                          <Button variant="ghost" size="icon-sm" onClick={() => handleDeleteContact(c.id)}>
+                            <Trash2 />
+                          </Button>
                         </div>
                       </div>
                     </div>
                   );
                 })}
               </div>
-            </div>
+            </>
           )}
         </div>
       )}
 
-      {/* Modals */}
-      <CsvImportModal
-        isOpen={isImportOpen}
-        onClose={() => setIsImportOpen(false)}
-        groups={groups}
-        tags={tags}
-        onImported={fetchContacts}
-      />
+      <CsvImportModal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} groups={groups} tags={tags} onImported={fetchContacts} />
       <GroupTagModal
         isOpen={isGroupTagOpen}
         onClose={() => setIsGroupTagOpen(false)}
