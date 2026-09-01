@@ -117,50 +117,55 @@
   }
 }
 
-/* Modern WhatsApp Design System Components */
+/*
+  Legacy component utilities — retinted onto tokens so the surfaces that still
+  use them (automations, settings, flows) get dark-mode support for free.
+  These shrink to zero as those surfaces finish migrating to <Button>/<Card>/
+  <Badge>; delete the block when nothing references them (Phase 4 grep gate).
+*/
 
 @utility btn-primary {
-  @apply h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-sm font-semibold inline-flex items-center justify-center gap-2 shadow-xs transition-all disabled:opacity-50 disabled:pointer-events-none;
+  @apply h-10 px-4 rounded-xl bg-primary hover:bg-primary/90 active:scale-[0.98] text-primary-foreground text-sm font-semibold inline-flex items-center justify-center gap-2 shadow-xs transition-all disabled:opacity-50 disabled:pointer-events-none;
 }
 
 @utility btn-secondary {
-  @apply h-10 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-800 text-sm font-medium inline-flex items-center justify-center gap-2 shadow-2xs transition-all disabled:opacity-50 disabled:pointer-events-none;
+  @apply h-10 px-4 rounded-xl border border-border bg-card hover:bg-accent active:scale-[0.98] text-foreground text-sm font-medium inline-flex items-center justify-center gap-2 shadow-2xs transition-all disabled:opacity-50 disabled:pointer-events-none;
 }
 
 @utility btn-ghost {
-  @apply h-9 px-3 rounded-lg text-slate-700 hover:bg-slate-100 active:scale-[0.98] text-sm font-medium inline-flex items-center justify-center gap-1.5 transition-all;
+  @apply h-9 px-3 rounded-lg text-foreground hover:bg-accent active:scale-[0.98] text-sm font-medium inline-flex items-center justify-center gap-1.5 transition-all;
 }
 
 @utility input-base {
-  @apply h-10 text-sm rounded-xl border border-slate-200 bg-white px-3.5 text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-hidden transition-all w-full;
+  @apply h-10 text-sm rounded-xl border border-input bg-transparent px-3.5 text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/30 focus:outline-hidden transition-all w-full;
 }
 
 @utility card-base {
-  @apply bg-white rounded-2xl border border-slate-200/80 shadow-xs;
+  @apply bg-card text-card-foreground rounded-2xl ring-1 ring-foreground/10;
 }
 
 @utility badge-emerald {
-  @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80;
+  @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[0.6875rem] font-semibold bg-brand-subtle text-brand-subtle-foreground;
 }
 
 @utility badge-sky {
-  @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200/80;
+  @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[0.6875rem] font-semibold bg-info-subtle text-info-subtle-foreground;
 }
 
 @utility badge-violet {
-  @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200/80;
+  @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[0.6875rem] font-semibold bg-accent text-accent-foreground;
 }
 
 @utility badge-slate {
-  @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200/80;
+  @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[0.6875rem] font-semibold bg-secondary text-secondary-foreground;
 }
 
 @utility badge-rose {
-  @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/80;
+  @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[0.6875rem] font-semibold bg-destructive/10 text-destructive;
 }
 
 @utility badge-amber {
-  @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/80;
+  @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[0.6875rem] font-semibold bg-warning-subtle text-warning-subtle-foreground;
 }
 
 @layer base {
