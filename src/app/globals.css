@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
 @import './tokens.css';
 
 /* Class-based dark mode — `dark:` variants + the token swap both key off
