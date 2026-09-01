@@ -72,7 +72,7 @@ export function ConversionFunnelChart({ funnel = [] }: ConversionFunnelProps) {
                     </span>
                     <div className="flex items-center gap-1">
                       <span>{step.name}</span>
-                      {tooltips[step.name] && <InfoTooltip content={tooltips[step.name]} size={12} />}
+                      {tooltips[step.name] && <InfoTooltip content={tooltips[step.name]} size="xs" />}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 font-mono">

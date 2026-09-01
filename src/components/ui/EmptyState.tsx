@@ -1,6 +1,8 @@
 import React from 'react';
-import { Inbox, BarChart3, Users, Send, Search, FileText, Bot } from 'lucide-react';
-import { clsx } from 'clsx';
+import { Inbox, BarChart3, Users, Send, Search, FileText } from 'lucide-react';
+
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 interface EmptyStateProps {
   icon?: React.ElementType;
@@ -31,65 +33,38 @@ export function EmptyState({
 
   return (
     <div
-      className={clsx(
+      className={cn(
         'flex flex-col items-center justify-center text-center',
-        isCompact ? 'py-8 px-4' : 'py-16 px-8',
+        isCompact ? 'px-4 py-8' : 'px-8 py-16',
         className
       )}
     >
       <div
-        className={clsx(
-          'rounded-2xl bg-slate-50 flex items-center justify-center mb-4',
-          isCompact ? 'w-10 h-10' : 'w-14 h-14'
+        className={cn(
+          'mb-4 flex items-center justify-center rounded-2xl bg-muted text-muted-foreground',
+          isCompact ? 'size-10' : 'size-14'
         )}
       >
-        <Icon className={clsx('text-slate-400', isCompact ? 'w-5 h-5' : 'w-7 h-7')} />
+        <Icon className={isCompact ? 'size-5' : 'size-7'} />
       </div>
 
-      <h3
-        className={clsx(
-          'font-bold text-slate-800',
-          isCompact ? 'text-xs' : 'text-sm'
-        )}
-      >
+      <h3 className={cn('font-semibold text-foreground', isCompact ? 'text-xs' : 'text-sm')}>
         {title}
       </h3>
 
       {description && (
-        <p
-          className={clsx(
-            'text-slate-400 mt-1 max-w-xs',
-            isCompact ? 'text-[10px]' : 'text-xs'
-          )}
-        >
-          {description}
-        </p>
+        <p className="mt-1 max-w-xs text-xs text-muted-foreground">{description}</p>
       )}
 
-      {(actionLabel && (onAction || actionHref)) && (
-        <>
-          {actionHref ? (
-            <a
-              href={actionHref}
-              className={clsx(
-                'mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm transition-all',
-                isCompact ? 'text-[10px] px-3 py-1.5' : 'text-xs'
-              )}
-            >
-              {actionLabel}
-            </a>
-          ) : (
-            <button
-              onClick={onAction}
-              className={clsx(
-                'mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm transition-all',
-                isCompact ? 'text-[10px] px-3 py-1.5' : 'text-xs'
-              )}
-            >
-              {actionLabel}
-            </button>
-          )}
-        </>
+      {actionLabel && (onAction || actionHref) && (
+        <Button
+          size="sm"
+          className="mt-4"
+          render={actionHref ? <a href={actionHref} /> : undefined}
+          onClick={onAction}
+        >
+          {actionLabel}
+        </Button>
       )}
     </div>
   );

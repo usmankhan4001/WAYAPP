@@ -1,3 +1,4 @@
+import * as React from "react"
 import { mergeProps } from "@base-ui/react/merge-props"
 import { useRender } from "@base-ui/react/use-render"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -19,6 +20,12 @@ const badgeVariants = cva(
         ghost:
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",
+        // semantic status tones (subtle fill + readable text)
+        brand: "bg-brand-subtle text-brand-subtle-foreground",
+        success: "bg-success-subtle text-success-subtle-foreground",
+        warning: "bg-warning-subtle text-warning-subtle-foreground",
+        info: "bg-info-subtle text-info-subtle-foreground",
+        accent: "bg-accent text-accent-foreground",
       },
     },
     defaultVariants: {
@@ -26,6 +33,28 @@ const badgeVariants = cva(
     },
   }
 )
+
+const STATUS_TONE: Record<string, VariantProps<typeof badgeVariants>["variant"]> = {
+  brand: "brand",
+  success: "success",
+  warning: "warning",
+  info: "info",
+  accent: "accent",
+  destructive: "destructive",
+  neutral: "secondary",
+};
+
+/**
+ * Badge whose colour is driven by a semantic status/tone string. Replaces the
+ * ad-hoc `bg-*-100 text-*-800` colour strings scattered through the CRM.
+ */
+function StatusBadge({
+  tone,
+  className,
+  ...props
+}: Omit<React.ComponentProps<typeof Badge>, "variant"> & { tone: string }) {
+  return <Badge variant={STATUS_TONE[tone] ?? "secondary"} className={className} {...props} />;
+}
 
 function Badge({
   className,
@@ -49,4 +78,4 @@ function Badge({
   })
 }
 
-export { Badge, badgeVariants }
+export { Badge, StatusBadge, badgeVariants }

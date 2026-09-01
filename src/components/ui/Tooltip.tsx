@@ -1,77 +1,93 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { HelpCircle } from 'lucide-react';
+import * as React from "react";
+import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip";
+import { HelpCircle } from "lucide-react";
 
-interface TooltipProps {
-  content: string;
-  children?: React.ReactNode;
-  position?: 'top' | 'bottom' | 'left' | 'right';
-  className?: string;
+import { cn } from "@/lib/utils";
+
+type Side = "top" | "bottom" | "left" | "right";
+
+export function TooltipProvider({
+  delay = 200,
+  children,
+}: {
+  delay?: number;
+  children: React.ReactNode;
+}) {
+  return <TooltipPrimitive.Provider delay={delay}>{children}</TooltipPrimitive.Provider>;
 }
 
-export function Tooltip({
-  content,
+/** Base UI tooltip re-exports for advanced composition. */
+export const TooltipRoot = TooltipPrimitive.Root;
+export const TooltipTrigger = TooltipPrimitive.Trigger;
+
+export function TooltipContent({
+  className,
+  side = "top",
+  sideOffset = 6,
   children,
-  position = 'top',
-  className = '',
-}: TooltipProps) {
-  const [isVisible, setIsVisible] = useState(false);
-
-  if (!content) return <>{children}</>;
-
-  const getPositionClasses = () => {
-    switch (position) {
-      case 'bottom':
-        return 'top-full left-1/2 -translate-x-1/2 mt-1.5';
-      case 'left':
-        return 'right-full top-1/2 -translate-y-1/2 mr-1.5';
-      case 'right':
-        return 'left-full top-1/2 -translate-y-1/2 ml-1.5';
-      case 'top':
-      default:
-        return 'bottom-full left-1/2 -translate-x-1/2 mb-1.5';
-    }
-  };
-
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Popup> & { side?: Side; sideOffset?: number }) {
   return (
-    <div
-      className={`relative inline-flex items-center ${className}`}
-      onMouseEnter={() => setIsVisible(true)}
-      onMouseLeave={() => setIsVisible(false)}
-      onFocus={() => setIsVisible(true)}
-      onBlur={() => setIsVisible(false)}
-    >
-      {children}
-
-      {isVisible && (
-        <div
-          role="tooltip"
-          className={`absolute z-50 px-2 py-1 text-[11px] font-normal leading-normal text-slate-100 bg-slate-900 rounded-md shadow-md whitespace-normal max-w-xs w-max pointer-events-none transition-opacity duration-150 animate-in fade-in-0 zoom-in-95 ${getPositionClasses()}`}
+    <TooltipPrimitive.Portal>
+      <TooltipPrimitive.Positioner side={side} sideOffset={sideOffset}>
+        <TooltipPrimitive.Popup
+          className={cn(
+            "z-50 w-max max-w-xs rounded-md bg-foreground px-2 py-1 text-xs leading-snug text-background shadow-md",
+            "origin-[var(--transform-origin)] transition-[transform,opacity] data-[starting-style]:opacity-0 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[ending-style]:scale-95",
+            className
+          )}
+          {...props}
         >
-          {content}
-        </div>
-      )}
-    </div>
+          {children}
+        </TooltipPrimitive.Popup>
+      </TooltipPrimitive.Positioner>
+    </TooltipPrimitive.Portal>
   );
 }
 
+export interface TooltipProps {
+  content: React.ReactNode;
+  children?: React.ReactNode;
+  position?: Side;
+  className?: string;
+}
+
 /**
- * Minimal, subtle info help icon with attached tooltip
+ * Back-compat wrapper: `<Tooltip content="…" position="top">{trigger}</Tooltip>`.
+ * Now a real Base UI tooltip (portal, focus/hover, dismissal, a11y).
  */
+export function Tooltip({ content, children, position = "top", className }: TooltipProps) {
+  if (!content) return <>{children}</>;
+  return (
+    <TooltipPrimitive.Root>
+      <TooltipPrimitive.Trigger
+        render={<span className={cn("inline-flex items-center", className)} />}
+      >
+        {children}
+      </TooltipPrimitive.Trigger>
+      <TooltipContent side={position}>{content}</TooltipContent>
+    </TooltipPrimitive.Root>
+  );
+}
+
+/** Subtle "?" help icon with an attached tooltip. */
 export function InfoTooltip({
   content,
-  size = 13,
-  position = 'top',
+  size = "sm",
+  position = "top",
 }: {
-  content: string;
-  size?: number;
-  position?: 'top' | 'bottom' | 'left' | 'right';
+  content: React.ReactNode;
+  /** icon size token */
+  size?: "xs" | "sm" | "md";
+  position?: Side;
 }) {
+  const iconSize = size === "xs" ? "size-3" : size === "md" ? "size-4" : "size-3.5";
   return (
     <Tooltip content={content} position={position}>
-      <span className="text-slate-400 hover:text-slate-600 transition-colors cursor-help inline-flex items-center p-0.5">
-        <HelpCircle style={{ width: size, height: size }} />
+      <span className="inline-flex cursor-help items-center p-0.5 text-muted-foreground transition-colors hover:text-foreground">
+        <HelpCircle className={iconSize} />
       </span>
     </Tooltip>
   );
