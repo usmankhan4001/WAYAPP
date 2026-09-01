@@ -150,6 +150,7 @@ model Contact {
   flowRuns             FlowRun[]
   suppressions         ContactSuppression[]
   conversionEvents     ConversionEvent[]
+  conversationSessions ConversationSession[] // Legacy — see model comment below
 
   @@index([status])
   @@index([phoneNumber])
@@ -597,5 +598,47 @@ model CannedSnippet {
   updatedAt   DateTime @updatedAt
 
   @@index([shortcut])
+}
+
+// -------------------------------------------------------------
+// LEGACY — STATEFUL CONVERSATION FLOW ENGINE (REMOVED FROM APP)
+// -------------------------------------------------------------
+// The code that used these models was removed and consolidated into the
+// Visual Flow Builder (Flow/FlowRun/FlowLog models above). These two
+// models are kept ONLY so `prisma db push` never treats existing rows on
+// already-deployed instances as a destructive drop — do not remove them
+// without first confirming (via `SELECT count(*)`) that both tables are
+// empty on every deployed environment, or explicitly backing up and
+// accepting the data loss.
+model ConversationFlow {
+  id          String                @id @default(cuid())
+  name        String
+  slug        String                @unique
+  description String?
+  definition  String                // JSON Flow Definition
+  isActive    Boolean               @default(true)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  sessions    ConversationSession[]
+}
+
+model ConversationSession {
+  id          String            @id @default(cuid())
+  contactId   String
+  flowId      String
+  currentStep String
+  status      String            @default("ACTIVE") // ACTIVE, COMPLETED, ABANDONED, HANDED_OFF, CANCELLED
+  dataJson    String            @default("{}")
+  startedAt   DateTime          @default(now())
+  completedAt DateTime?
+  updatedAt   DateTime          @updatedAt
+
+  contact     Contact           @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  flow        ConversationFlow  @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  @@index([contactId, status])
+  @@index([flowId, currentStep])
+  @@index([status])
 }
 
