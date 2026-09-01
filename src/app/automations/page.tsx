@@ -24,6 +24,8 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useConfirm } from '@/lib/hooks/use-confirm';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
 
 export default function AutomationsPage() {
   const confirm = useConfirm();
@@ -519,19 +521,22 @@ export default function AutomationsPage() {
       </div>
 
       {/* Create / Edit Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-card rounded-2xl shadow-2xl border border-border max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-border">
-              <h3 className="text-sm font-bold text-foreground">
-                {editingId ? 'Edit Automation Rule' : 'Create New Automation Rule'}
-              </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-muted-foreground hover:text-foreground" aria-label="Close">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveAutomation} className="space-y-4">
+      <Modal
+        open={isModalOpen}
+        onOpenChange={(o) => !o && setIsModalOpen(false)}
+        title={editingId ? 'Edit automation rule' : 'Create new automation rule'}
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" form="automation-form" disabled={isSaving}>
+              {isSaving ? 'Saving…' : 'Save automation'}
+            </Button>
+          </>
+        }
+      >
+        <form id="automation-form" onSubmit={handleSaveAutomation} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">Rule Name *</label>
                 <input
@@ -683,26 +688,8 @@ export default function AutomationsPage() {
                 )}
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="btn-secondary text-xs"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="btn-primary text-xs"
-                >
-                  {isSaving ? 'Saving...' : 'Save Automation'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        </form>
+      </Modal>
     </div>
   );
 }

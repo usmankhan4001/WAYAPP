@@ -16,6 +16,8 @@ import {
 import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useConfirm } from '@/lib/hooks/use-confirm';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
 
 export default function KnowledgeBasePage() {
   const confirm = useConfirm();
@@ -225,35 +227,34 @@ export default function KnowledgeBasePage() {
       )}
 
       {/* Generate Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-foreground">AI Knowledge Base Generator</h3>
-                  <p className="text-xs text-muted-foreground">Paste unorganized notes and AI will build a structured FAQ</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="text-muted-foreground hover:text-foreground"
-                aria-label="Close"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {errorMsg && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
-                {errorMsg}
-              </div>
-            )}
-
-            <form onSubmit={handleGenerateAndSave} className="space-y-3.5">
+      <Modal
+        open={showCreateModal}
+        onOpenChange={(o) => !o && setShowCreateModal(false)}
+        title={
+          <span className="inline-flex items-center gap-2">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+              <Sparkles className="size-4" />
+            </span>
+            AI knowledge base generator
+          </span>
+        }
+        description="Paste unorganized notes and AI will build a structured FAQ"
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" form="kb-form" disabled={generating || !name.trim() || !rawNotes.trim()}>
+              <Sparkles />
+              {generating ? 'Structuring…' : 'Generate & save'}
+            </Button>
+          </>
+        }
+      >
+        {errorMsg && (
+          <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">{errorMsg}</div>
+        )}
+        <form id="kb-form" onSubmit={handleGenerateAndSave} className="space-y-3.5">
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1.5">Knowledge Base Title</label>
                 <input
@@ -306,56 +307,30 @@ export default function KnowledgeBasePage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="btn-secondary text-xs"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={generating || !name.trim() || !rawNotes.trim()}
-                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-xs font-bold text-white disabled:opacity-50 flex items-center gap-1.5 shadow-sm"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>{generating ? 'Structuring Knowledge...' : 'Generate & Save'}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        </form>
+      </Modal>
 
       {/* View Content Modal */}
-      {viewingKb && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-3xl p-6 max-w-2xl w-full shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center">
-                  <BookOpen className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-foreground">{viewingKb.name}</h3>
-                  <p className="text-xs text-muted-foreground">{viewingKb.sourceType} &bull; used by bots that select it</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setViewingKb(null)}
-                className="text-muted-foreground hover:text-foreground"
-                aria-label="Close"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="overflow-y-auto flex-1 text-xs text-foreground bg-muted p-4 rounded-xl border border-border whitespace-pre-wrap font-mono">
-              {viewingKb.contentMarkdown}
-            </div>
+      <Modal
+        open={!!viewingKb}
+        onOpenChange={(o) => !o && setViewingKb(null)}
+        size="xl"
+        title={
+          <span className="inline-flex items-center gap-2">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+              <BookOpen className="size-4" />
+            </span>
+            {viewingKb?.name}
+          </span>
+        }
+        description={viewingKb ? `${viewingKb.sourceType} · used by bots that select it` : undefined}
+      >
+        {viewingKb && (
+          <div className="whitespace-pre-wrap rounded-lg border border-border bg-muted p-4 font-mono text-xs text-foreground">
+            {viewingKb.contentMarkdown}
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }

@@ -37,6 +37,9 @@ import { MetaBillingSection } from '@/components/settings/MetaBillingSection';
 import { Skeleton, SkeletonTableRow } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useConfirm } from '@/lib/hooks/use-confirm';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 const MODULE_ICONS: Record<string, any> = {
   Sparkles,
@@ -1332,53 +1335,42 @@ export default function SettingsPage() {
       <MetaSetupGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
 
       {/* 2FA Phone Registration Modal */}
-      {isPinModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-card rounded-2xl shadow-2xl border border-border max-w-sm w-full p-6 space-y-4">
-            <div>
-              <h3 className="text-sm font-normal text-foreground">1-Click Phone Number 2FA Registration</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                Register your business phone number ID directly on the Meta Cloud API gateway with a 6-digit PIN.
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-normal text-foreground mb-1">
-                6-Digit 2FA PIN
-              </label>
-              <input
-                type="text"
-                maxLength={6}
-                value={pinInput}
-                onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
-                placeholder="123456"
-                className="w-full px-3 py-2 text-sm text-center font-mono font-normal tracking-widest rounded-full border border-input focus:outline-hidden focus:ring-2 focus:ring-ring"
-              />
-              <p className="text-[10px] text-muted-foreground mt-1">
-                Choose any 6-digit PIN to secure your WhatsApp Cloud number.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
-              <button
-                type="button"
-                onClick={() => setIsPinModalOpen(false)}
-                className="px-3.5 py-1.5 rounded-full border border-input text-foreground text-xs font-normal hover:bg-black/5"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleRegisterPhone}
-                disabled={isRegistering || pinInput.length !== 6}
-                className="px-4 py-1.5 rounded-full bg-whatsapp-green hover:bg-primary/90 text-white text-xs font-normal disabled:opacity-50"
-              >
-                {isRegistering ? 'Registering...' : 'Register PIN'}
-              </button>
-            </div>
-          </div>
+      <Modal
+        open={isPinModalOpen}
+        onOpenChange={(o) => !o && setIsPinModalOpen(false)}
+        size="sm"
+        title="Phone number 2FA registration"
+        description="Register your business phone number ID on the Meta Cloud API gateway with a 6-digit PIN."
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setIsPinModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="wa"
+              onClick={handleRegisterPhone}
+              disabled={isRegistering || pinInput.length !== 6}
+            >
+              {isRegistering ? 'Registering…' : 'Register PIN'}
+            </Button>
+          </>
+        }
+      >
+        <div>
+          <label className="mb-1 block text-xs font-medium text-foreground">6-digit 2FA PIN</label>
+          <Input
+            maxLength={6}
+            value={pinInput}
+            onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
+            placeholder="123456"
+            className="text-center font-mono tracking-widest"
+          />
+          <p className="mt-1 text-[0.625rem] text-muted-foreground">
+            Choose any 6-digit PIN to secure your WhatsApp Cloud number.
+          </p>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useConfirm } from '@/lib/hooks/use-confirm';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/EmptyState';
 
 export default function BotsManagementPage() {
@@ -391,32 +393,42 @@ export default function BotsManagementPage() {
       )}
 
       {/* Create Bot Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-brand-subtle border border-transparent text-primary flex items-center justify-center">
-                  <Bot className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-foreground">{editingId ? 'Edit WhatsApp Bot' : 'Create WhatsApp Bot'}</h3>
-                  <p className="text-xs text-muted-foreground">Configure triggers, AI personality, and Knowledge Base</p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setShowCreateModal(false);
-                  resetForm();
-                }}
-                className="text-muted-foreground hover:text-foreground"
-                aria-label="Close"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateBot} className="space-y-4">
+      <Modal
+        open={showCreateModal}
+        onOpenChange={(o) => {
+          if (!o) {
+            setShowCreateModal(false);
+            resetForm();
+          }
+        }}
+        title={
+          <span className="inline-flex items-center gap-2">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-brand-subtle text-primary">
+              <Bot className="size-4" />
+            </span>
+            {editingId ? 'Edit WhatsApp bot' : 'Create WhatsApp bot'}
+          </span>
+        }
+        description="Configure triggers, AI personality and knowledge base"
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowCreateModal(false);
+                resetForm();
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" form="bot-form" disabled={saving || !name.trim()}>
+              {saving ? (editingId ? 'Saving…' : 'Creating…') : editingId ? 'Save changes' : 'Deploy bot'}
+            </Button>
+          </>
+        }
+      >
+        <form id="bot-form" onSubmit={handleCreateBot} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1.5">Bot Name</label>
                 <input
@@ -544,53 +556,26 @@ export default function BotsManagementPage() {
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateModal(false);
-                    resetForm();
-                  }}
-                  className="btn-secondary text-xs"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving || !name.trim()}
-                  className="btn-primary text-xs"
-                >
-                  {saving ? (editingId ? 'Saving...' : 'Creating...') : editingId ? 'Save Changes' : 'Deploy Bot'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        </form>
+      </Modal>
 
       {/* Test Bot Panel */}
-      {testingBot && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center">
-                  <FlaskConical className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-foreground">Test &ldquo;{testingBot.name}&rdquo;</h3>
-                  <p className="text-xs text-muted-foreground">Simulates a reply without sending a real WhatsApp message</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setTestingBot(null)}
-                className="text-muted-foreground hover:text-foreground"
-                aria-label="Close"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
+      <Modal
+        open={!!testingBot}
+        onOpenChange={(o) => !o && setTestingBot(null)}
+        size="sm"
+        title={
+          <span className="inline-flex items-center gap-2">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+              <FlaskConical className="size-4" />
+            </span>
+            Test “{testingBot?.name}”
+          </span>
+        }
+        description="Simulates a reply without sending a real WhatsApp message"
+      >
+        {testingBot && (
+          <>
             <form onSubmit={handleRunTest} className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1.5">Test Message (as if from a customer)</label>
@@ -646,9 +631,9 @@ export default function BotsManagementPage() {
                 )}
               </div>
             )}
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </div>
   );
 }

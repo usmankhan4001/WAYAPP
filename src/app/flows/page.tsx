@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
 
 export default function FlowsPage() {
   const router = useRouter();
@@ -227,29 +229,31 @@ export default function FlowsPage() {
       )}
 
       {/* Create Flow Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-brand-subtle border border-transparent text-primary flex items-center justify-center">
-                  <GitMerge className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-foreground">Create Visual Flow</h3>
-                  <p className="text-xs text-muted-foreground">Initialize a new chatbot canvas</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="text-muted-foreground hover:text-foreground"
-                aria-label="Close"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateFlow} className="space-y-3.5">
+      <Modal
+        open={showCreateModal}
+        onOpenChange={(o) => !o && setShowCreateModal(false)}
+        size="sm"
+        title={
+          <span className="inline-flex items-center gap-2">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-brand-subtle text-primary">
+              <GitMerge className="size-4" />
+            </span>
+            Create visual flow
+          </span>
+        }
+        description="Initialize a new chatbot canvas"
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" form="flow-form" disabled={creating || !newFlowName.trim()}>
+              {creating ? 'Creating…' : 'Open canvas'}
+            </Button>
+          </>
+        }
+      >
+        <form id="flow-form" onSubmit={handleCreateFlow} className="space-y-3.5">
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1.5">Flow Name</label>
                 <input
@@ -273,26 +277,8 @@ export default function FlowsPage() {
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="btn-secondary text-xs"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={creating || !newFlowName.trim()}
-                  className="btn-primary text-xs"
-                >
-                  {creating ? 'Creating...' : 'Open Canvas'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        </form>
+      </Modal>
     </div>
   );
 }
