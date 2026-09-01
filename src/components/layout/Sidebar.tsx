@@ -59,7 +59,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
             <span className="block truncate text-sm font-semibold tracking-tight text-foreground">
               WAY<span className="text-primary">APP</span>
             </span>
-            <span className="block truncate text-[0.6875rem] font-medium text-muted-foreground">WhatsApp Platform</span>
+            <span className="block truncate text-2xs font-medium text-muted-foreground">WhatsApp Platform</span>
           </span>
         </Link>
         {onNavigate && (
@@ -75,7 +75,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
 
       {/* Nav */}
       <nav className="flex-1 space-y-1 overflow-y-auto px-2.5 py-3">
-        <p className="px-2 pb-1.5 text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
+        <p className="px-2 pb-1.5 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
           Navigation
         </p>
         {navItems.map((item) => {
@@ -99,7 +99,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
                 <span>{item.label}</span>
               </span>
               {item.badge === 'unread' && unreadCount > 0 ? (
-                <span className="rounded-full bg-primary px-1.5 text-[0.625rem] font-semibold text-primary-foreground">
+                <span className="rounded-full bg-primary px-1.5 text-2xs font-semibold text-primary-foreground">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               ) : active ? (
@@ -131,7 +131,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
               </span>
               <span className="min-w-0">
                 <span className="block truncate text-xs font-semibold text-foreground">{user.name || user.email}</span>
-                <span className="block text-[0.625rem] font-semibold uppercase tracking-wider text-primary">
+                <span className="block text-2xs font-semibold uppercase tracking-wider text-primary">
                   {ROLE_LABEL[user.role ?? ''] ?? 'Viewer'}
                 </span>
               </span>

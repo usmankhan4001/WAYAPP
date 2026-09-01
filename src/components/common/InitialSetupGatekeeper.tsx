@@ -277,7 +277,7 @@ export function InitialSetupGatekeeper({ onActivationSuccess }: InitialSetupGate
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-2xs text-muted-foreground">
                     Log in to developers.facebook.com, select or create your App (type: Business), and add the WhatsApp product.
                   </p>
                 </div>
@@ -287,7 +287,7 @@ export function InitialSetupGatekeeper({ onActivationSuccess }: InitialSetupGate
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="text-xs font-semibold text-foreground">Phone Number ID</label>
-                      <span className="text-[10px] text-muted-foreground">Found in WhatsApp &gt; API Setup</span>
+                      <span className="text-2xs text-muted-foreground">Found in WhatsApp &gt; API Setup</span>
                     </div>
                     <input
                       type="text"
@@ -301,7 +301,7 @@ export function InitialSetupGatekeeper({ onActivationSuccess }: InitialSetupGate
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="text-xs font-semibold text-foreground">WhatsApp Business Account ID (WABA ID)</label>
-                      <span className="text-[10px] text-muted-foreground">Found in WhatsApp &gt; API Setup</span>
+                      <span className="text-2xs text-muted-foreground">Found in WhatsApp &gt; API Setup</span>
                     </div>
                     <input
                       type="text"
@@ -318,7 +318,7 @@ export function InitialSetupGatekeeper({ onActivationSuccess }: InitialSetupGate
                       <button
                         type="button"
                         onClick={() => setIsGuideOpen(true)}
-                        className="text-[10px] text-primary font-semibold hover:underline flex items-center gap-1"
+                        className="text-2xs text-primary font-semibold hover:underline flex items-center gap-1"
                       >
                         <HelpCircle className="w-3 h-3" />
                         <span>Where to get token?</span>
@@ -389,7 +389,7 @@ export function InitialSetupGatekeeper({ onActivationSuccess }: InitialSetupGate
                   </svg>
                   <span>Continue with Facebook</span>
                 </button>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-2xs text-muted-foreground">
                   Meta will guide you to select your Business Manager and WhatsApp phone number.
                 </p>
               </div>
@@ -426,7 +426,7 @@ export function InitialSetupGatekeeper({ onActivationSuccess }: InitialSetupGate
             <BookOpen className="w-3.5 h-3.5" />
             <span>Open Complete Setup Guide</span>
           </button>
-          <span className="text-[11px] text-muted-foreground font-mono">Meta Graph v21.0</span>
+          <span className="text-2xs text-muted-foreground font-mono">Meta Graph v21.0</span>
         </div>
       </div>
 

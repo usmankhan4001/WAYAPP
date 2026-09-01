@@ -325,7 +325,7 @@ export default function BotsManagementPage() {
                       </div>
                       <div>
                         <h4 className="text-sm font-bold text-foreground">{bot.name}</h4>
-                        <span className="text-[10px] text-muted-foreground font-semibold uppercase">{bot.kind} BOT</span>
+                        <span className="text-2xs text-muted-foreground font-semibold uppercase">{bot.kind} BOT</span>
                       </div>
                     </div>
 
@@ -370,14 +370,14 @@ export default function BotsManagementPage() {
                   </p>
 
                   {bot.knowledgeBase && (
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 border border-purple-200 text-purple-700 text-[11px]">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 border border-purple-200 text-purple-700 text-2xs">
                       <Brain className="w-3.5 h-3.5" />
                       <span>KB: {bot.knowledgeBase.name}</span>
                     </div>
                   )}
                 </div>
 
-                <div className="pt-3 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
+                <div className="pt-3 border-t border-border flex items-center justify-between text-2xs text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Zap className="w-3 h-3 text-primary" />
                     {bot.executionCount || 0} runs
@@ -465,7 +465,7 @@ export default function BotsManagementPage() {
                 <div className="space-y-3.5 p-4 rounded-2xl bg-purple-50/60 border border-purple-200">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[11px] font-semibold text-purple-700 mb-1">AI Provider</label>
+                      <label className="block text-2xs font-semibold text-purple-700 mb-1">AI Provider</label>
                       <select
                         value={aiProvider}
                         onChange={(e) => setAiProvider(e.target.value)}
@@ -479,7 +479,7 @@ export default function BotsManagementPage() {
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-semibold text-purple-700 mb-1">Attach Knowledge Base</label>
+                      <label className="block text-2xs font-semibold text-purple-700 mb-1">Attach Knowledge Base</label>
                       <select
                         value={selectedKbId}
                         onChange={(e) => setSelectedKbId(e.target.value)}
@@ -496,7 +496,7 @@ export default function BotsManagementPage() {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-purple-700 mb-1">API Key (Encrypted at rest)</label>
+                    <label className="block text-2xs font-semibold text-purple-700 mb-1">API Key (Encrypted at rest)</label>
                     <input
                       type="password"
                       placeholder="Paste provider API key (or leave empty to use server ENV)"
@@ -507,7 +507,7 @@ export default function BotsManagementPage() {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-purple-700 mb-1">System Instructions</label>
+                    <label className="block text-2xs font-semibold text-purple-700 mb-1">System Instructions</label>
                     <textarea
                       rows={3}
                       value={systemPrompt}
@@ -617,15 +617,15 @@ export default function BotsManagementPage() {
                   </div>
                 ) : (
                   <div className="p-3 rounded-xl bg-brand-subtle border border-transparent space-y-1.5">
-                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider">Bot Would Reply</span>
+                    <span className="text-2xs font-bold text-primary uppercase tracking-wider">Bot Would Reply</span>
                     <p className="text-xs text-foreground whitespace-pre-wrap">{testResult.reply || '(no reply text)'}</p>
                     {testResult.usedKnowledgeBase && (
-                      <span className="inline-flex items-center gap-1 text-[10px] text-purple-700 font-semibold">
+                      <span className="inline-flex items-center gap-1 text-2xs text-purple-700 font-semibold">
                         <Brain className="w-3 h-3" /> Used Knowledge Base context
                       </span>
                     )}
                     {testResult.note && (
-                      <p className="text-[10px] text-amber-700">{testResult.note}</p>
+                      <p className="text-2xs text-amber-700">{testResult.note}</p>
                     )}
                   </div>
                 )}

@@ -181,7 +181,7 @@ export default function TemplatesPage() {
                         <AlertCircle className="size-3.5" />
                         <span>Meta rejection reason:</span>
                       </div>
-                      <p className="text-[0.6875rem]">
+                      <p className="text-2xs">
                         {tpl.rejectedReason || 'Template violated WhatsApp Business Policy or missing realistic sample values.'}
                       </p>
                       <span
@@ -191,7 +191,7 @@ export default function TemplatesPage() {
                           e.stopPropagation();
                           setIsCreateOpen(true);
                         }}
-                        className="mt-1 inline-flex cursor-pointer items-center gap-1 text-[0.6875rem] font-semibold underline"
+                        className="mt-1 inline-flex cursor-pointer items-center gap-1 text-2xs font-semibold underline"
                       >
                         <Edit3 className="size-3" />
                         Fix &amp; resubmit
@@ -199,8 +199,8 @@ export default function TemplatesPage() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between border-t border-border pt-2 text-[0.6875rem]">
-                    <div className="flex items-center gap-2 text-[0.625rem] font-semibold uppercase text-muted-foreground">
+                  <div className="flex items-center justify-between border-t border-border pt-2 text-2xs">
+                    <div className="flex items-center gap-2 text-2xs font-semibold uppercase text-muted-foreground">
                       <span>{tpl.category}</span>
                       <span>·</span>
                       <span>{tpl.language}</span>

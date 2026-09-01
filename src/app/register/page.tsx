@@ -83,7 +83,7 @@ function RegisterForm() {
         <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5">
           <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center gap-2.5">
             <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
-            <p className="text-[11px] text-slate-300">
+            <p className="text-2xs text-slate-300">
               The first registered account is granted <strong className="text-white">Super Administrator</strong> privileges.
             </p>
           </div>

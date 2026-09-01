@@ -115,7 +115,7 @@ export function AudioVoicePlayer({ src, isOutbound = false }: AudioVoicePlayerPr
           />
         </div>
 
-        <div className="flex items-center justify-between text-[10px] font-mono opacity-80">
+        <div className="flex items-center justify-between text-2xs font-mono opacity-80">
           <span>{formatTime(currentTime)}</span>
           <span>{formatTime(duration)}</span>
         </div>
@@ -125,7 +125,7 @@ export function AudioVoicePlayer({ src, isOutbound = false }: AudioVoicePlayerPr
       <button
         type="button"
         onClick={toggleSpeed}
-        className={`px-1.5 py-0.5 rounded text-[10px] font-normal shrink-0 transition-all ${
+        className={`px-1.5 py-0.5 rounded text-2xs font-normal shrink-0 transition-all ${
           isOutbound
             ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
             : 'bg-muted hover:bg-accent text-foreground'

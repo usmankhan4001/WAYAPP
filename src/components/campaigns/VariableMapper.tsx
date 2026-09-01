@@ -42,7 +42,7 @@ export function VariableMapper({
           <label className="block text-xs font-bold text-foreground">
             Header Image URL <span className="text-destructive">*</span>
           </label>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-2xs text-muted-foreground">
             Provide a direct public image link (JPEG/PNG) to attach to the top of this template message.
           </p>
           <input
@@ -77,7 +77,7 @@ export function VariableMapper({
                       Placeholder {"{{" + varIdx + "}}"}
                     </span>
                     {exampleSample && (
-                      <span className="text-[10px] text-muted-foreground">Sample: &ldquo;{exampleSample}&rdquo;</span>
+                      <span className="text-2xs text-muted-foreground">Sample: &ldquo;{exampleSample}&rdquo;</span>
                     )}
                   </div>
 

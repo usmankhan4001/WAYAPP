@@ -17,6 +17,11 @@
 @theme inline {
   --font-sans: Inter, system-ui, sans-serif;
 
+  /* smallest sanctioned UI text — badges, metadata, timestamps. Kills the
+     arbitrary text-[9px]/[10px]/[11px] scattered across the app. */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

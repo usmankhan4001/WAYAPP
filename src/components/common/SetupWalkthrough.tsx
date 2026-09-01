@@ -70,7 +70,7 @@ export function SetupWalkthrough({
           </div>
           <div>
             <h3 className="text-xs font-semibold text-foreground">Getting started checklist</h3>
-            <p className="text-[0.6875rem] text-muted-foreground">
+            <p className="text-2xs text-muted-foreground">
               {completedCount} of {steps.length} setup steps completed
             </p>
           </div>
@@ -98,7 +98,7 @@ export function SetupWalkthrough({
           >
             <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <span className="font-mono text-[0.625rem] text-muted-foreground">Step 0{step.id}</span>
+                <span className="font-mono text-2xs text-muted-foreground">Step 0{step.id}</span>
                 {step.done ? (
                   <CheckCircle2 className="size-3.5 text-primary" />
                 ) : (
@@ -109,7 +109,7 @@ export function SetupWalkthrough({
                 {step.title}
               </h4>
             </div>
-            <span className="mt-2 line-clamp-1 block text-[0.625rem] text-muted-foreground">{step.desc}</span>
+            <span className="mt-2 line-clamp-1 block text-2xs text-muted-foreground">{step.desc}</span>
           </Link>
         ))}
       </div>

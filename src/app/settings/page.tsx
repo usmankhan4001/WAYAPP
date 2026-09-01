@@ -469,7 +469,7 @@ export default function SettingsPage() {
         >
           <Layers className="w-3.5 h-3.5 text-primary" />
           <span>App Marketplace & Modules</span>
-          <span className="px-1.5 py-0.2 rounded-full bg-black/10 text-[#1c1e21] text-[10px] font-normal">
+          <span className="px-1.5 py-0.2 rounded-full bg-black/10 text-[#1c1e21] text-2xs font-normal">
             {modules.filter((m) => m.isEnabled).length}/{modules.length} ON
           </span>
         </button>
@@ -531,14 +531,14 @@ export default function SettingsPage() {
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                <span className="text-[10px] font-normal text-muted-foreground uppercase tracking-wider">
+                <span className="text-2xs font-normal text-muted-foreground uppercase tracking-wider">
                   Direct Gateway Connection Status
                 </span>
               </div>
               <h3 className="text-xs font-normal text-white">
                 {settings.isMockMode ? 'Virtual Simulator Active' : 'Meta Cloud API v21.0 Live & Activated'}
               </h3>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-2xs text-muted-foreground">
                 {settings.isMockMode
                   ? 'Local virtual simulator mode is active.'
                   : 'Direct first-party connection to Meta Graph API v21.0 with 0% markup and zero proxy hops.'}
@@ -650,25 +650,25 @@ export default function SettingsPage() {
                 {testDetails?.phoneDetails && (
                   <div className="p-3 rounded-xl bg-black/5 border border-border grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
                     <div>
-                      <span className="text-[10px] text-muted-foreground uppercase font-normal">Display Phone</span>
+                      <span className="text-2xs text-muted-foreground uppercase font-normal">Display Phone</span>
                       <p className="font-normal font-mono text-foreground">{testDetails.phoneDetails.display_phone_number || 'N/A'}</p>
                     </div>
                     <div>
-                      <span className="text-[10px] text-muted-foreground uppercase font-normal">Display Name</span>
+                      <span className="text-2xs text-muted-foreground uppercase font-normal">Display Name</span>
                       <p className={`font-normal ${testDetails.phoneDetails.name_status === 'APPROVED' ? 'text-[#1c1e21]' : 'text-amber-700'}`}>
                         {testDetails.phoneDetails.name_status || (testDetails.phoneDetails.verified_name ? 'APPROVED' : 'PENDING')}
                       </p>
                     </div>
                     <div>
-                      <span className="text-[10px] text-muted-foreground uppercase font-normal">Quality Rating</span>
+                      <span className="text-2xs text-muted-foreground uppercase font-normal">Quality Rating</span>
                       <p className="font-normal text-[#1c1e21]">{testDetails.phoneDetails.quality_rating || 'GREEN'}</p>
                     </div>
                     <div>
-                      <span className="text-[10px] text-muted-foreground uppercase font-normal">Messaging Tier</span>
+                      <span className="text-2xs text-muted-foreground uppercase font-normal">Messaging Tier</span>
                       <p className="font-normal text-foreground">{testDetails.phoneDetails.messaging_tier || 'STANDARD'}</p>
                     </div>
                     <div>
-                      <span className="text-[10px] text-muted-foreground uppercase font-normal">Registration Status</span>
+                      <span className="text-2xs text-muted-foreground uppercase font-normal">Registration Status</span>
                       <p className="font-normal text-[#1c1e21]">{testDetails.phoneDetails.code_verification_status || 'VERIFIED'}</p>
                     </div>
                   </div>
@@ -867,7 +867,7 @@ export default function SettingsPage() {
                         </div>
                         <div>
                           <h4 className="font-normal text-xs text-foreground">{mod.name}</h4>
-                          <span className="text-[10px] font-normal text-muted-foreground uppercase tracking-wider">
+                          <span className="text-2xs font-normal text-muted-foreground uppercase tracking-wider">
                             {mod.category}
                           </span>
                         </div>
@@ -893,11 +893,11 @@ export default function SettingsPage() {
                     <p className="text-xs text-muted-foreground leading-relaxed font-normal">{mod.description}</p>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-border text-[11px]">
+                  <div className="flex items-center justify-between pt-2 border-t border-border text-2xs">
                     <span className="font-medium text-muted-foreground">
                       Status: <strong className={mod.isEnabled ? 'text-[#1c1e21]' : 'text-muted-foreground'}>{mod.isEnabled ? 'Active' : 'Disabled'}</strong>
                     </span>
-                    <span className="text-[10px] text-muted-foreground font-mono">ID: {mod.id}</span>
+                    <span className="text-2xs text-muted-foreground font-mono">ID: {mod.id}</span>
                   </div>
                 </div>
               );
@@ -1020,12 +1020,12 @@ export default function SettingsPage() {
                       {s.shortcut}
                     </span>
                     <h4 className="font-normal text-xs text-foreground truncate">{s.title}</h4>
-                    <span className="text-[10px] font-normal px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                    <span className="text-2xs font-normal px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
                       {s.category}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed font-sans whitespace-pre-wrap">{s.content}</p>
-                  <span className="text-[10px] text-muted-foreground block pt-1">
+                  <span className="text-2xs text-muted-foreground block pt-1">
                     Used in chat {s.usageCount || 0} times
                   </span>
                 </div>
@@ -1060,7 +1060,7 @@ export default function SettingsPage() {
             <div>
               <h3 className="font-normal text-sm text-foreground">Developer API Keys</h3>
               <p className="text-xs text-muted-foreground">
-                Keys authenticate requests to the Public REST API (<code className="font-mono text-[11px]">/api/v1/*</code>) via the <code className="font-mono text-[11px]">X-API-Key</code> header.
+                Keys authenticate requests to the Public REST API (<code className="font-mono text-2xs">/api/v1/*</code>) via the <code className="font-mono text-2xs">X-API-Key</code> header.
               </p>
             </div>
 
@@ -1131,7 +1131,7 @@ export default function SettingsPage() {
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <p className="text-[11px] text-amber-800">
+              <p className="text-2xs text-amber-800">
                 This is the only time the full key is shown. It cannot be retrieved again — store it somewhere safe.
               </p>
               <div className="flex gap-2">
@@ -1180,14 +1180,14 @@ export default function SettingsPage() {
                   <div className="space-y-1 min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="font-normal text-xs text-foreground">{k.name}</h4>
-                      <span className="font-mono font-normal text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                      <span className="font-mono font-normal text-2xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                         {k.keyPrefix}••••••••
                       </span>
                     </div>
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-2xs text-muted-foreground">
                       Scopes: <span className="font-mono">{k.scopes}</span>
                     </p>
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className="text-2xs text-muted-foreground">
                       Created {new Date(k.createdAt).toLocaleDateString()}
                       {k.lastUsedAt ? ` • Last used ${new Date(k.lastUsedAt).toLocaleDateString()}` : ' • Never used'}
                       {k.user?.email ? ` • by ${k.user.email}` : ''}
@@ -1270,7 +1270,7 @@ export default function SettingsPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="bg-muted border-b border-border text-muted-foreground uppercase text-[10px] font-semibold tracking-wider">
+                    <tr className="bg-muted border-b border-border text-muted-foreground uppercase text-2xs font-semibold tracking-wider">
                       <th className="py-2.5 px-4">Action</th>
                       <th className="py-2.5 px-4">Actor</th>
                       <th className="py-2.5 px-4">Target</th>
@@ -1283,7 +1283,7 @@ export default function SettingsPage() {
                       <tr key={entry.id} className="border-b border-border last:border-0">
                         <td className="py-2.5 px-4">
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            className={`px-2 py-0.5 rounded-full text-2xs font-bold ${
                               entry.action.includes('FAILED')
                                 ? 'bg-rose-50 text-rose-700'
                                 : entry.action.includes('SUCCESS') || entry.action.includes('CREATED')
@@ -1298,7 +1298,7 @@ export default function SettingsPage() {
                         <td className="py-2.5 px-4 text-muted-foreground">
                           {entry.targetType ? `${entry.targetType}${entry.targetId ? ` (${entry.targetId.slice(0, 8)}…)` : ''}` : '—'}
                         </td>
-                        <td className="py-2.5 px-4 text-muted-foreground font-mono text-[11px]">{entry.ipAddress || '—'}</td>
+                        <td className="py-2.5 px-4 text-muted-foreground font-mono text-2xs">{entry.ipAddress || '—'}</td>
                         <td className="py-2.5 px-4 text-muted-foreground">{new Date(entry.createdAt).toLocaleString()}</td>
                       </tr>
                     ))}
@@ -1366,7 +1366,7 @@ export default function SettingsPage() {
             placeholder="123456"
             className="text-center font-mono tracking-widest"
           />
-          <p className="mt-1 text-[0.625rem] text-muted-foreground">
+          <p className="mt-1 text-2xs text-muted-foreground">
             Choose any 6-digit PIN to secure your WhatsApp Cloud number.
           </p>
         </div>

@@ -159,11 +159,11 @@ export function GroupTagModal({ isOpen, onClose, groups, tags, onRefresh }: Grou
                       <span className="size-3 shrink-0 rounded-full" style={{ backgroundColor: g.color }} />
                       <div>
                         <p className="text-xs font-semibold text-foreground">{g.name}</p>
-                        {g.description && <p className="text-[0.6875rem] text-muted-foreground">{g.description}</p>}
+                        {g.description && <p className="text-2xs text-muted-foreground">{g.description}</p>}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[0.6875rem] font-semibold text-muted-foreground">
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-2xs font-semibold text-muted-foreground">
                         {g._count?.contacts || 0} contacts
                       </span>
                       <Button variant="ghost" size="icon-sm" onClick={() => removeGroup(g.id)}>
@@ -208,7 +208,7 @@ export function GroupTagModal({ isOpen, onClose, groups, tags, onRefresh }: Grou
                     style={{ borderColor: t.color, color: t.color }}
                   >
                     <span>{t.name}</span>
-                    <span className="text-[0.625rem] text-muted-foreground">({t._count?.contacts || 0})</span>
+                    <span className="text-2xs text-muted-foreground">({t._count?.contacts || 0})</span>
                     <button onClick={() => removeTag(t.id)} className="ml-1 text-muted-foreground hover:text-destructive">
                       <X className="size-3" />
                     </button>

@@ -141,9 +141,9 @@ export default function AnalyticsPage() {
             <div className="grid grid-cols-2 gap-3 pt-3 md:grid-cols-4">
               {CATEGORIES.map((c) => (
                 <div key={c.key} className={`rounded-lg p-3 ${c.cls}`}>
-                  <span className="text-[0.6875rem] font-semibold uppercase tracking-wider">{c.label}</span>
+                  <span className="text-2xs font-semibold uppercase tracking-wider">{c.label}</span>
                   <p className="mt-0.5 font-mono text-lg font-bold">{categoryCounts[c.key] || 0}</p>
-                  <span className="text-[0.625rem] opacity-80">{c.sub}</span>
+                  <span className="text-2xs opacity-80">{c.sub}</span>
                 </div>
               ))}
             </div>
@@ -171,7 +171,7 @@ export default function AnalyticsPage() {
                       <span className="font-mono text-xs font-bold">Code {err.code}</span>
                       <span className="text-xs font-bold">{err.count} errors</span>
                     </div>
-                    <p className="line-clamp-2 text-[0.6875rem] opacity-80">{err.reason}</p>
+                    <p className="line-clamp-2 text-2xs opacity-80">{err.reason}</p>
                   </div>
                 ))}
               </div>

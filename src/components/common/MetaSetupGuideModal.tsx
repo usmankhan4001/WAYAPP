@@ -110,7 +110,7 @@ export function MetaSetupGuideModal({ isOpen, onClose }: MetaSetupGuideModalProp
               >
                 <span
                   className={cn(
-                    'flex size-5 items-center justify-center rounded-full text-[0.625rem]',
+                    'flex size-5 items-center justify-center rounded-full text-2xs',
                     isSelected ? 'bg-wa text-wa-foreground' : 'bg-muted text-muted-foreground'
                   )}
                 >
@@ -167,7 +167,7 @@ export function MetaSetupGuideModal({ isOpen, onClose }: MetaSetupGuideModalProp
                 <ol className="space-y-2 list-decimal list-inside bg-black/5 p-3.5 rounded-xl border border-border">
                   <li>In your Meta Developer App, go to <strong>WhatsApp &gt; API Setup</strong>.</li>
                   <li>Under <em>&ldquo;Send and receive messages&rdquo;</em>, locate and copy:
-                    <ul className="list-disc list-inside pl-4 pt-1 space-y-1 font-mono text-[11px] text-foreground">
+                    <ul className="list-disc list-inside pl-4 pt-1 space-y-1 font-mono text-2xs text-foreground">
                       <li><strong>Phone number ID</strong> (e.g., <code>100654321987654</code>)</li>
                       <li><strong>WhatsApp Business Account ID</strong> (e.g., <code>100987654321098</code>)</li>
                     </ul>
@@ -183,7 +183,7 @@ export function MetaSetupGuideModal({ isOpen, onClose }: MetaSetupGuideModalProp
                   <li>Click <strong>&ldquo;Add Assets&rdquo;</strong> &gt; select <strong>Apps</strong> &gt; choose your WhatsApp App &gt; toggle <strong>Full Control (Manage App)</strong> &gt; Save.</li>
                   <li>Click <strong>&ldquo;Generate New Token&rdquo;</strong> &gt; select your App &gt; choose Token expiration: <strong>Never</strong>.</li>
                   <li>Check the following two permissions:
-                    <ul className="list-disc list-inside pl-4 pt-1 space-y-1 font-mono text-[11px] text-brand-subtle-foreground font-normal">
+                    <ul className="list-disc list-inside pl-4 pt-1 space-y-1 font-mono text-2xs text-brand-subtle-foreground font-normal">
                       <li><code>whatsapp_business_messaging</code></li>
                       <li><code>whatsapp_business_management</code></li>
                     </ul>
@@ -208,14 +208,14 @@ export function MetaSetupGuideModal({ isOpen, onClose }: MetaSetupGuideModalProp
                 <li>In Meta Developer Portal, navigate to <strong>WhatsApp &gt; Configuration</strong>.</li>
                 <li>Under <strong>Webhook</strong>, click <strong>&ldquo;Edit&rdquo;</strong>.</li>
                 <li>Enter your Callback URL:
-                  <div className="my-1.5 p-2 bg-foreground text-background rounded-full font-mono text-[11px] flex items-center justify-between">
+                  <div className="my-1.5 p-2 bg-foreground text-background rounded-full font-mono text-2xs flex items-center justify-between">
                     <span>https://your-domain.com/api/webhooks/whatsapp</span>
                   </div>
                 </li>
                 <li>Enter the <strong>Verify Token</strong> (found on your <code>/settings</code> page).</li>
                 <li>Click <strong>Verify and Save</strong>. Meta will perform an instant handshake.</li>
                 <li>Click <strong>&ldquo;Manage Webhook fields&rdquo;</strong> and subscribe to:
-                  <ul className="list-disc list-inside pl-4 pt-1 space-y-1 font-mono text-[11px] text-foreground">
+                  <ul className="list-disc list-inside pl-4 pt-1 space-y-1 font-mono text-2xs text-foreground">
                     <li><strong className="text-[#1c1e21]">messages</strong> (Ingests delivery status changes and inbound customer chat replies)</li>
                     <li><strong className="text-[#1c1e21]">message_template_status_update</strong> (Notifies you when Meta approves new templates)</li>
                   </ul>
@@ -257,24 +257,24 @@ export function MetaSetupGuideModal({ isOpen, onClose }: MetaSetupGuideModalProp
               <div className="space-y-3">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   <div className="p-3 rounded-xl bg-black/5 border border-border text-center">
-                    <span className="text-[10px] font-normal text-muted-foreground uppercase">Tier 1</span>
+                    <span className="text-2xs font-normal text-muted-foreground uppercase">Tier 1</span>
                     <p className="text-sm font-normal text-foreground mt-0.5">1,000</p>
-                    <span className="text-[10px] text-muted-foreground">unique users/day</span>
+                    <span className="text-2xs text-muted-foreground">unique users/day</span>
                   </div>
                   <div className="p-3 rounded-xl bg-black/5 border border-border text-center">
-                    <span className="text-[10px] font-normal text-muted-foreground uppercase">Tier 2</span>
+                    <span className="text-2xs font-normal text-muted-foreground uppercase">Tier 2</span>
                     <p className="text-sm font-normal text-foreground mt-0.5">10,000</p>
-                    <span className="text-[10px] text-muted-foreground">unique users/day</span>
+                    <span className="text-2xs text-muted-foreground">unique users/day</span>
                   </div>
                   <div className="p-3 rounded-xl bg-black/5 border border-border text-center">
-                    <span className="text-[10px] font-normal text-muted-foreground uppercase">Tier 3</span>
+                    <span className="text-2xs font-normal text-muted-foreground uppercase">Tier 3</span>
                     <p className="text-sm font-normal text-foreground mt-0.5">100,000</p>
-                    <span className="text-[10px] text-muted-foreground">unique users/day</span>
+                    <span className="text-2xs text-muted-foreground">unique users/day</span>
                   </div>
                   <div className="p-3 rounded-xl bg-black/5 border border-border text-center">
-                    <span className="text-[10px] font-normal text-muted-foreground uppercase">Tier 4</span>
+                    <span className="text-2xs font-normal text-muted-foreground uppercase">Tier 4</span>
                     <p className="text-sm font-normal text-[#1c1e21] mt-0.5">Unlimited</p>
-                    <span className="text-[10px] text-muted-foreground">unlimited volume</span>
+                    <span className="text-2xs text-muted-foreground">unlimited volume</span>
                   </div>
                 </div>
 

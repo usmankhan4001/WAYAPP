@@ -40,12 +40,12 @@ function MobileTabBarInner({ onOpenMore }: { onOpenMore?: () => void }) {
             <span className="relative">
               <Icon className={cn('size-5 transition-transform', active && 'scale-110')} />
               {item.badge === 'unread' && unreadCount > 0 && (
-                <span className="absolute -right-2.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[0.625rem] font-bold text-primary-foreground">
+                <span className="absolute -right-2.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-2xs font-bold text-primary-foreground">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </span>
-            <span className="mt-1 text-[0.625rem] font-medium">{item.shortLabel ?? item.label}</span>
+            <span className="mt-1 text-2xs font-medium">{item.shortLabel ?? item.label}</span>
             {active && <span className="absolute bottom-0 h-0.5 w-5 rounded-full bg-primary" />}
           </Link>
         );
@@ -57,7 +57,7 @@ function MobileTabBarInner({ onOpenMore }: { onOpenMore?: () => void }) {
         className="relative flex flex-col items-center justify-center rounded-lg px-3 py-1 text-muted-foreground transition-colors active:scale-95"
       >
         <MoreHorizontal className="size-5" />
-        <span className="mt-1 text-[0.625rem] font-medium">More</span>
+        <span className="mt-1 text-2xs font-medium">More</span>
       </button>
     </nav>
   );

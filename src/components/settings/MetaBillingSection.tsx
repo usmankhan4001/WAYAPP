@@ -207,7 +207,7 @@ export function MetaBillingSection() {
               style={{ width: `${Math.min(100, (serviceVolume / 1000) * 100)}%` }}
             />
           </div>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-2xs text-muted-foreground">
             {serviceVolume <= 1000
               ? `You have ${1000 - serviceVolume} free service conversations remaining this month.`
               : `You have exceeded the 1,000 free tier limit by ${serviceVolume - 1000} conversations.`}
@@ -220,15 +220,15 @@ export function MetaBillingSection() {
         <div className="card-base p-4 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-foreground">Marketing</span>
-            <span className="text-[10px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+            <span className="text-2xs font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
               Broadcasts
             </span>
           </div>
-          <p className="text-[11px] text-muted-foreground leading-tight">
+          <p className="text-2xs text-muted-foreground leading-tight">
             Promotional broadcasts, seasonal offers, and retargeting messages.
           </p>
           <div className="pt-2 border-t border-border">
-            <span className="text-[10px] text-muted-foreground block uppercase">Rate per 24h</span>
+            <span className="text-2xs text-muted-foreground block uppercase">Rate per 24h</span>
             <span className="text-sm font-mono font-bold text-foreground">
               {formatUnitRate(currentRate.marketing)}
             </span>
@@ -238,15 +238,15 @@ export function MetaBillingSection() {
         <div className="card-base p-4 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-foreground">Utility</span>
-            <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+            <span className="text-2xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
               Transactional
             </span>
           </div>
-          <p className="text-[11px] text-muted-foreground leading-tight">
+          <p className="text-2xs text-muted-foreground leading-tight">
             Order receipts, tracking updates, booking confirmations, and alerts.
           </p>
           <div className="pt-2 border-t border-border">
-            <span className="text-[10px] text-muted-foreground block uppercase">Rate per 24h</span>
+            <span className="text-2xs text-muted-foreground block uppercase">Rate per 24h</span>
             <span className="text-sm font-mono font-bold text-foreground">
               {formatUnitRate(currentRate.utility)}
             </span>
@@ -256,15 +256,15 @@ export function MetaBillingSection() {
         <div className="card-base p-4 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-foreground">Authentication</span>
-            <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
+            <span className="text-2xs font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
               OTPs & Security
             </span>
           </div>
-          <p className="text-[11px] text-muted-foreground leading-tight">
+          <p className="text-2xs text-muted-foreground leading-tight">
             One-time passwords, login verifications, and account security codes.
           </p>
           <div className="pt-2 border-t border-border">
-            <span className="text-[10px] text-muted-foreground block uppercase">Rate per 24h</span>
+            <span className="text-2xs text-muted-foreground block uppercase">Rate per 24h</span>
             <span className="text-sm font-mono font-bold text-foreground">
               {formatUnitRate(currentRate.authentication)}
             </span>
@@ -274,15 +274,15 @@ export function MetaBillingSection() {
         <div className="card-base p-4 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-foreground">Service (Support)</span>
-            <span className="text-[10px] font-semibold text-primary bg-brand-subtle px-2 py-0.5 rounded-full border border-transparent">
+            <span className="text-2xs font-semibold text-primary bg-brand-subtle px-2 py-0.5 rounded-full border border-transparent">
               1,000 Free
             </span>
           </div>
-          <p className="text-[11px] text-muted-foreground leading-tight">
+          <p className="text-2xs text-muted-foreground leading-tight">
             Customer-initiated support conversations and live 2-way inquiries.
           </p>
           <div className="pt-2 border-t border-border">
-            <span className="text-[10px] text-muted-foreground block uppercase">Rate beyond 1,000</span>
+            <span className="text-2xs text-muted-foreground block uppercase">Rate beyond 1,000</span>
             <span className="text-sm font-mono font-bold text-foreground">
               {formatUnitRate(currentRate.service)}
             </span>
@@ -345,7 +345,7 @@ export function MetaBillingSection() {
               onChange={(e) => setMarketingVolume(Number(e.target.value))}
               className="w-full accent-purple-600 h-2 bg-muted rounded-lg cursor-pointer"
             />
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-2xs text-muted-foreground">
               Estimated: <span className="font-mono font-semibold text-foreground">{formatCost(marketingCostUSD)}</span>
             </p>
           </div>
@@ -366,7 +366,7 @@ export function MetaBillingSection() {
               onChange={(e) => setUtilityVolume(Number(e.target.value))}
               className="w-full accent-blue-600 h-2 bg-muted rounded-lg cursor-pointer"
             />
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-2xs text-muted-foreground">
               Estimated: <span className="font-mono font-semibold text-foreground">{formatCost(utilityCostUSD)}</span>
             </p>
           </div>
@@ -387,7 +387,7 @@ export function MetaBillingSection() {
               onChange={(e) => setServiceVolume(Number(e.target.value))}
               className="w-full accent-[var(--primary)] h-2 bg-muted rounded-lg cursor-pointer"
             />
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-2xs text-muted-foreground">
               {serviceVolume <= 1000 ? (
                 <span className="text-primary font-semibold">100% Covered by 1,000 Free Tier</span>
               ) : (
@@ -419,7 +419,7 @@ export function MetaBillingSection() {
           <span>Need Help with Meta Billing or Error 131042?</span>
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          If you receive error code <code className="bg-muted px-1 py-0.5 rounded font-mono text-[11px]">131042 (Business Account Payment Issue)</code>, it means Meta requires a credit card attached to your WhatsApp Business Account before additional outbound messages can be dispatched.
+          If you receive error code <code className="bg-muted px-1 py-0.5 rounded font-mono text-2xs">131042 (Business Account Payment Issue)</code>, it means Meta requires a credit card attached to your WhatsApp Business Account before additional outbound messages can be dispatched.
         </p>
         <div className="pt-2">
           <a

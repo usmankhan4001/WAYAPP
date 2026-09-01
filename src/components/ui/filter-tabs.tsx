@@ -55,7 +55,7 @@ export function FilterTabs<T extends string = string>({
             {opt.count != null && (
               <span
                 className={cn(
-                  "rounded-full px-1.5 text-[0.6875rem] tabular-nums",
+                  "rounded-full px-1.5 text-2xs tabular-nums",
                   active ? "bg-primary-foreground/20" : "bg-foreground/10"
                 )}
               >

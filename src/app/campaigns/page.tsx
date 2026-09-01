@@ -83,7 +83,7 @@ export default function CampaignsPage() {
           <Link href={`/campaigns/${c.id}`} className="block font-semibold text-foreground hover:text-primary">
             {c.name}
           </Link>
-          <span className="font-mono text-[0.6875rem] text-muted-foreground">{c.template?.name}</span>
+          <span className="font-mono text-2xs text-muted-foreground">{c.template?.name}</span>
         </>
       ),
     },
@@ -93,7 +93,7 @@ export default function CampaignsPage() {
     { id: 'delivered', header: 'Delivered', className: 'text-center font-mono font-semibold text-success', headerClassName: 'text-center', cell: (c) => c.deliveredCount },
     { id: 'read', header: 'Read rate', className: 'text-center font-mono font-semibold text-info', headerClassName: 'text-center', cell: (c) => `${readRateOf(c)}% (${c.readCount})` },
     { id: 'replies', header: 'Replies', className: 'text-center font-mono font-semibold', headerClassName: 'text-center', cell: (c) => c.repliedCount },
-    { id: 'created', header: 'Created', className: 'text-[0.6875rem] text-muted-foreground', cell: (c) => formatDateTime(c.createdAt) },
+    { id: 'created', header: 'Created', className: 'text-2xs text-muted-foreground', cell: (c) => formatDateTime(c.createdAt) },
     {
       id: 'actions',
       header: '',
@@ -121,7 +121,7 @@ export default function CampaignsPage() {
             <Link href={`/campaigns/${c.id}`} className="block truncate text-sm font-semibold text-foreground hover:text-primary">
               {c.name}
             </Link>
-            <span className="font-mono text-[0.6875rem] text-muted-foreground">{c.template?.name}</span>
+            <span className="font-mono text-2xs text-muted-foreground">{c.template?.name}</span>
           </div>
           <StatusBadge tone={STATUS_TONE[c.status] ?? 'neutral'} className="shrink-0">
             {c.status}
@@ -129,7 +129,7 @@ export default function CampaignsPage() {
         </div>
 
         <div className="space-y-1">
-          <div className="flex items-center justify-between text-[0.6875rem] text-muted-foreground">
+          <div className="flex items-center justify-between text-2xs text-muted-foreground">
             <span>Progress ({progressPct}%)</span>
             <span className="font-mono">{c.sentCount} / {c.totalContacts}</span>
           </div>
@@ -143,14 +143,14 @@ export default function CampaignsPage() {
             { label: 'Replies', value: c.repliedCount, tone: 'text-foreground' },
           ].map((m) => (
             <div key={m.label} className="rounded-lg bg-muted p-2">
-              <span className="block text-[0.625rem] text-muted-foreground">{m.label}</span>
+              <span className="block text-2xs text-muted-foreground">{m.label}</span>
               <span className={`font-mono text-xs font-bold ${m.tone}`}>{m.value}</span>
             </div>
           ))}
         </div>
 
         <div className="flex items-center justify-between border-t border-border pt-2 text-xs">
-          <span className="text-[0.6875rem] text-muted-foreground">{formatDateTime(c.createdAt)}</span>
+          <span className="text-2xs text-muted-foreground">{formatDateTime(c.createdAt)}</span>
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(c.id)}>
               <Trash2 />

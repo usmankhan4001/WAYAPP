@@ -81,7 +81,7 @@ export function MessageLogTable({ messages = [] }: { messages: Message[] }) {
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-left text-xs">
           <thead>
-            <tr className="border-b border-border bg-muted/50 text-[0.625rem] font-semibold uppercase tracking-wider text-muted-foreground">
+            <tr className="border-b border-border bg-muted/50 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
               <th className="px-4 py-2.5">Recipient</th>
               <th className="px-4 py-2.5">Status</th>
               <th className="px-4 py-2.5">Sent</th>
@@ -107,25 +107,25 @@ export function MessageLogTable({ messages = [] }: { messages: Message[] }) {
                   <tr key={msg.id} className="transition-colors hover:bg-accent">
                     <td className="px-4 py-2.5">
                       <p className="font-medium text-foreground">{contactName}</p>
-                      <p className="font-mono text-[0.6875rem] text-muted-foreground">{msg.phoneNumber}</p>
+                      <p className="font-mono text-2xs text-muted-foreground">{msg.phoneNumber}</p>
                     </td>
                     <td className="px-4 py-2.5">{renderStatus(msg.status)}</td>
-                    <td className="px-4 py-2.5 text-[0.6875rem] text-muted-foreground">{formatDateTime(msg.sentAt)}</td>
-                    <td className="px-4 py-2.5 text-[0.6875rem] text-muted-foreground">{formatDateTime(msg.deliveredAt)}</td>
-                    <td className="px-4 py-2.5 text-[0.6875rem]">
+                    <td className="px-4 py-2.5 text-2xs text-muted-foreground">{formatDateTime(msg.sentAt)}</td>
+                    <td className="px-4 py-2.5 text-2xs text-muted-foreground">{formatDateTime(msg.deliveredAt)}</td>
+                    <td className="px-4 py-2.5 text-2xs">
                       {msg.readAt ? <span className="font-medium text-info">{formatDateTime(msg.readAt)}</span> : <span className="text-muted-foreground">-</span>}
                     </td>
-                    <td className="px-4 py-2.5 text-[0.6875rem]">
+                    <td className="px-4 py-2.5 text-2xs">
                       {msg.repliedAt ? <span className="font-medium text-accent-foreground">{formatDateTime(msg.repliedAt)}</span> : <span className="text-muted-foreground">-</span>}
                     </td>
                     <td className="px-4 py-2.5">
                       {msg.status === 'FAILED' ? (
-                        <div className="text-[0.6875rem] text-destructive">
+                        <div className="text-2xs text-destructive">
                           <span className="block font-mono font-medium">Code {msg.errorCode}</span>
                           <span className="line-clamp-1 text-muted-foreground">{msg.errorMessage}</span>
                         </div>
                       ) : (
-                        <span className="block max-w-[130px] truncate font-mono text-[0.625rem] text-muted-foreground">
+                        <span className="block max-w-[130px] truncate font-mono text-2xs text-muted-foreground">
                           {msg.wamid || 'pending…'}
                         </span>
                       )}

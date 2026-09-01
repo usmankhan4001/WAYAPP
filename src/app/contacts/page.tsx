@@ -232,14 +232,14 @@ export default function ContactsPage() {
           <Badge
             key={it.groupId || it.tagId || it.id}
             variant={tone === 'tag' ? 'info' : 'secondary'}
-            className="text-[0.625rem]"
+            className="text-2xs"
           >
             {it.group?.name || it.tag?.name || it.name}
           </Badge>
         ))}
       </div>
     ) : (
-      <span className="text-[0.6875rem] text-muted-foreground">-</span>
+      <span className="text-2xs text-muted-foreground">-</span>
     );
 
   return (
@@ -423,7 +423,7 @@ export default function ContactsPage() {
                     <span className="font-mono text-xs font-bold text-muted-foreground">{stageContacts.length}</span>
                   </div>
                   {stageTotalVal > 0 && (
-                    <span className="font-mono text-[0.625rem] font-bold text-muted-foreground">${stageTotalVal.toLocaleString()}</span>
+                    <span className="font-mono text-2xs font-bold text-muted-foreground">${stageTotalVal.toLocaleString()}</span>
                   )}
                 </div>
 
@@ -435,17 +435,17 @@ export default function ContactsPage() {
                           <h4 className="truncate text-xs font-semibold text-foreground">
                             {contact.firstName ? `${contact.firstName} ${contact.lastName || ''}`.trim() : contact.phoneNumber}
                           </h4>
-                          <p className="truncate font-mono text-[0.6875rem] text-muted-foreground">{contact.phoneNumber}</p>
+                          <p className="truncate font-mono text-2xs text-muted-foreground">{contact.phoneNumber}</p>
                         </div>
                         {contact.dealValue > 0 && (
-                          <Badge variant="success" className="shrink-0 font-mono text-[0.625rem]">
+                          <Badge variant="success" className="shrink-0 font-mono text-2xs">
                             ${contact.dealValue}
                           </Badge>
                         )}
                       </div>
 
                       {(contact.company || contact.city) && (
-                        <div className="flex items-center gap-2 text-[0.625rem] text-muted-foreground">
+                        <div className="flex items-center gap-2 text-2xs text-muted-foreground">
                           {contact.company && <span className="truncate">🏢 {contact.company}</span>}
                           {contact.city && <span className="truncate">📍 {contact.city}</span>}
                         </div>
@@ -454,14 +454,14 @@ export default function ContactsPage() {
                       {contact.tags?.length > 0 && (
                         <div className="flex flex-wrap gap-1">
                           {contact.tags.map((t: AnyRecord) => (
-                            <Badge key={t.tagId || t.tag?.id} variant="info" className="text-[0.5625rem]">
+                            <Badge key={t.tagId || t.tag?.id} variant="info" className="text-2xs">
                               {t.tag?.name || t.name}
                             </Badge>
                           ))}
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between border-t border-border pt-1.5 text-[0.625rem]">
+                      <div className="flex items-center justify-between border-t border-border pt-1.5 text-2xs">
                         <button
                           onClick={() => router.push(`/inbox?contactId=${contact.id}`)}
                           className="flex items-center gap-1 font-semibold text-primary hover:text-primary/80"
@@ -472,7 +472,7 @@ export default function ContactsPage() {
                         <select
                           value={contact.leadStage || 'NEW_LEAD'}
                           onChange={(e) => handleUpdateStage(contact.id, e.target.value)}
-                          className="rounded border border-input bg-transparent px-1 py-0.5 text-[0.625rem] font-semibold outline-none"
+                          className="rounded border border-input bg-transparent px-1 py-0.5 text-2xs font-semibold outline-none"
                         >
                           {LEAD_STAGES.map((s) => (
                             <option key={s.id} value={s.id}>
@@ -484,7 +484,7 @@ export default function ContactsPage() {
                     </div>
                   ))}
                   {stageContacts.length === 0 && (
-                    <div className="rounded-lg border border-dashed border-border p-4 text-center text-[0.6875rem] text-muted-foreground">
+                    <div className="rounded-lg border border-dashed border-border p-4 text-center text-2xs text-muted-foreground">
                       No contacts in this stage
                     </div>
                   )}
@@ -509,7 +509,7 @@ export default function ContactsPage() {
               <div className="hidden overflow-x-auto md:block">
                 <table className="w-full border-collapse text-left text-xs">
                   <thead>
-                    <tr className="border-b border-border bg-muted/50 text-[0.625rem] font-semibold uppercase text-muted-foreground">
+                    <tr className="border-b border-border bg-muted/50 text-2xs font-semibold uppercase text-muted-foreground">
                       <th className="w-10 px-3 py-3 text-center">
                         <Checkbox
                           checked={allSelected}
@@ -539,7 +539,7 @@ export default function ContactsPage() {
                           </td>
                           <td className="px-4 py-3">
                             <p className="font-semibold text-foreground">{contactName}</p>
-                            {c.email && <p className="text-[0.6875rem] text-muted-foreground">{c.email}</p>}
+                            {c.email && <p className="text-2xs text-muted-foreground">{c.email}</p>}
                           </td>
                           <td className="px-4 py-3 font-mono font-medium">{c.phoneNumber}</td>
                           <td className="px-4 py-3">
@@ -595,7 +595,7 @@ export default function ContactsPage() {
                           <Checkbox checked={isSelected} onCheckedChange={() => toggleSelectRow(c.id)} aria-label={`Select ${contactName}`} />
                           <div className="min-w-0">
                             <h4 className="truncate text-xs font-semibold text-foreground">{contactName}</h4>
-                            <p className="font-mono text-[0.6875rem] text-muted-foreground">{c.phoneNumber}</p>
+                            <p className="font-mono text-2xs text-muted-foreground">{c.phoneNumber}</p>
                           </div>
                         </div>
                         <StatusBadge tone={stage.tone} className="shrink-0">

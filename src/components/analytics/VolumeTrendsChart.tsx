@@ -31,10 +31,10 @@ export function VolumeTrendsChart({ data = [] }: VolumeTrendsProps) {
             <h3 className="text-sm font-semibold text-foreground">Activity trends</h3>
             <InfoTooltip content="Daily volume across Sent, Delivered, Read and Replied message states." />
           </div>
-          <p className="text-[0.6875rem] text-muted-foreground">Daily message dispatch and response breakdown</p>
+          <p className="text-2xs text-muted-foreground">Daily message dispatch and response breakdown</p>
         </div>
 
-        <div className="flex items-center gap-2.5 text-[0.625rem] font-semibold text-muted-foreground">
+        <div className="flex items-center gap-2.5 text-2xs font-semibold text-muted-foreground">
           {SERIES.map((s) => (
             <Tooltip key={s.key} content={s.hint}>
               <span className="flex cursor-help items-center gap-1">
@@ -63,7 +63,7 @@ export function VolumeTrendsChart({ data = [] }: VolumeTrendsProps) {
                 );
               })}
             </div>
-            <span className="text-[0.625rem] font-medium text-muted-foreground group-hover:text-foreground">
+            <span className="text-2xs font-medium text-muted-foreground group-hover:text-foreground">
               {day.date}
             </span>
           </div>

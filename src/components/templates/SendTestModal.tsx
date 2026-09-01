@@ -112,13 +112,13 @@ export function SendTestModal({ isOpen, onClose, template }: SendTestModalProps)
             onChange={(e) => setPhoneNumber(e.target.value)}
             className="font-mono"
           />
-          <p className="mt-1 text-[0.625rem] text-muted-foreground">Include country code with + symbol</p>
+          <p className="mt-1 text-2xs text-muted-foreground">Include country code with + symbol</p>
         </div>
 
         <div className="space-y-2 rounded-lg border border-border bg-muted p-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-foreground">Dynamic template parameters</span>
-            <span className="font-mono text-[0.625rem] font-medium text-muted-foreground">
+            <span className="font-mono text-2xs font-medium text-muted-foreground">
               {expectedVarCount} {expectedVarCount === 1 ? 'variable' : 'variables'}
             </span>
           </div>

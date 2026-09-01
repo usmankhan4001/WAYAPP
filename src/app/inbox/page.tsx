@@ -106,7 +106,7 @@ function InboxContent() {
           <div className="flex items-center gap-2">
             <h2 className="text-base font-semibold tracking-tight text-foreground">Chats</h2>
             {conversations.length > 0 && (
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[0.6875rem] font-semibold text-muted-foreground">
+              <span className="rounded-full bg-muted px-2 py-0.5 text-2xs font-semibold text-muted-foreground">
                 {conversations.length}
               </span>
             )}
@@ -161,7 +161,7 @@ function InboxContent() {
             <div className="space-y-2 p-8 text-center text-xs text-muted-foreground">
               <MessageSquare className="mx-auto mb-1 size-8 text-muted-foreground/50" />
               <p className="font-semibold text-foreground">No chats found</p>
-              <p className="text-[0.6875rem]">Start a new conversation or adjust your search filter.</p>
+              <p className="text-2xs">Start a new conversation or adjust your search filter.</p>
             </div>
           ) : (
             conversations.map((c) => {
@@ -185,11 +185,11 @@ function InboxContent() {
                   <div className="min-w-0 flex-1">
                     <div className="mb-0.5 flex items-center justify-between gap-1">
                       <span className="truncate text-xs font-semibold text-foreground">{contactName}</span>
-                      <span className="shrink-0 font-mono text-[0.625rem] text-muted-foreground">
+                      <span className="shrink-0 font-mono text-2xs text-muted-foreground">
                         {c.lastMessageAt ? formatTimeAgo(new Date(c.lastMessageAt)) : ''}
                       </span>
                     </div>
-                    <div className="mb-1 flex items-center gap-1 truncate text-[0.6875rem] text-muted-foreground">
+                    <div className="mb-1 flex items-center gap-1 truncate text-2xs text-muted-foreground">
                       {isOutbound && (
                         <CheckCheck
                           className={cn(
@@ -205,9 +205,9 @@ function InboxContent() {
                       <span className="truncate">{lastMsg?.body || 'Media attachment'}</span>
                     </div>
                     <div className="flex items-center justify-between gap-1">
-                      <span className="truncate font-mono text-[0.625rem] text-muted-foreground">{contactObj.phoneNumber}</span>
+                      <span className="truncate font-mono text-2xs text-muted-foreground">{contactObj.phoneNumber}</span>
                       {c.unreadCount > 0 && (
-                        <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1.5 text-[0.625rem] font-bold text-primary-foreground">
+                        <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1.5 text-2xs font-bold text-primary-foreground">
                           {c.unreadCount}
                         </span>
                       )}
@@ -239,7 +239,7 @@ function InboxContent() {
                 Select a customer thread to begin live 1-to-1 WhatsApp chatting, send templates, or share media.
               </p>
             </div>
-            <div className="flex items-center gap-1.5 pt-4 text-[0.6875rem] font-medium text-muted-foreground">
+            <div className="flex items-center gap-1.5 pt-4 text-2xs font-medium text-muted-foreground">
               <ShieldCheck className="size-3.5 text-primary" />
               <span>End-to-end Meta WhatsApp Cloud API connectivity</span>
             </div>

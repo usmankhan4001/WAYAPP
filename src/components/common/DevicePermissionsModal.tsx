@@ -261,20 +261,20 @@ export function DevicePermissionsModal({ isOpen, onClose }: DevicePermissionsMod
                 <div className="flex items-center gap-1.5">
                   <h4 className="text-xs font-normal text-foreground">Notifications</h4>
                   {notificationStatus === 'granted' ? (
-                    <span className="text-[10px] font-normal text-[#1c1e21] bg-[#e6ffda] px-2 py-0.5 rounded-full">
+                    <span className="text-2xs font-normal text-[#1c1e21] bg-[#e6ffda] px-2 py-0.5 rounded-full">
                       Active
                     </span>
                   ) : notificationStatus === 'denied' ? (
-                    <span className="text-[10px] font-normal text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">
+                    <span className="text-2xs font-normal text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">
                       Blocked
                     </span>
                   ) : (
-                    <span className="text-[10px] font-normal text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                    <span className="text-2xs font-normal text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
                       Action Needed
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-muted-foreground truncate">WhatsApp incoming message desktop alerts</p>
+                <p className="text-2xs text-muted-foreground truncate">WhatsApp incoming message desktop alerts</p>
               </div>
             </div>
 
@@ -301,20 +301,20 @@ export function DevicePermissionsModal({ isOpen, onClose }: DevicePermissionsMod
                 <div className="flex items-center gap-1.5">
                   <h4 className="text-xs font-normal text-foreground">Microphone</h4>
                   {micStatus === 'granted' ? (
-                    <span className="text-[10px] font-normal text-[#1c1e21] bg-[#e6ffda] px-2 py-0.5 rounded-full">
+                    <span className="text-2xs font-normal text-[#1c1e21] bg-[#e6ffda] px-2 py-0.5 rounded-full">
                       Active
                     </span>
                   ) : micStatus === 'denied' ? (
-                    <span className="text-[10px] font-normal text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">
+                    <span className="text-2xs font-normal text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">
                       Blocked
                     </span>
                   ) : (
-                    <span className="text-[10px] font-normal text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                    <span className="text-2xs font-normal text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
                       Action Needed
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-muted-foreground truncate">Record & send WhatsApp audio voice notes</p>
+                <p className="text-2xs text-muted-foreground truncate">Record & send WhatsApp audio voice notes</p>
               </div>
             </div>
 
@@ -341,20 +341,20 @@ export function DevicePermissionsModal({ isOpen, onClose }: DevicePermissionsMod
                 <div className="flex items-center gap-1.5">
                   <h4 className="text-xs font-normal text-foreground">Camera</h4>
                   {cameraStatus === 'granted' ? (
-                    <span className="text-[10px] font-normal text-[#1c1e21] bg-[#e6ffda] px-2 py-0.5 rounded-full">
+                    <span className="text-2xs font-normal text-[#1c1e21] bg-[#e6ffda] px-2 py-0.5 rounded-full">
                       Active
                     </span>
                   ) : cameraStatus === 'denied' ? (
-                    <span className="text-[10px] font-normal text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">
+                    <span className="text-2xs font-normal text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">
                       Blocked
                     </span>
                   ) : (
-                    <span className="text-[10px] font-normal text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                    <span className="text-2xs font-normal text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
                       Action Needed
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-muted-foreground truncate">Take photos & record video in chat</p>
+                <p className="text-2xs text-muted-foreground truncate">Take photos & record video in chat</p>
               </div>
             </div>
 

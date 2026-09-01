@@ -92,7 +92,7 @@ export function PWAInstallPrompt({ className }: { className?: string }) {
             <>Tap <strong>Add</strong> in the top-right corner</>,
           ].map((step, i) => (
             <div key={i} className="flex items-center gap-2.5">
-              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[0.625rem] font-semibold text-primary-foreground">
+              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-2xs font-semibold text-primary-foreground">
                 {i + 1}
               </span>
               <span className="flex items-center gap-1">{step}</span>

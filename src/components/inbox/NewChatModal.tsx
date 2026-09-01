@@ -112,7 +112,7 @@ export function NewChatModal({ isOpen, onClose, onSelectContact }: NewChatModalP
                     </span>
                     <div className="min-w-0">
                       <p className="truncate text-xs font-medium text-foreground">{name}</p>
-                      <p className="font-mono text-[0.6875rem] text-muted-foreground">{c.phoneNumber}</p>
+                      <p className="font-mono text-2xs text-muted-foreground">{c.phoneNumber}</p>
                     </div>
                   </div>
                   <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
@@ -123,7 +123,7 @@ export function NewChatModal({ isOpen, onClose, onSelectContact }: NewChatModalP
         </div>
 
         <form onSubmit={handleCreateAndSelect} className="space-y-2.5 rounded-lg border border-border bg-muted p-3">
-          <p className="text-[0.6875rem] font-medium text-foreground">Or message a new number:</p>
+          <p className="text-2xs font-medium text-foreground">Or message a new number:</p>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <Input
               placeholder="Phone (e.g. +971501234567)"

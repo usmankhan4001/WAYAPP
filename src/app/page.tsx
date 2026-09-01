@@ -189,7 +189,7 @@ export default function DashboardPage() {
                     >
                       {c.name}
                     </Link>
-                    <p className="text-[0.6875rem] text-muted-foreground">
+                    <p className="text-2xs text-muted-foreground">
                       Template: <span className="font-mono text-foreground">{c.template?.name}</span> ·{' '}
                       {formatDateTime(c.createdAt)}
                     </p>
@@ -197,7 +197,7 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-4 text-xs">
                     <div className="text-right">
                       <span className="font-semibold text-foreground">{c.totalContacts}</span>
-                      <span className="block text-[0.6875rem] text-muted-foreground">contacts</span>
+                      <span className="block text-2xs text-muted-foreground">contacts</span>
                     </div>
                     <StatusBadge tone={CAMPAIGN_TONE[c.status] ?? 'neutral'}>{c.status}</StatusBadge>
                   </div>
@@ -229,7 +229,7 @@ export default function DashboardPage() {
                   </span>
                   <div>
                     <h4 className="text-xs font-medium text-foreground">{title}</h4>
-                    <p className="text-[0.6875rem] text-muted-foreground">{sub}</p>
+                    <p className="text-2xs text-muted-foreground">{sub}</p>
                   </div>
                 </div>
                 <ArrowRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />

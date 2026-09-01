@@ -230,7 +230,7 @@ export default function AutomationsPage() {
             <Zap className="w-4 h-4 text-primary" />
           </div>
           <p className="text-2xl font-bold text-foreground font-mono">{stats.activeRules}</p>
-          <p className="text-[11px] text-primary font-medium">{stats.totalRules} total rules configured</p>
+          <p className="text-2xs text-primary font-medium">{stats.totalRules} total rules configured</p>
         </div>
 
         <div className="bg-card p-4 rounded-xl border border-border shadow-sm space-y-1">
@@ -239,7 +239,7 @@ export default function AutomationsPage() {
             <MessageSquare className="w-4 h-4 text-purple-600" />
           </div>
           <p className="text-2xl font-bold text-purple-700 font-mono">{stats.totalExecutions.toLocaleString()}</p>
-          <p className="text-[11px] text-muted-foreground">Instant responses triggered without agent delay</p>
+          <p className="text-2xs text-muted-foreground">Instant responses triggered without agent delay</p>
         </div>
 
         <div className="bg-card p-4 rounded-xl border border-border shadow-sm space-y-1">
@@ -248,7 +248,7 @@ export default function AutomationsPage() {
             <ShieldCheck className="w-4 h-4 text-blue-600" />
           </div>
           <p className="text-2xl font-bold text-foreground font-mono">100%</p>
-          <p className="text-[11px] text-primary font-medium">Meta Webhook Listener Connected</p>
+          <p className="text-2xs text-primary font-medium">Meta Webhook Listener Connected</p>
         </div>
       </div>
 
@@ -266,7 +266,7 @@ export default function AutomationsPage() {
             </h3>
           </div>
           <div className="flex items-center gap-1.5 text-muted-foreground">
-            <span className="text-[10px]">{showRecipes ? 'Hide' : 'Show'} recipes</span>
+            <span className="text-2xs">{showRecipes ? 'Hide' : 'Show'} recipes</span>
             {showRecipes ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
           </div>
         </button>
@@ -290,7 +290,7 @@ export default function AutomationsPage() {
             <h4 className="text-xs font-bold text-white group-hover:text-primary truncate">
               🏢 Real Estate
             </h4>
-            <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">Site viewing and brochure dispatch</p>
+            <p className="text-2xs text-muted-foreground mt-1 line-clamp-2">Site viewing and brochure dispatch</p>
           </button>
 
           <button
@@ -311,7 +311,7 @@ export default function AutomationsPage() {
             <h4 className="text-xs font-bold text-white group-hover:text-primary truncate">
               🛍️ E-Commerce
             </h4>
-            <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">Abandoned cart recovery & COD</p>
+            <p className="text-2xs text-muted-foreground mt-1 line-clamp-2">Abandoned cart recovery & COD</p>
           </button>
 
           <button
@@ -332,7 +332,7 @@ export default function AutomationsPage() {
             <h4 className="text-xs font-bold text-white group-hover:text-primary truncate">
               🚗 Automotive
             </h4>
-            <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">Test drive and showroom booking</p>
+            <p className="text-2xs text-muted-foreground mt-1 line-clamp-2">Test drive and showroom booking</p>
           </button>
 
           <button
@@ -353,7 +353,7 @@ export default function AutomationsPage() {
             <h4 className="text-xs font-bold text-white group-hover:text-primary truncate">
               🏥 Clinic & Health
             </h4>
-            <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">Doctor consultation & reminder</p>
+            <p className="text-2xs text-muted-foreground mt-1 line-clamp-2">Doctor consultation & reminder</p>
           </button>
 
           <button
@@ -374,7 +374,7 @@ export default function AutomationsPage() {
             <h4 className="text-xs font-bold text-white group-hover:text-primary truncate">
               💼 B2B Lead Gen
             </h4>
-            <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">Price quote & Calendly demo</p>
+            <p className="text-2xs text-muted-foreground mt-1 line-clamp-2">Price quote & Calendly demo</p>
           </button>
         </div>
         )}
@@ -429,7 +429,7 @@ export default function AutomationsPage() {
                     <div>
                       <h4 className="text-xs font-bold text-foreground">{rule.name}</h4>
                       {rule.description && (
-                        <p className="text-[11px] text-muted-foreground mt-0.5">{rule.description}</p>
+                        <p className="text-2xs text-muted-foreground mt-0.5">{rule.description}</p>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
@@ -458,7 +458,7 @@ export default function AutomationsPage() {
 
                   {/* Trigger Details */}
                   <div className="p-2.5 bg-muted rounded-xl border border-border space-y-1.5 text-xs">
-                    <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    <div className="flex items-center gap-1 text-2xs font-bold text-muted-foreground uppercase tracking-wider">
                       <span>When Customer Message</span>
                       <span className="text-primary bg-brand-subtle px-1 py-0.5 rounded border border-transparent">
                         {triggerConfig.matchType}
@@ -470,7 +470,7 @@ export default function AutomationsPage() {
                         {(triggerConfig.keywords || []).map((kw: string, i: number) => (
                           <span
                             key={i}
-                            className="bg-card px-2 py-0.5 rounded border border-border text-[11px] font-mono text-foreground font-semibold"
+                            className="bg-card px-2 py-0.5 rounded border border-border text-2xs font-mono text-foreground font-semibold"
                           >
                             &ldquo;{kw}&rdquo;
                           </span>
@@ -481,33 +481,33 @@ export default function AutomationsPage() {
 
                   {/* Action Details */}
                   <div className="p-2.5 bg-brand-subtle/50 rounded-xl border border-transparent space-y-1 text-xs">
-                    <div className="flex items-center gap-1 text-[10px] font-bold text-brand-subtle-foreground uppercase tracking-wider">
+                    <div className="flex items-center gap-1 text-2xs font-bold text-brand-subtle-foreground uppercase tracking-wider">
                       <span>Then Execute Action</span>
                     </div>
                     {action.type === 'SEND_TEXT' && (
-                      <p className="text-[11px] text-foreground italic line-clamp-2">
+                      <p className="text-2xs text-foreground italic line-clamp-2">
                         💬 Auto-reply: &ldquo;{action.payload?.text}&rdquo;
                       </p>
                     )}
                     {action.type === 'SEND_TEMPLATE' && (
-                      <p className="text-[11px] text-foreground font-mono">
+                      <p className="text-2xs text-foreground font-mono">
                         📋 Send Approved Template: &ldquo;{action.payload?.templateName}&rdquo;
                       </p>
                     )}
                     {action.type === 'ADD_TAG' && (
-                      <p className="text-[11px] text-brand-subtle-foreground font-semibold">
+                      <p className="text-2xs text-brand-subtle-foreground font-semibold">
                         🏷️ Add Tag: &ldquo;{action.payload?.tagName}&rdquo;
                       </p>
                     )}
                     {action.type === 'ASSIGN_GROUP' && (
-                      <p className="text-[11px] text-brand-subtle-foreground font-semibold">
+                      <p className="text-2xs text-brand-subtle-foreground font-semibold">
                         👥 Assign to Group: &ldquo;{groups.find((g) => g.id === action.payload?.groupId)?.name || action.payload?.groupId}&rdquo;
                       </p>
                     )}
                   </div>
 
                   {/* Footer Stats */}
-                  <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1 border-t border-border">
+                  <div className="flex items-center justify-between text-2xs text-muted-foreground pt-1 border-t border-border">
                     <span>Dispatched: <strong className="text-foreground">{rule.executionCount} times</strong></span>
                     {rule.lastTriggeredAt && (
                       <span>Last fired: {new Date(rule.lastTriggeredAt).toLocaleTimeString()}</span>
@@ -682,7 +682,7 @@ export default function AutomationsPage() {
                       ))}
                     </select>
                     {groups.length === 0 && (
-                      <p className="text-[10px] text-muted-foreground mt-1">No groups exist yet — create one in Contacts first.</p>
+                      <p className="text-2xs text-muted-foreground mt-1">No groups exist yet — create one in Contacts first.</p>
                     )}
                   </div>
                 )}

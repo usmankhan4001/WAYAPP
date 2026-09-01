@@ -216,7 +216,7 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
               </div>
             </div>
 
-            <div className="space-y-1 rounded-lg border border-success/20 bg-success-subtle p-3.5 text-[0.6875rem] text-success-subtle-foreground">
+            <div className="space-y-1 rounded-lg border border-success/20 bg-success-subtle p-3.5 text-2xs text-success-subtle-foreground">
               <div className="flex items-center gap-1.5 font-semibold">
                 <Check className="size-3.5" />
                 <span>Automatic E.164 normalization &amp; attribute capture</span>
@@ -281,10 +281,10 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
             </div>
 
             <div className="space-y-2 border-t border-border pt-2">
-              <span className="text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
+              <span className="text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
                 First 3 rows preview
               </span>
-              <div className="overflow-x-auto rounded-lg border border-border text-[0.6875rem]">
+              <div className="overflow-x-auto rounded-lg border border-border text-2xs">
                 <table className="min-w-full divide-y divide-border">
                   <thead className="bg-muted">
                     <tr>
@@ -334,7 +334,7 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
             {importResult.errors.length > 0 && (
               <div className="max-h-32 overflow-y-auto rounded-lg border border-warning/30 bg-warning-subtle p-3 text-left text-xs text-warning-subtle-foreground">
                 <span className="mb-1 block font-semibold">Warnings / skipped rows:</span>
-                <ul className="list-disc space-y-0.5 pl-4 text-[0.6875rem]">
+                <ul className="list-disc space-y-0.5 pl-4 text-2xs">
                   {importResult.errors.map((err, i) => (
                     <li key={i}>{err}</li>
                   ))}

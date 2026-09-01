@@ -115,7 +115,7 @@ function LoginForm() {
           {/* Security Badge */}
           <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center gap-2.5">
             <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
-            <p className="text-[11px] text-slate-300">
+            <p className="text-2xs text-slate-300">
               Encrypted enterprise authentication with role-based access control.
             </p>
           </div>
@@ -205,7 +205,7 @@ function LoginForm() {
           {/* Divider */}
           <div className="flex items-center gap-3">
             <div className="h-px bg-slate-800 flex-1" />
-            <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
+            <span className="text-2xs uppercase tracking-wider font-semibold text-slate-500">
               Or Social Single Sign-On
             </span>
             <div className="h-px bg-slate-800 flex-1" />
@@ -226,7 +226,7 @@ function LoginForm() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-[11px] text-slate-500">
+        <p className="text-center text-2xs text-slate-500">
           WAYAPP v1.0 &bull; Secure Enterprise Gateway
         </p>
       </div>

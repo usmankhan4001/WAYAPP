@@ -179,7 +179,7 @@ export default function KnowledgeBasePage() {
                       </div>
                       <div>
                         <h4 className="text-sm font-bold text-foreground">{kb.name}</h4>
-                        <span className="text-[10px] text-purple-600 font-semibold">{kb.sourceType}</span>
+                        <span className="text-2xs text-purple-600 font-semibold">{kb.sourceType}</span>
                       </div>
                     </div>
 
@@ -205,13 +205,13 @@ export default function KnowledgeBasePage() {
 
                   <button
                     onClick={() => setViewingKb(kb)}
-                    className="w-full text-left text-xs text-muted-foreground line-clamp-3 bg-muted p-3 rounded-xl border border-border font-mono text-[11px] hover:border-purple-300 transition-colors"
+                    className="w-full text-left text-xs text-muted-foreground line-clamp-3 bg-muted p-3 rounded-xl border border-border font-mono text-2xs hover:border-purple-300 transition-colors"
                   >
                     {kb.contentMarkdown}
                   </button>
                 </div>
 
-                <div className="pt-3 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
+                <div className="pt-3 border-t border-border flex items-center justify-between text-2xs text-muted-foreground">
                   <span className="flex items-center gap-1.5">
                     <Layers className="w-3.5 h-3.5 text-purple-600" />
                     {chunkCount} indexing chunks
@@ -283,7 +283,7 @@ export default function KnowledgeBasePage() {
 
               <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-purple-50/60 border border-purple-200">
                 <div>
-                  <label className="block text-[11px] font-semibold text-purple-700 mb-1">AI Provider</label>
+                  <label className="block text-2xs font-semibold text-purple-700 mb-1">AI Provider</label>
                   <select
                     value={aiProvider}
                     onChange={(e) => setAiProvider(e.target.value)}
@@ -296,7 +296,7 @@ export default function KnowledgeBasePage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-purple-700 mb-1">API Key</label>
+                  <label className="block text-2xs font-semibold text-purple-700 mb-1">API Key</label>
                   <input
                     type="password"
                     placeholder="Or leave empty to use server ENV"

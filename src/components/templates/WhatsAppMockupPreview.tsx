@@ -59,12 +59,12 @@ export function WhatsAppMockupPreview({
       <div className="rounded-[28px] overflow-hidden flex flex-col bg-whatsapp-chatBgDark h-[520px] shadow-inner border border-slate-800/80 relative">
         {/* WhatsApp Header Bar */}
         <div className="bg-[#1f2c34] px-3.5 py-2.5 flex items-center gap-2.5 text-white shadow-sm shrink-0">
-          <div className="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center text-[10px] font-bold">
+          <div className="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center text-2xs font-bold">
             WA
           </div>
           <div className="flex-1 min-w-0">
             <h4 className="text-xs font-semibold text-slate-100 truncate">{businessName}</h4>
-            <p className="text-[10px] text-emerald-400 leading-none">Official Business Account</p>
+            <p className="text-2xs text-emerald-400 leading-none">Official Business Account</p>
           </div>
         </div>
 
@@ -83,7 +83,7 @@ export function WhatsAppMockupPreview({
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <span className="text-[11px] text-slate-500 font-medium">[ Header Image ]</span>
+                      <span className="text-2xs text-slate-500 font-medium">[ Header Image ]</span>
                     )}
                   </div>
                 ) : (
@@ -101,13 +101,13 @@ export function WhatsAppMockupPreview({
 
             {/* Footer */}
             {footerComp?.text && (
-              <div className="mt-1.5 text-[10px] text-slate-600">
+              <div className="mt-1.5 text-2xs text-slate-600">
                 {footerComp.text}
               </div>
             )}
 
             {/* Timestamp & Double Blue Ticks */}
-            <div className="flex items-center justify-end gap-1 mt-1 text-[9px] text-slate-400">
+            <div className="flex items-center justify-end gap-1 mt-1 text-2xs text-slate-400">
               <span>12:45 PM</span>
               <CheckCheck className="w-3 h-3 text-[#53bdeb]" />
             </div>
@@ -134,7 +134,7 @@ export function WhatsAppMockupPreview({
 
         {/* Fake Input Bottom Bar */}
         <div className="bg-[#1f2c34] p-2 flex items-center gap-2">
-          <div className="flex-1 bg-[#2a3942] rounded-full px-3 py-1.5 text-[11px] text-slate-400">
+          <div className="flex-1 bg-[#2a3942] rounded-full px-3 py-1.5 text-2xs text-slate-400">
             Type a message...
           </div>
           <div className="w-7 h-7 rounded-full bg-[#00a884] flex items-center justify-center text-white">

@@ -90,7 +90,7 @@ export default function FlowsPage() {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
           <div className="space-y-2 max-w-2xl">
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-subtle text-brand-subtle-foreground">
+              <span className="px-2.5 py-0.5 rounded-full text-2xs font-bold bg-brand-subtle text-brand-subtle-foreground">
                 Active Engine
               </span>
               <span className="text-xs font-semibold text-muted-foreground">Example: Lead Qualification</span>
@@ -105,19 +105,19 @@ export default function FlowsPage() {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-card border border-border rounded-2xl p-3 text-center">
-              <span className="text-[10px] font-medium text-muted-foreground block">Step 1</span>
+              <span className="text-2xs font-medium text-muted-foreground block">Step 1</span>
               <span className="text-xs font-bold text-foreground">Activity List</span>
             </div>
             <div className="bg-card border border-border rounded-2xl p-3 text-center">
-              <span className="text-[10px] font-medium text-muted-foreground block">Step 2</span>
+              <span className="text-2xs font-medium text-muted-foreground block">Step 2</span>
               <span className="text-xs font-bold text-foreground">Region List</span>
             </div>
             <div className="bg-card border border-border rounded-2xl p-3 text-center">
-              <span className="text-[10px] font-medium text-muted-foreground block">Step 3</span>
+              <span className="text-2xs font-medium text-muted-foreground block">Step 3</span>
               <span className="text-xs font-bold text-foreground">Goal List</span>
             </div>
             <div className="bg-card border border-border rounded-2xl p-3 text-center">
-              <span className="text-[10px] font-medium text-muted-foreground block">Step 4</span>
+              <span className="text-2xs font-medium text-muted-foreground block">Step 4</span>
               <span className="text-xs font-bold text-foreground">Timeline List</span>
             </div>
           </div>
@@ -188,12 +188,12 @@ export default function FlowsPage() {
                         <h4 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
                           {flow.name}
                         </h4>
-                        <span className="text-[10px] text-muted-foreground">v{flow.version || 1}</span>
+                        <span className="text-2xs text-muted-foreground">v{flow.version || 1}</span>
                       </div>
                     </div>
 
                     <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-bold border ${
                         isPublished
                           ? 'bg-brand-subtle border-transparent text-primary'
                           : 'bg-muted border-border text-muted-foreground'
@@ -209,7 +209,7 @@ export default function FlowsPage() {
                 </div>
 
                 <div className="pt-4 mt-4 border-t border-border flex items-center justify-between">
-                  <span className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                  <span className="text-2xs text-muted-foreground flex items-center gap-1.5">
                     <Zap className="w-3 h-3 text-primary" />
                     {flow._count?.runs || 0} executions
                   </span>

@@ -42,9 +42,9 @@ export function ConversionFunnelChart({ funnel = [] }: ConversionFunnelProps) {
             <h3 className="text-sm font-semibold text-foreground">Message conversion funnel</h3>
             <InfoTooltip content="Recipient progression from broadcast dispatch to open rates and customer replies." />
           </div>
-          <p className="text-[0.6875rem] text-muted-foreground">Live webhook status state transitions</p>
+          <p className="text-2xs text-muted-foreground">Live webhook status state transitions</p>
         </div>
-        <span className="rounded bg-muted px-2 py-0.5 text-[0.625rem] font-semibold text-muted-foreground">
+        <span className="rounded bg-muted px-2 py-0.5 text-2xs font-semibold text-muted-foreground">
           Webhook synced
         </span>
       </div>
@@ -52,7 +52,7 @@ export function ConversionFunnelChart({ funnel = [] }: ConversionFunnelProps) {
       {!hasData ? (
         <div className="space-y-1 py-12 text-center text-xs text-muted-foreground">
           <p className="font-semibold text-foreground">No telemetry data recorded yet</p>
-          <p className="text-[0.6875rem]">Launch a broadcast campaign to view real-time delivery and read rates.</p>
+          <p className="text-2xs">Launch a broadcast campaign to view real-time delivery and read rates.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -77,7 +77,7 @@ export function ConversionFunnelChart({ funnel = [] }: ConversionFunnelProps) {
                   </div>
                   <div className="flex items-center gap-2 font-mono">
                     <span className="font-bold text-foreground">{step.count.toLocaleString()}</span>
-                    <span className="w-10 text-right text-[0.6875rem] text-muted-foreground">
+                    <span className="w-10 text-right text-2xs text-muted-foreground">
                       {step.percentage}%
                     </span>
                   </div>

@@ -240,13 +240,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <p className="text-[10px] text-[#1c1e21] font-mono font-medium">{activeToast.phoneNumber}</p>
+              <p className="text-2xs text-[#1c1e21] font-mono font-medium">{activeToast.phoneNumber}</p>
               <p className="text-xs text-foreground mt-1 line-clamp-2 leading-relaxed font-sans">
                 {activeToast.body}
               </p>
 
               <div className="mt-2.5 flex items-center justify-between pt-1 border-t border-border">
-                <span className="text-[10px] text-muted-foreground">WhatsApp Live Alert</span>
+                <span className="text-2xs text-muted-foreground">WhatsApp Live Alert</span>
                 <Link
                   href={`/inbox?contactId=${activeToast.contactId || ''}`}
                   onClick={() => setActiveToast(null)}

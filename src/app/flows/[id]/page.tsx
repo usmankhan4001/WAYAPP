@@ -50,7 +50,7 @@ function TriggerNode({ data, id }: { data: any; id: string }) {
         <Zap className="w-3.5 h-3.5" />
         <span>Trigger: {data.type || 'Inbound'}</span>
       </div>
-      <div className="text-[11px] text-slate-300 font-medium">{data.text || 'Any Inbound Message'}</div>
+      <div className="text-2xs text-slate-300 font-medium">{data.text || 'Any Inbound Message'}</div>
       <Handle type="source" position={Position.Bottom} className="w-3 h-3 bg-emerald-500 border-2 border-slate-900" />
     </div>
   );
@@ -64,7 +64,7 @@ function MessageNode({ data, id }: { data: any; id: string }) {
         <MessageSquare className="w-3.5 h-3.5" />
         <span>{data.label || 'Send Message'}</span>
       </div>
-      <div className="text-[11px] text-slate-300 line-clamp-3 bg-slate-950/70 p-2 rounded-lg border border-slate-800">
+      <div className="text-2xs text-slate-300 line-clamp-3 bg-slate-950/70 p-2 rounded-lg border border-slate-800">
         {data.text || 'Enter message text...'}
       </div>
       <Handle type="source" position={Position.Bottom} className="w-3 h-3 bg-blue-500 border-2 border-slate-900" />
@@ -85,10 +85,10 @@ function QuickReplyNode({ data, id }: { data: any; id: string }) {
         <Sparkles className="w-3.5 h-3.5" />
         <span>Quick Replies</span>
       </div>
-      <div className="text-[11px] text-slate-300 mb-2">{data.text || 'Choose an option:'}</div>
+      <div className="text-2xs text-slate-300 mb-2">{data.text || 'Choose an option:'}</div>
       <div className="space-y-1">
         {buttons.map((b: any, idx: number) => (
-          <div key={idx} className="bg-purple-950/40 border border-purple-800/60 rounded-md py-1 px-2 text-[10px] font-semibold text-purple-200">
+          <div key={idx} className="bg-purple-950/40 border border-purple-800/60 rounded-md py-1 px-2 text-2xs font-semibold text-purple-200">
             {b.title}
           </div>
         ))}
@@ -106,7 +106,7 @@ function ConditionNode({ data, id }: { data: any; id: string }) {
         <Split className="w-3.5 h-3.5" />
         <span>Condition</span>
       </div>
-      <div className="text-[11px] text-slate-300 font-mono bg-slate-950 p-1.5 rounded border border-slate-800">
+      <div className="text-2xs text-slate-300 font-mono bg-slate-950 p-1.5 rounded border border-slate-800">
         {data.field || 'input'} {data.operator || '=='} &quot;{data.value || ''}&quot;
       </div>
       <Handle type="source" position={Position.Bottom} id="true" className="w-3 h-3 bg-emerald-500 border-2 border-slate-900 left-1/3" />
@@ -123,7 +123,7 @@ function ActionNode({ data, id }: { data: any; id: string }) {
         <Tag className="w-3.5 h-3.5" />
         <span>Action: {data.actionType || 'Update'}</span>
       </div>
-      <div className="text-[11px] text-slate-300">{data.label || 'Apply Contact Action'}</div>
+      <div className="text-2xs text-slate-300">{data.label || 'Apply Contact Action'}</div>
       <Handle type="source" position={Position.Bottom} className="w-3 h-3 bg-teal-500 border-2 border-slate-900" />
     </div>
   );
@@ -409,7 +409,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-bold text-white">{flow.name}</h2>
               <span
-                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                className={`px-2 py-0.5 rounded-full text-2xs font-bold border ${
                   isPublished
                     ? 'bg-emerald-950/60 border-emerald-800 text-emerald-300'
                     : 'bg-slate-800 border-slate-700 text-slate-400'
@@ -418,7 +418,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                 {flow.status}
               </span>
             </div>
-            <p className="text-[10px] text-slate-500">v{flow.version || 1} &bull; Visual Journey Canvas</p>
+            <p className="text-2xs text-slate-500">v{flow.version || 1} &bull; Visual Journey Canvas</p>
           </div>
         </div>
 
@@ -535,7 +535,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                 return (
                   <>
                     <div>
-                      <label className="block text-[11px] font-semibold text-slate-400 mb-1">Node Label</label>
+                      <label className="block text-2xs font-semibold text-slate-400 mb-1">Node Label</label>
                       <input
                         type="text"
                         value={String(nodeData.label || '')}
@@ -547,7 +547,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                     {selectedNode.type === 'trigger' && (
                       <div className="space-y-3">
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-400 mb-1">Trigger Type</label>
+                          <label className="block text-2xs font-semibold text-slate-400 mb-1">Trigger Type</label>
                           <select
                             value={String(nodeData.type || 'ANY_INBOUND')}
                             onChange={(e) => handleUpdateSelectedNodeData('type', e.target.value)}
@@ -559,7 +559,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                         </div>
                         {nodeData.type === 'KEYWORD' && (
                           <div>
-                            <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                            <label className="block text-2xs font-semibold text-slate-400 mb-1">
                               Keyword (matches if the message contains this text)
                             </label>
                             <input
@@ -571,7 +571,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                             />
                           </div>
                         )}
-                        <p className="text-[10px] text-slate-500">
+                        <p className="text-2xs text-slate-500">
                           Every published flow needs exactly one Trigger node — it's the only way this flow can start.
                         </p>
                       </div>
@@ -579,7 +579,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
 
                     {selectedNode.type === 'message' && (
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                        <label className="block text-2xs font-semibold text-slate-400 mb-1">
                           Message Body (supports {'{{firstName}}'}, {'{{phoneNumber}}'})
                         </label>
                         <textarea
@@ -594,7 +594,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                     {selectedNode.type === 'quick_reply' && (
                       <div className="space-y-3">
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-400 mb-1">Prompt Text</label>
+                          <label className="block text-2xs font-semibold text-slate-400 mb-1">Prompt Text</label>
                           <input
                             type="text"
                             value={String(nodeData.text || '')}
@@ -603,7 +603,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                           />
                         </div>
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                          <label className="block text-2xs font-semibold text-slate-400 mb-1">
                             Buttons (customer replies by number or by typing the option)
                           </label>
                           <div className="space-y-2">
@@ -642,7 +642,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                               const newBtns = [...current, { id: `btn_${Date.now()}`, title: `Option ${current.length + 1}` }];
                               handleUpdateSelectedNodeData('buttons', newBtns);
                             }}
-                            className="mt-2 w-full py-1.5 rounded-lg border border-dashed border-slate-700 hover:border-purple-600 hover:bg-purple-950/30 text-[11px] font-semibold text-slate-400 hover:text-purple-300 flex items-center justify-center gap-1.5 transition-colors"
+                            className="mt-2 w-full py-1.5 rounded-lg border border-dashed border-slate-700 hover:border-purple-600 hover:bg-purple-950/30 text-2xs font-semibold text-slate-400 hover:text-purple-300 flex items-center justify-center gap-1.5 transition-colors"
                           >
                             <Plus className="w-3 h-3" />
                             <span>Add Option</span>
@@ -654,7 +654,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                     {selectedNode.type === 'condition' && (
                       <div className="space-y-3">
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-400 mb-1">Variable Field</label>
+                          <label className="block text-2xs font-semibold text-slate-400 mb-1">Variable Field</label>
                           <input
                             type="text"
                             value={String(nodeData.field || 'lastInput')}
@@ -663,7 +663,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                           />
                         </div>
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-400 mb-1">Operator</label>
+                          <label className="block text-2xs font-semibold text-slate-400 mb-1">Operator</label>
                           <select
                             value={String(nodeData.operator || 'equals')}
                             onChange={(e) => handleUpdateSelectedNodeData('operator', e.target.value)}
@@ -676,7 +676,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                           </select>
                         </div>
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-400 mb-1">Target Value</label>
+                          <label className="block text-2xs font-semibold text-slate-400 mb-1">Target Value</label>
                           <input
                             type="text"
                             value={String(nodeData.value || '')}
@@ -690,7 +690,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                     {selectedNode.type === 'action' && (
                       <div className="space-y-3">
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-400 mb-1">Action Type</label>
+                          <label className="block text-2xs font-semibold text-slate-400 mb-1">Action Type</label>
                           <select
                             value={String(nodeData.actionType || 'ADD_TAG')}
                             onChange={(e) => handleUpdateSelectedNodeData('actionType', e.target.value)}
@@ -704,7 +704,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
 
                         {nodeData.actionType === 'ADD_TAG' && (
                           <div>
-                            <label className="block text-[11px] font-semibold text-slate-400 mb-1">Tag</label>
+                            <label className="block text-2xs font-semibold text-slate-400 mb-1">Tag</label>
                             <select
                               value={String(nodeData.targetId || '')}
                               onChange={(e) => handleUpdateSelectedNodeData('targetId', e.target.value)}
@@ -716,7 +716,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                               ))}
                             </select>
                             {tags.length === 0 && (
-                              <p className="text-[10px] text-amber-400 mt-1">
+                              <p className="text-2xs text-amber-400 mt-1">
                                 No tags exist yet — create one from Contacts first.
                               </p>
                             )}
@@ -725,7 +725,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
 
                         {nodeData.actionType === 'ADD_TO_GROUP' && (
                           <div>
-                            <label className="block text-[11px] font-semibold text-slate-400 mb-1">Group</label>
+                            <label className="block text-2xs font-semibold text-slate-400 mb-1">Group</label>
                             <select
                               value={String(nodeData.targetId || '')}
                               onChange={(e) => handleUpdateSelectedNodeData('targetId', e.target.value)}
@@ -737,7 +737,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                               ))}
                             </select>
                             {groups.length === 0 && (
-                              <p className="text-[10px] text-amber-400 mt-1">
+                              <p className="text-2xs text-amber-400 mt-1">
                                 No groups exist yet — create one from Contacts first.
                               </p>
                             )}
@@ -747,7 +747,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                         {nodeData.actionType === 'UPDATE_CONTACT' && (
                           <>
                             <div>
-                              <label className="block text-[11px] font-semibold text-slate-400 mb-1">Variable Name</label>
+                              <label className="block text-2xs font-semibold text-slate-400 mb-1">Variable Name</label>
                               <input
                                 type="text"
                                 placeholder="e.g. leadScore"
@@ -757,14 +757,14 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                               />
                             </div>
                             <div>
-                              <label className="block text-[11px] font-semibold text-slate-400 mb-1">Value</label>
+                              <label className="block text-2xs font-semibold text-slate-400 mb-1">Value</label>
                               <input
                                 type="text"
                                 value={String(nodeData.attributeValue || '')}
                                 onChange={(e) => handleUpdateSelectedNodeData('attributeValue', e.target.value)}
                                 className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs"
                               />
-                              <p className="text-[10px] text-slate-500 mt-1">
+                              <p className="text-2xs text-slate-500 mt-1">
                                 Stored for this conversation only — not saved to the contact record.
                               </p>
                             </div>
@@ -836,7 +836,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                         <button
                           key={bIdx}
                           onClick={() => sendSimulatorReply(b.title)}
-                          className="px-2.5 py-1 rounded-lg bg-purple-600/30 hover:bg-purple-600 border border-purple-500/50 text-[11px] font-semibold text-purple-200 hover:text-white transition-colors"
+                          className="px-2.5 py-1 rounded-lg bg-purple-600/30 hover:bg-purple-600 border border-purple-500/50 text-2xs font-semibold text-purple-200 hover:text-white transition-colors"
                         >
                           {b.title}
                         </button>
@@ -846,7 +846,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                 </div>
               ))}
               {simLoading && (
-                <div className="flex items-center gap-1.5 text-slate-500 text-[11px]">
+                <div className="flex items-center gap-1.5 text-slate-500 text-2xs">
                   <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" />
                   <span>Bot is thinking...</span>
                 </div>

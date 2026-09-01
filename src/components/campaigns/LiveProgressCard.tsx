@@ -47,7 +47,7 @@ export function LiveProgressCard({ campaign, stats, onAction }: LiveProgressCard
         <div>
           <div className="flex items-center gap-2">
             <StatusBadge tone={STATUS_TONE[campaign.status] ?? 'neutral'}>{campaign.status}</StatusBadge>
-            <span className="text-[0.6875rem] text-muted-foreground">
+            <span className="text-2xs text-muted-foreground">
               Created {new Date(campaign.createdAt).toLocaleDateString()}
             </span>
           </div>
@@ -89,7 +89,7 @@ export function LiveProgressCard({ campaign, stats, onAction }: LiveProgressCard
       <div className="grid grid-cols-2 gap-3 pt-1 sm:grid-cols-5">
         {metrics.map((m) => (
           <div key={m.label} className="rounded-lg border border-border bg-muted p-3 text-center">
-            <span className="mb-0.5 block text-[0.6875rem] font-medium text-muted-foreground">{m.label}</span>
+            <span className="mb-0.5 block text-2xs font-medium text-muted-foreground">{m.label}</span>
             <p className={`font-mono text-base font-semibold ${m.tone}`}>{m.value}</p>
           </div>
         ))}

@@ -835,12 +835,12 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
               {/* 24-Hour Active Window Pill */}
               <div className="flex items-center gap-1.5">
                 {effectiveWindowActive ? (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/80">
+                  <span className="inline-flex items-center gap-1 text-2xs font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/80">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     {isMockMode ? 'Mock Simulation Active' : `24h Active • ${hoursRemaining}h ${minutesRemaining}m`}
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/80">
+                  <span className="inline-flex items-center gap-1 text-2xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/80">
                     <Lock className="w-2.5 h-2.5" />
                     24h Expired &bull; Template Required
                   </span>
@@ -937,7 +937,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                 <Sparkles className="w-6 h-6 text-primary" />
               </div>
               <p className="text-xs font-normal text-foreground">No messages yet in this conversation</p>
-              <p className="text-[11px] text-muted-foreground max-w-xs">
+              <p className="text-2xs text-muted-foreground max-w-xs">
                 Send an approved WhatsApp template or reply directly to begin chatting.
               </p>
             </div>
@@ -1019,7 +1019,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                             <p className="text-xs font-semibold truncate">
                               {m.body && m.body !== 'Document' ? m.body : 'Attached Document'}
                             </p>
-                            <p className="text-[10px] text-muted-foreground">PDF / Document File</p>
+                            <p className="text-2xs text-muted-foreground">PDF / Document File</p>
                           </div>
                           <a
                             href={m.mediaUrl}
@@ -1051,20 +1051,20 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                           <textarea
                             value={editMessageText}
                             onChange={(e) => setEditMessageText(e.target.value)}
-                            className="w-full text-[13px] rounded-full p-2 border border-emerald-400 bg-card text-foreground focus:outline-hidden focus:ring-1 focus:ring-ring resize-none min-h-[60px]"
+                            className="w-full text-sm rounded-full p-2 border border-emerald-400 bg-card text-foreground focus:outline-hidden focus:ring-1 focus:ring-ring resize-none min-h-[60px]"
                             autoFocus
                           />
                           <div className="flex justify-end gap-1.5">
                             <button
                               onClick={() => setEditingMessageId(null)}
-                              className="px-2 py-1 text-[10px] font-normal rounded bg-muted hover:bg-accent text-foreground"
+                              className="px-2 py-1 text-2xs font-normal rounded bg-muted hover:bg-accent text-foreground"
                             >
                               Cancel
                             </button>
                             <button
                               onClick={() => handleEditSubmit(m.id)}
                               disabled={isSavingEdit}
-                              className="px-2 py-1 text-[10px] font-normal rounded bg-wa hover:bg-primary/90 text-white"
+                              className="px-2 py-1 text-2xs font-normal rounded bg-wa hover:bg-primary/90 text-white"
                             >
                               {isSavingEdit ? 'Saving...' : 'Save'}
                             </button>
@@ -1078,7 +1078,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                         (msgType !== 'video' || m.body !== 'Video') &&
                         (msgType !== 'document' || !hasMedia) &&
                         msgType !== 'location' && (
-                          <p className="text-[13px] whitespace-pre-wrap leading-relaxed font-sans text-foreground">
+                          <p className="text-sm whitespace-pre-wrap leading-relaxed font-sans text-foreground">
                             {m.body}
                           </p>
                         )
@@ -1086,11 +1086,11 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
 
                       {/* Message Timestamp & Status */}
                       <div
-                        className={`flex items-center justify-end gap-1 text-[10px] select-none pt-0.5 ${
+                        className={`flex items-center justify-end gap-1 text-2xs select-none pt-0.5 ${
                           isOutbound ? 'text-muted-foreground' : 'text-muted-foreground'
                         }`}
                       >
-                        <span className="font-mono text-[10px]">{formatDateTime(m.timestamp)}</span>
+                        <span className="font-mono text-2xs">{formatDateTime(m.timestamp)}</span>
                         {isOutbound && (
                           <CheckCheck
                             className={`w-3.5 h-3.5 ${
@@ -1165,7 +1165,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
         {modules.ai_copilot && aiSuggestions.length > 0 && (
           <div className="mx-4 mb-2 p-2.5 rounded-full bg-purple-50/90 border border-purple-200 space-y-1.5 animate-in fade-in slide-in-from-bottom-2 duration-150">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-normal text-purple-900 flex items-center gap-1">
+              <span className="text-2xs font-normal text-purple-900 flex items-center gap-1">
                 <Sparkles className="w-3.5 h-3.5 text-purple-600" />
                 <span>AI Suggested Sales Replies (1-Click to Insert):</span>
               </span>
@@ -1274,9 +1274,9 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
           {/* Canned Snippet Suggestions Autocomplete Drawer */}
           {showSnippetDropdown && (
             <div className="absolute bottom-16 left-4 right-4 bg-card rounded-2xl border border-border shadow-xl p-2.5 z-40 max-h-56 overflow-y-auto space-y-1 animate-in fade-in slide-in-from-bottom-2 duration-150">
-              <div className="px-2 py-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
+              <div className="px-2 py-1 text-2xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
                 <span>Canned Snippets (Type shortcut or click to insert)</span>
-                <span className="text-[10px] text-muted-foreground">Esc to close</span>
+                <span className="text-2xs text-muted-foreground">Esc to close</span>
               </div>
               {snippets
                 .filter((s) => s.shortcut.toLowerCase().includes(snippetFilter))
@@ -1293,9 +1293,9 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                         </span>
                         <span className="font-semibold text-xs text-foreground truncate">{snip.title}</span>
                       </div>
-                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">{snip.content}</p>
+                      <p className="text-2xs text-muted-foreground truncate mt-0.5">{snip.content}</p>
                     </div>
-                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
+                    <span className="text-2xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
                       {snip.category}
                     </span>
                   </div>
@@ -1312,7 +1312,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                 )}
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-foreground truncate">{stagedMedia.file.name}</p>
-                  <span className="text-[10px] text-muted-foreground uppercase font-semibold">{stagedMedia.mediaType}</span>
+                  <span className="text-2xs text-muted-foreground uppercase font-semibold">{stagedMedia.mediaType}</span>
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
@@ -1342,14 +1342,14 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
             <div className="mb-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-2 text-xs">
               <div className="flex items-center gap-2 min-w-0">
                 <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                <span className="text-amber-800 text-[11px] font-medium truncate">
+                <span className="text-amber-800 text-2xs font-medium truncate">
                   24h Window Inactive: May require an approved WhatsApp template.
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => setIsTemplatePickerOpen(!isTemplatePickerOpen)}
-                className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-semibold shrink-0 flex items-center gap-1 shadow-2xs active:scale-95"
+                className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-2xs font-semibold shrink-0 flex items-center gap-1 shadow-2xs active:scale-95"
               >
                 <FileText className="w-3 h-3" />
                 <span>Templates</span>
@@ -1381,7 +1381,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                     </div>
                     <div className="text-left">
                       <span className="block font-semibold text-foreground">Take Photo / Video</span>
-                      <span className="text-[10px] text-muted-foreground font-normal block">Capture from camera</span>
+                      <span className="text-2xs text-muted-foreground font-normal block">Capture from camera</span>
                     </div>
                   </button>
 
@@ -1520,12 +1520,12 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                     >
                       <div className="min-w-0">
                         <h5 className="text-xs font-semibold text-foreground font-mono">{tpl.name}</h5>
-                        <p className="text-[10px] text-muted-foreground truncate">{tpl.category} &bull; {tpl.language}</p>
+                        <p className="text-2xs text-muted-foreground truncate">{tpl.category} &bull; {tpl.language}</p>
                       </div>
                       <button
                         type="button"
                         disabled={isSending}
-                        className="px-3 py-1 rounded-lg bg-primary hover:bg-primary/90 text-white text-[11px] font-semibold shrink-0 shadow-2xs"
+                        className="px-3 py-1 rounded-lg bg-primary hover:bg-primary/90 text-white text-2xs font-semibold shrink-0 shadow-2xs"
                       >
                         {isSending ? 'Sending...' : 'Send'}
                       </button>
@@ -1586,7 +1586,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
         }
       >
         <div className="space-y-4">
-          <div className="max-h-20 overflow-y-auto rounded-lg border border-border bg-muted p-3 text-[0.6875rem] italic text-foreground">
+          <div className="max-h-20 overflow-y-auto rounded-lg border border-border bg-muted p-3 text-2xs italic text-foreground">
             {forwardingMessage?.body ? `"${forwardingMessage.body}"` : '[Media message]'}
           </div>
 
@@ -1610,7 +1610,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                   <p className="truncate text-xs font-semibold text-foreground">
                     {c.firstName} {c.lastName || ''}
                   </p>
-                  <p className="font-mono text-[0.625rem] text-muted-foreground">{c.phoneNumber}</p>
+                  <p className="font-mono text-2xs text-muted-foreground">{c.phoneNumber}</p>
                 </div>
                 <Button size="xs" onClick={() => handleForwardSubmit(c.id)} disabled={isForwarding}>
                   Send
@@ -1649,7 +1649,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
             >
               <span>Notes</span>
               {crmData?.contact?.conversation?.notes?.length > 0 && (
-                <span className="w-4 h-4 rounded-full bg-amber-400 text-foreground text-[10px] flex items-center justify-center font-bold">
+                <span className="w-4 h-4 rounded-full bg-amber-400 text-foreground text-2xs flex items-center justify-center font-bold">
                   {crmData.contact.conversation.notes.length}
                 </span>
               )}
@@ -1676,12 +1676,12 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                     {contactName.substring(0, 2).toUpperCase()}
                   </div>
                   <h4 className="text-xs font-bold text-foreground">{contactName}</h4>
-                  <p className="text-[11px] text-muted-foreground font-mono">{contact?.phoneNumber}</p>
+                  <p className="text-2xs text-muted-foreground font-mono">{contact?.phoneNumber}</p>
                 </div>
 
                 {/* Lead Stage Selector */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  <label className="text-2xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Deal Stage
                   </label>
                   <select
@@ -1702,7 +1702,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
 
                 {/* Deal Value */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-normal text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <label className="text-2xs font-normal text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                     <DollarSign className="w-3 h-3 text-muted-foreground" />
                     <span>Estimated Deal Value</span>
                   </label>
@@ -1727,7 +1727,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                 {/* Company & City */}
                 <div className="space-y-2">
                   <div>
-                    <label className="text-[10px] font-normal text-muted-foreground uppercase tracking-wider">Company</label>
+                    <label className="text-2xs font-normal text-muted-foreground uppercase tracking-wider">Company</label>
                     <input
                       type="text"
                       value={company}
@@ -1737,7 +1737,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-normal text-muted-foreground uppercase tracking-wider">City</label>
+                    <label className="text-2xs font-normal text-muted-foreground uppercase tracking-wider">City</label>
                     <input
                       type="text"
                       value={city}
@@ -1750,7 +1750,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
 
                 {/* Assigned Agent */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-normal text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <label className="text-2xs font-normal text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                     <UserCheck className="w-3 h-3 text-muted-foreground" />
                     <span>Assigned Sales Rep</span>
                   </label>
@@ -1770,18 +1770,18 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
 
                 {/* Tags */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-normal text-muted-foreground uppercase tracking-wider">Tags</label>
+                  <label className="text-2xs font-normal text-muted-foreground uppercase tracking-wider">Tags</label>
                   <div className="flex flex-wrap gap-1">
                     {crmData?.contact?.tags?.map((t: any) => (
                       <span
                         key={t.tagId}
-                        className="px-2 py-0.5 rounded text-[10px] font-normal bg-blue-100 text-blue-800"
+                        className="px-2 py-0.5 rounded text-2xs font-normal bg-blue-100 text-blue-800"
                       >
                         {t.tag?.name}
                       </span>
                     ))}
                     {(!crmData?.contact?.tags || crmData?.contact?.tags.length === 0) && (
-                      <span className="text-[11px] text-muted-foreground">No tags assigned</span>
+                      <span className="text-2xs text-muted-foreground">No tags assigned</span>
                     )}
                   </div>
                 </div>
@@ -1811,7 +1811,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                   {crmData?.contact?.conversation?.notes?.map((n: any) => (
                     <div key={n.id} className="p-2.5 rounded-full bg-amber-50 border border-amber-200 space-y-1 text-xs">
                       <p className="text-amber-950 whitespace-pre-wrap">{n.body}</p>
-                      <div className="flex items-center justify-between text-[10px] text-amber-700/70 pt-1 border-t border-amber-200/50">
+                      <div className="flex items-center justify-between text-2xs text-amber-700/70 pt-1 border-t border-amber-200/50">
                         <span>{n.author?.name || 'Agent'}</span>
                         <span>{formatTimeAgo(n.createdAt)}</span>
                       </div>
@@ -1829,13 +1829,13 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                 <div className="space-y-2 text-xs">
                   {crmData?.contact?.conversation?.events?.map((ev: any) => (
                     <div key={ev.id} className="p-2 rounded-full bg-card border border-border space-y-0.5">
-                      <span className="font-normal text-[10px] text-foreground uppercase tracking-wider block">
+                      <span className="font-normal text-2xs text-foreground uppercase tracking-wider block">
                         {ev.type}
                       </span>
-                      <p className="text-muted-foreground text-[11px]">
+                      <p className="text-muted-foreground text-2xs">
                         {ev.actor?.name ? `By ${ev.actor.name}` : 'System'}
                       </p>
-                      <span className="text-[10px] text-muted-foreground">{formatTimeAgo(ev.createdAt)}</span>
+                      <span className="text-2xs text-muted-foreground">{formatTimeAgo(ev.createdAt)}</span>
                     </div>
                   ))}
                   {(!crmData?.contact?.conversation?.events || crmData.contact.conversation.events.length === 0) && (

@@ -131,7 +131,7 @@ export function VoiceNoteRecorder({ onSendVoiceNote, onCancel }: VoiceNoteRecord
           <div className="w-1 bg-primary rounded-full h-6 animate-pulse delay-200" />
         </div>
 
-        <span className="text-[11px] text-muted-foreground font-medium hidden md:inline">
+        <span className="text-2xs text-muted-foreground font-medium hidden md:inline">
           Recording WhatsApp Voice Note...
         </span>
       </div>

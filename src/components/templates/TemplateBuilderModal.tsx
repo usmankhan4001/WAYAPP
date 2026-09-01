@@ -324,7 +324,7 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
                   className="input-base font-mono text-xs"
                   required
                 />
-                <span className="text-[10px] text-muted-foreground">Only lowercase letters, numbers, and underscores.</span>
+                <span className="text-2xs text-muted-foreground">Only lowercase letters, numbers, and underscores.</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -372,7 +372,7 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
                       key={type}
                       type="button"
                       onClick={() => setHeaderType(type)}
-                      className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
+                      className={`px-2 py-1 rounded-md text-2xs font-bold transition-all ${
                         headerType === type
                           ? 'bg-primary text-primary-foreground shadow-sm'
                           : 'bg-white text-muted-foreground border border-border hover:bg-muted'
@@ -443,7 +443,7 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
                 required
               />
 
-              <div className="flex justify-between text-[10px] text-muted-foreground">
+              <div className="flex justify-between text-2xs text-muted-foreground">
                 <span>Variables: &#123;&#123;1&#125;&#125;, &#123;&#123;2&#125;&#125;</span>
                 <span>{bodyText.length} / 1024 chars</span>
               </div>
@@ -455,7 +455,7 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
                     <Sparkles className="w-3.5 h-3.5 text-warning" />
                     <span>Provide Realistic Sample Values (Required by Meta for Approval)</span>
                   </div>
-                  <p className="text-[11px] text-warning-subtle-foreground">
+                  <p className="text-2xs text-warning-subtle-foreground">
                     Meta AI requires realistic sample text for every variable to verify policy compliance.
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
@@ -503,7 +503,7 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
                     type="button"
                     onClick={() => handleAddButton('QUICK_REPLY')}
                     disabled={buttons.length >= 10}
-                    className="px-2 py-1 bg-card hover:bg-muted border border-border rounded text-[10px] font-bold text-foreground"
+                    className="px-2 py-1 bg-card hover:bg-muted border border-border rounded text-2xs font-bold text-foreground"
                   >
                     + Quick Reply
                   </button>
@@ -511,7 +511,7 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
                     type="button"
                     onClick={() => handleAddButton('URL')}
                     disabled={buttons.length >= 10}
-                    className="px-2 py-1 bg-card hover:bg-muted border border-border rounded text-[10px] font-bold text-foreground"
+                    className="px-2 py-1 bg-card hover:bg-muted border border-border rounded text-2xs font-bold text-foreground"
                   >
                     + URL Link
                   </button>
@@ -519,7 +519,7 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
                     type="button"
                     onClick={() => handleAddButton('PHONE_NUMBER')}
                     disabled={buttons.length >= 10}
-                    className="px-2 py-1 bg-card hover:bg-muted border border-border rounded text-[10px] font-bold text-foreground"
+                    className="px-2 py-1 bg-card hover:bg-muted border border-border rounded text-2xs font-bold text-foreground"
                   >
                     + Phone Call
                   </button>
@@ -533,7 +533,7 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
                   {buttons.map((btn, idx) => (
                     <div key={idx} className="p-2.5 bg-card rounded-lg border border-border space-y-2">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-brand-subtle px-1.5 py-0.5 rounded">
+                        <span className="text-2xs font-bold uppercase tracking-wider text-primary bg-brand-subtle px-1.5 py-0.5 rounded">
                           {btn.type.replace('_', ' ')}
                         </span>
                         <button
@@ -617,7 +617,7 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
           <div className="sticky top-0 w-full space-y-2">
             <div className="flex items-center justify-between px-1 text-xs font-bold text-foreground">
               <span>Real-time WhatsApp handset preview</span>
-              <span className="text-[0.625rem] font-semibold text-primary">Live rendering</span>
+              <span className="text-2xs font-semibold text-primary">Live rendering</span>
             </div>
             <WhatsAppMockupPreview components={previewComponents} />
           </div>

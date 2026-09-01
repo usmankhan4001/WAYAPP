@@ -249,13 +249,13 @@ export function CampaignWizard({ templates = [], groups = [], tags = [] }: Campa
                       <span className="text-xs font-bold text-foreground">Include Groups & Tags (OR)</span>
                       <InfoTooltip content="Contacts belonging to ANY of these selected groups or tags will receive the broadcast." />
                     </div>
-                    <span className="text-[0.625rem] font-semibold bg-brand-subtle text-brand-subtle-foreground px-2 py-0.5 rounded">
+                    <span className="text-2xs font-semibold bg-brand-subtle text-brand-subtle-foreground px-2 py-0.5 rounded">
                       Target Lists
                     </span>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-foreground mb-1">Include Groups</label>
+                    <label className="block text-2xs font-semibold text-foreground mb-1">Include Groups</label>
                     <div className="flex flex-wrap gap-1.5">
                       {groups.length === 0 ? (
                         <span className="text-xs text-muted-foreground">No groups created yet</span>
@@ -285,7 +285,7 @@ export function CampaignWizard({ templates = [], groups = [], tags = [] }: Campa
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-foreground mb-1">Include Tags</label>
+                    <label className="block text-2xs font-semibold text-foreground mb-1">Include Tags</label>
                     <div className="flex flex-wrap gap-1.5">
                       {tags.length === 0 ? (
                         <span className="text-xs text-muted-foreground">No tags created yet</span>
@@ -322,13 +322,13 @@ export function CampaignWizard({ templates = [], groups = [], tags = [] }: Campa
                       <span className="text-xs font-bold text-foreground">Exclude Lists (Subtract)</span>
                       <InfoTooltip content="Contacts in these excluded lists will NEVER receive this broadcast, even if they matched inclusion rules." />
                     </div>
-                    <span className="text-[10px] text-destructive font-semibold bg-destructive/10 px-2 py-0.5 rounded border border-destructive/30">
+                    <span className="text-2xs text-destructive font-semibold bg-destructive/10 px-2 py-0.5 rounded border border-destructive/30">
                       Suppression
                     </span>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-foreground mb-1">Exclude Groups</label>
+                    <label className="block text-2xs font-semibold text-foreground mb-1">Exclude Groups</label>
                     <div className="flex flex-wrap gap-1.5">
                       {groups.length === 0 ? (
                         <span className="text-xs text-muted-foreground">No groups</span>
@@ -358,7 +358,7 @@ export function CampaignWizard({ templates = [], groups = [], tags = [] }: Campa
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-foreground mb-1">Exclude Tags</label>
+                    <label className="block text-2xs font-semibold text-foreground mb-1">Exclude Tags</label>
                     <div className="flex flex-wrap gap-1.5">
                       {tags.length === 0 ? (
                         <span className="text-xs text-muted-foreground">No tags</span>
@@ -412,7 +412,7 @@ export function CampaignWizard({ templates = [], groups = [], tags = [] }: Campa
 
               {sampleContacts.length > 0 && (
                 <div className="hidden sm:block text-right">
-                  <p className="text-[11px] text-muted-foreground">Sample Recipients:</p>
+                  <p className="text-2xs text-muted-foreground">Sample Recipients:</p>
                   <p className="text-xs text-muted-foreground font-medium font-mono">
                     {sampleContacts.map((c) => c.name || c.phone).slice(0, 2).join(', ')}...
                   </p>
@@ -460,7 +460,7 @@ export function CampaignWizard({ templates = [], groups = [], tags = [] }: Campa
               {templates.length === 0 ? (
                 <div className="p-8 text-center bg-muted rounded-xl border border-border space-y-2">
                   <p className="text-xs font-bold text-foreground">No Templates Found</p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-2xs text-muted-foreground">
                     You need at least one approved template. Go to the Templates tab to create or sync.
                   </p>
                 </div>
@@ -495,12 +495,12 @@ export function CampaignWizard({ templates = [], groups = [], tags = [] }: Campa
                           </span>
                           <h4 className="text-xs font-bold text-foreground font-mono">{tpl.name}</h4>
                         </div>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand-subtle text-brand-subtle-foreground font-bold">
+                        <span className="text-2xs px-2 py-0.5 rounded-full bg-brand-subtle text-brand-subtle-foreground font-bold">
                           {tpl.status}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{bodyText}</p>
-                      <div className="mt-2 flex items-center gap-3 text-[10px] text-muted-foreground font-semibold uppercase">
+                      <div className="mt-2 flex items-center gap-3 text-2xs text-muted-foreground font-semibold uppercase">
                         <span>Category: {tpl.category}</span>
                         <span>•</span>
                         <span>Lang: {tpl.language}</span>
@@ -619,35 +619,35 @@ export function CampaignWizard({ templates = [], groups = [], tags = [] }: Campa
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="p-4 rounded-xl bg-muted border border-border">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Campaign</span>
+              <span className="text-2xs font-bold text-muted-foreground uppercase tracking-wider">Campaign</span>
               <p className="text-sm font-bold text-foreground mt-1 truncate">{campaignName}</p>
               <p className="text-xs text-muted-foreground mt-0.5 font-mono truncate">Template: {selectedTemplate?.name}</p>
             </div>
 
             <div className="p-4 rounded-xl bg-muted border border-border">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Recipients</span>
+              <span className="text-2xs font-bold text-muted-foreground uppercase tracking-wider">Recipients</span>
               <p className="text-lg font-bold text-foreground mt-1">{audienceCount ?? 0} Contacts</p>
               <p className="text-xs text-muted-foreground mt-0.5">Deduplicated & Active</p>
             </div>
 
             <div className="p-4 rounded-xl bg-muted border border-border">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Est. Duration</span>
+              <span className="text-2xs font-bold text-muted-foreground uppercase tracking-wider">Est. Duration</span>
               <p className="text-sm font-bold text-foreground mt-1">~ {Math.max(1, Math.ceil((audienceCount || 1) / 20))}s</p>
               <p className="text-xs text-muted-foreground mt-0.5">Rate: 20 msgs/sec</p>
             </div>
 
             <div className="p-4 rounded-xl bg-success-subtle border border-success/20">
-              <span className="text-[10px] font-bold text-success-subtle-foreground uppercase tracking-wider">0% Markup Meta Cost</span>
+              <span className="text-2xs font-bold text-success-subtle-foreground uppercase tracking-wider">0% Markup Meta Cost</span>
               <p className="text-lg font-bold text-success-subtle-foreground mt-1 font-mono">
                 ${((audienceCount || 0) * 0.045).toFixed(2)} USD
               </p>
-              <p className="text-[10px] text-primary mt-0.5">Official Meta Rate (0% Surcharge)</p>
+              <p className="text-2xs text-primary mt-0.5">Official Meta Rate (0% Surcharge)</p>
             </div>
           </div>
 
           <div className="p-3.5 rounded-xl bg-muted border border-border text-xs text-foreground space-y-1">
             <p className="font-bold text-foreground">Compliance & Rate Limiting:</p>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
+            <p className="text-2xs text-muted-foreground leading-relaxed">
               Messages will be dispatched with asynchronous throttling (default: 20 messages/second) to stay within Meta WhatsApp messaging limits and protect your phone number quality rating.
             </p>
           </div>
