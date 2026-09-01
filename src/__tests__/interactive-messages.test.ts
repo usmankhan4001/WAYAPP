@@ -10,7 +10,7 @@ describe('WhatsAppClient Interactive Messages (Meta Graph API v21.0)', () => {
       body: 'What is your business activity?',
       buttonText: 'Select Activity',
       header: 'Business Setup',
-      footer: 'GCCStartup Advisory',
+      footer: 'Business Advisory',
       sections: [
         {
           title: 'Popular Sectors',
@@ -67,7 +67,7 @@ describe('WhatsAppClient Interactive Messages (Meta Graph API v21.0)', () => {
     const tpl = await prisma.template.upsert({
       where: { metaId: 'test_meta_28687726467485739' },
       update: {
-        name: 'gcc_initial_qualification_test',
+        name: 'initial_qualification_test',
         language: 'en',
         category: 'MARKETING',
         status: 'APPROVED',
@@ -76,7 +76,7 @@ describe('WhatsAppClient Interactive Messages (Meta Graph API v21.0)', () => {
       },
       create: {
         metaId: 'test_meta_28687726467485739',
-        name: 'gcc_initial_qualification_test',
+        name: 'initial_qualification_test',
         language: 'en',
         category: 'MARKETING',
         status: 'APPROVED',

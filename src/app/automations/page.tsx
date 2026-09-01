@@ -20,6 +20,9 @@ import {
   X,
 } from 'lucide-react';
 import { InfoTooltip, Tooltip } from '@/components/ui/Tooltip';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 
 export default function AutomationsPage() {
   const [automations, setAutomations] = useState<any[]>([]);
@@ -33,14 +36,15 @@ export default function AutomationsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formName, setFormName] = useState('');
   const [formDesc, setFormDesc] = useState('');
-  const [formMatchType, setFormMatchType] = useState<'EXACT' | 'CONTAINS' | 'STARTS_WITH' | 'ANY_INBOUND'>('CONTAINS');
+  const [formMatchType, setFormMatchType] = useState<'EXACT' | 'CONTAINS' | 'STARTS_WITH' | 'REGEX' | 'ANY_INBOUND'>('CONTAINS');
   const [formKeywords, setFormKeywords] = useState('price, pricing, cost, quote');
   const [formActionType, setFormActionType] = useState<'SEND_TEXT' | 'SEND_TEMPLATE' | 'ADD_TAG' | 'ASSIGN_GROUP'>('SEND_TEXT');
-  const [formActionText, setFormActionText] = useState('Hi! Thank you for your interest. Here is our pricing list: https://gccstartup.com/pricing');
+  const [formActionText, setFormActionText] = useState('Hi! Thank you for your interest. Here is our pricing list: https://example.com/pricing');
   const [formTemplateName, setFormTemplateName] = useState('');
   const [formTagName, setFormTagName] = useState('Pricing Inquiry');
   const [formGroupId, setFormGroupId] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [showRecipes, setShowRecipes] = useState(false);
 
   const fetchAutomations = async () => {
     try {
@@ -48,7 +52,9 @@ export default function AutomationsPage() {
       const data = await res.json();
       setAutomations(data.automations || []);
       setStats(data.stats || { totalRules: 0, activeRules: 0, totalExecutions: 0 });
-    } catch {} finally {
+    } catch (error) {
+      console.warn('[Automations] Failed to fetch automations:', error);
+    } finally {
       setLoading(false);
     }
   };
@@ -61,15 +67,22 @@ export default function AutomationsPage() {
       .then((data) => {
         if (Array.isArray(data)) setTemplates(data);
       })
-      .catch(() => {});
+      .catch((error) => console.warn('[Automations] Failed to fetch templates:', error));
 
     fetch('/api/groups')
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) setGroups(data);
       })
-      .catch(() => {});
+      .catch((error) => console.warn('[Automations] Failed to fetch groups:', error));
   }, []);
+
+  // Show the pre-built recipes open by default only for brand-new setups with no rules yet
+  useEffect(() => {
+    if (!loading && automations.length === 0) {
+      setShowRecipes(true);
+    }
+  }, [loading, automations.length]);
 
   const handleToggleActive = async (id: string, currentStatus: boolean) => {
     try {
@@ -79,7 +92,9 @@ export default function AutomationsPage() {
         body: JSON.stringify({ isActive: !currentStatus }),
       });
       fetchAutomations();
-    } catch {}
+    } catch (error) {
+      console.warn('[Automations] Failed to toggle rule:', error);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -87,7 +102,9 @@ export default function AutomationsPage() {
     try {
       await fetch(`/api/automations/${id}`, { method: 'DELETE' });
       fetchAutomations();
-    } catch {}
+    } catch (error) {
+      console.warn('[Automations] Failed to delete rule:', error);
+    }
   };
 
   const handleOpenCreate = (recipe?: any) => {
@@ -100,6 +117,7 @@ export default function AutomationsPage() {
       setFormActionType(recipe.actionType);
       setFormActionText(recipe.actionText || '');
       setFormTagName(recipe.tagName || '');
+      setFormGroupId(recipe.groupId || '');
     } else {
       setFormName('');
       setFormDesc('');
@@ -108,6 +126,7 @@ export default function AutomationsPage() {
       setFormActionType('SEND_TEXT');
       setFormActionText('Hi! Thanks for messaging us. How can we assist you today?');
       setFormTagName('Hot Lead');
+      setFormGroupId('');
     }
     setIsModalOpen(true);
   };
@@ -169,7 +188,9 @@ export default function AutomationsPage() {
 
       setIsModalOpen(false);
       fetchAutomations();
-    } catch {} finally {
+    } catch (error) {
+      console.warn('[Automations] Failed to save rule:', error);
+    } finally {
       setIsSaving(false);
     }
   };
@@ -227,17 +248,25 @@ export default function AutomationsPage() {
         </div>
       </div>
 
-      {/* Pre-Built Industry Recipes Starter Banner */}
+      {/* Pre-Built Industry Recipes Starter Banner (collapsed by default once rules exist, to reduce clutter) */}
       <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl p-5 shadow-sm space-y-3">
-        <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => setShowRecipes((v) => !v)}
+          className="w-full flex items-center justify-between"
+        >
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-emerald-400" />
             <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
               1-Click Pre-Built Industry Sales Recipes
             </h3>
           </div>
-          <span className="text-[10px] text-slate-400">Click any recipe to activate</span>
-        </div>
+          <div className="flex items-center gap-1.5 text-slate-400">
+            <span className="text-[10px]">{showRecipes ? 'Hide' : 'Show'} recipes</span>
+            {showRecipes ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+          </div>
+        </button>
+        {showRecipes && (
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
           <button
             onClick={() =>
@@ -248,7 +277,7 @@ export default function AutomationsPage() {
                 keywords: 'property, villa, apartment, rent, buy, viewing',
                 actionType: 'SEND_TEXT',
                 actionText:
-                  'Hello! Thank you for inquiring about our luxury properties. 🏢 You can view our available listings and brochure here: https://gccstartup.com/properties.pdf. Would you like to schedule a private site viewing this week?',
+                  'Hello! Thank you for inquiring about our luxury properties. 🏢 You can view our available listings and brochure here: https://example.com/properties.pdf. Would you like to schedule a private site viewing this week?',
                 tagName: 'Real Estate Lead',
               })
             }
@@ -269,7 +298,7 @@ export default function AutomationsPage() {
                 keywords: 'cart, order, cod, checkout, delivery',
                 actionType: 'SEND_TEXT',
                 actionText:
-                  'Hi there! 🛍️ We noticed you left items in your cart. Complete your order in the next 2 hours with coupon SAVE10 for an extra 10% discount: https://gccstartup.com/checkout',
+                  'Hi there! 🛍️ We noticed you left items in your cart. Complete your order in the next 2 hours with coupon SAVE10 for an extra 10% discount: https://example.com/checkout',
                 tagName: 'E-Commerce Cart Lead',
               })
             }
@@ -332,7 +361,7 @@ export default function AutomationsPage() {
                 keywords: 'price, pricing, cost, quote, enterprise, demo',
                 actionType: 'SEND_TEXT',
                 actionText:
-                  'Hello! 💼 Thank you for your inquiry. Our enterprise packages start at $29/mo with 0% markup. You can book a 1-on-1 walkthrough here: https://calendly.com/gccstartup/demo',
+                  'Hello! 💼 Thank you for your inquiry. Our enterprise packages start at $29/mo with 0% markup. You can book a 1-on-1 walkthrough here: https://calendly.com/your-company/demo',
                 tagName: 'B2B Qualified Lead',
               })
             }
@@ -344,6 +373,7 @@ export default function AutomationsPage() {
             <p className="text-[10px] text-slate-400 mt-1 line-clamp-2">Price quote & Calendly demo</p>
           </button>
         </div>
+        )}
       </div>
 
       {/* Rules List */}
@@ -351,23 +381,24 @@ export default function AutomationsPage() {
         <h3 className="text-sm font-bold text-slate-900">Configured Automation Rules</h3>
 
         {loading ? (
-          <div className="py-20 flex justify-center">
-            <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="p-4 rounded-2xl border-2 border-slate-200 bg-white space-y-3">
+                <Skeleton width={160} height={14} />
+                <Skeleton variant="rounded" height={48} />
+                <Skeleton variant="rounded" height={36} />
+              </div>
+            ))}
           </div>
         ) : automations.length === 0 ? (
-          <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
-            <Zap className="w-10 h-10 text-slate-300 mx-auto" />
-            <h4 className="text-sm font-bold text-slate-800">No Automation Rules Configured</h4>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              Create an auto-responder or click one of the quick recipes above to automate WhatsApp responses.
-            </p>
-            <button
-              onClick={() => handleOpenCreate()}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Create First Rule</span>
-            </button>
+          <div className="bg-white rounded-2xl border border-slate-200">
+            <EmptyState
+              icon={Zap}
+              title="No Automation Rules Configured"
+              description="Create an auto-responder or click one of the quick recipes above to automate WhatsApp responses."
+              actionLabel="Create First Rule"
+              onAction={() => handleOpenCreate()}
+            />
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -377,7 +408,9 @@ export default function AutomationsPage() {
               try {
                 triggerConfig = JSON.parse(rule.triggerConfig);
                 actions = JSON.parse(rule.actionsJson);
-              } catch {}
+              } catch (error) {
+                console.warn('[Automations] Failed to parse rule config for', rule.id, error);
+              }
 
               const action = actions[0] || {};
 
@@ -404,6 +437,7 @@ export default function AutomationsPage() {
                             : 'bg-slate-100 text-slate-500'
                         }`}
                         title={rule.isActive ? 'Disable Rule' : 'Enable Rule'}
+                        aria-label={rule.isActive ? 'Disable Rule' : 'Enable Rule'}
                       >
                         {rule.isActive ? <Play className="w-3.5 h-3.5 fill-current" /> : <Pause className="w-3.5 h-3.5" />}
                       </button>
@@ -411,6 +445,7 @@ export default function AutomationsPage() {
                         onClick={() => handleDelete(rule.id)}
                         className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg"
                         title="Delete Rule"
+                        aria-label="Delete Rule"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -460,6 +495,11 @@ export default function AutomationsPage() {
                         🏷️ Add Tag: &ldquo;{action.payload?.tagName}&rdquo;
                       </p>
                     )}
+                    {action.type === 'ASSIGN_GROUP' && (
+                      <p className="text-[11px] text-emerald-800 font-semibold">
+                        👥 Assign to Group: &ldquo;{groups.find((g) => g.id === action.payload?.groupId)?.name || action.payload?.groupId}&rdquo;
+                      </p>
+                    )}
                   </div>
 
                   {/* Footer Stats */}
@@ -484,7 +524,7 @@ export default function AutomationsPage() {
               <h3 className="text-sm font-bold text-slate-900">
                 {editingId ? 'Edit Automation Rule' : 'Create New Automation Rule'}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-700">
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-700" aria-label="Close">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -529,6 +569,7 @@ export default function AutomationsPage() {
                     <option value="CONTAINS">Message Contains Any Keyword</option>
                     <option value="EXACT">Message Is Exact Word Match</option>
                     <option value="STARTS_WITH">Message Starts With Keyword</option>
+                    <option value="REGEX">Message Matches Regex Pattern (Advanced)</option>
                     <option value="ANY_INBOUND">Any Incoming Message (Welcome Sequence)</option>
                   </select>
                 </div>
@@ -536,11 +577,11 @@ export default function AutomationsPage() {
                 {formMatchType !== 'ANY_INBOUND' && (
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Keywords (Comma-separated)
+                      {formMatchType === 'REGEX' ? 'Regex Patterns (Comma-separated)' : 'Keywords (Comma-separated)'}
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. price, pricing, cost, rate"
+                      placeholder={formMatchType === 'REGEX' ? 'e.g. ^(price|cost)\\b, \\bdemo\\b' : 'e.g. price, pricing, cost, rate'}
                       value={formKeywords}
                       onChange={(e) => setFormKeywords(e.target.value)}
                       className="input-base text-xs font-mono"
@@ -566,6 +607,7 @@ export default function AutomationsPage() {
                     <option value="SEND_TEXT">Send WhatsApp Text Message</option>
                     <option value="SEND_TEMPLATE">Send Pre-Approved WhatsApp Template</option>
                     <option value="ADD_TAG">Add Tag to Customer (e.g. Hot Lead)</option>
+                    <option value="ASSIGN_GROUP">Assign Customer to a Group</option>
                   </select>
                 </div>
 
@@ -613,6 +655,28 @@ export default function AutomationsPage() {
                       className="input-base text-xs"
                       required
                     />
+                  </div>
+                )}
+
+                {formActionType === 'ASSIGN_GROUP' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Group</label>
+                    <select
+                      value={formGroupId}
+                      onChange={(e) => setFormGroupId(e.target.value)}
+                      className="input-base text-xs font-medium"
+                      required
+                    >
+                      <option value="">Select a group...</option>
+                      {groups.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.name}
+                        </option>
+                      ))}
+                    </select>
+                    {groups.length === 0 && (
+                      <p className="text-[10px] text-slate-400 mt-1">No groups exist yet — create one in Contacts first.</p>
+                    )}
                   </div>
                 )}
               </div>

@@ -27,10 +27,15 @@ import {
   Plus,
   Search,
   CreditCard,
+  KeyRound,
+  History,
+  X,
 } from 'lucide-react';
 import { InfoTooltip } from '@/components/ui/Tooltip';
 import { MetaSetupGuideModal } from '@/components/common/MetaSetupGuideModal';
 import { MetaBillingSection } from '@/components/settings/MetaBillingSection';
+import { Skeleton, SkeletonTableRow } from '@/components/ui/Skeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 const MODULE_ICONS: Record<string, any> = {
   Sparkles,
@@ -46,7 +51,7 @@ const MODULE_ICONS: Record<string, any> = {
 };
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<'gateway' | 'marketplace' | 'snippets' | 'billing'>('gateway');
+  const [activeTab, setActiveTab] = useState<'gateway' | 'marketplace' | 'snippets' | 'billing' | 'api-keys' | 'audit-log'>('gateway');
 
   // Gateway Settings
   const [settings, setSettings] = useState<any>({
@@ -66,7 +71,7 @@ export default function SettingsPage() {
     marketingMessagesPolicy: 'CLOUD_API_FALLBACK',
     metaAppId: '',
     metaAppSecret: '',
-    allowedDomains: 'gccstartup.com',
+    allowedDomains: '',
   });
 
   // App Modules Switchboard
@@ -94,6 +99,24 @@ export default function SettingsPage() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [pinInput, setPinInput] = useState('123456');
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+
+  // API Keys
+  const [apiKeys, setApiKeys] = useState<any[]>([]);
+  const [apiKeysLoading, setApiKeysLoading] = useState(true);
+  const [isCreatingKey, setIsCreatingKey] = useState(false);
+  const [newKeyName, setNewKeyName] = useState('');
+  const [newKeyScopes, setNewKeyScopes] = useState('read,write,messages:send,contacts:write');
+  const [creatingKey, setCreatingKey] = useState(false);
+  const [revealedKey, setRevealedKey] = useState<{ name: string; rawKey: string } | null>(null);
+  const [rawKeyCopied, setRawKeyCopied] = useState(false);
+
+  // Audit Log
+  const [auditEntries, setAuditEntries] = useState<any[]>([]);
+  const [auditLoading, setAuditLoading] = useState(true);
+  const [auditPage, setAuditPage] = useState(1);
+  const [auditTotalPages, setAuditTotalPages] = useState(1);
+  const [auditActionFilter, setAuditActionFilter] = useState('');
+  const [auditActorFilter, setAuditActorFilter] = useState('');
 
   const fetchSettings = () => {
     fetch('/api/settings')
@@ -123,11 +146,47 @@ export default function SettingsPage() {
       .catch(() => {});
   };
 
+  const fetchApiKeys = () => {
+    setApiKeysLoading(true);
+    fetch('/api/settings/api-keys')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setApiKeys(data);
+      })
+      .catch(() => {})
+      .finally(() => setApiKeysLoading(false));
+  };
+
+  const fetchAuditLog = (page = 1) => {
+    setAuditLoading(true);
+    const params = new URLSearchParams({ page: String(page) });
+    if (auditActionFilter) params.set('action', auditActionFilter);
+    if (auditActorFilter) params.set('actorEmail', auditActorFilter);
+
+    fetch(`/api/settings/audit-log?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data?.entries)) {
+          setAuditEntries(data.entries);
+          setAuditPage(data.page || 1);
+          setAuditTotalPages(data.totalPages || 1);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setAuditLoading(false));
+  };
+
   useEffect(() => {
     fetchSettings();
     fetchModules();
     fetchSnippets();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'api-keys') fetchApiKeys();
+    if (activeTab === 'audit-log') fetchAuditLog(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -248,6 +307,47 @@ export default function SettingsPage() {
       const res = await fetch(`/api/chat/snippets?id=${id}`, { method: 'DELETE' });
       if (res.ok) fetchSnippets();
     } catch {}
+  };
+
+  const handleCreateApiKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newKeyName.trim()) return;
+
+    setCreatingKey(true);
+    try {
+      const res = await fetch('/api/settings/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newKeyName.trim(), scopes: newKeyScopes.trim() || 'read,write' }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Failed to create API key');
+
+      setRevealedKey({ name: data.apiKey.name, rawKey: data.apiKey.rawKey });
+      setNewKeyName('');
+      setIsCreatingKey(false);
+      fetchApiKeys();
+    } catch (err: any) {
+      setNotice({ text: err.message, success: false });
+      setTimeout(() => setNotice(null), 5000);
+    } finally {
+      setCreatingKey(false);
+    }
+  };
+
+  const handleRevokeApiKey = async (id: string) => {
+    if (!confirm('Revoke this API key? Any integration using it will stop working immediately.')) return;
+    try {
+      const res = await fetch(`/api/settings/api-keys/${id}`, { method: 'DELETE' });
+      if (res.ok) fetchApiKeys();
+    } catch {}
+  };
+
+  const handleCopyRawKey = () => {
+    if (!revealedKey) return;
+    navigator.clipboard.writeText(revealedKey.rawKey);
+    setRawKeyCopied(true);
+    setTimeout(() => setRawKeyCopied(false), 2000);
   };
 
   const handleDisconnect = async () => {
@@ -391,6 +491,30 @@ export default function SettingsPage() {
         >
           <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
           <span>Billing & Meta Rates</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('api-keys')}
+          className={`px-4 py-2 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 shrink-0 ${
+            activeTab === 'api-keys'
+              ? 'bg-slate-900 text-white shadow-2xs font-semibold'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <KeyRound className="w-3.5 h-3.5 text-emerald-400" />
+          <span>API Keys ({apiKeys.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('audit-log')}
+          className={`px-4 py-2 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 shrink-0 ${
+            activeTab === 'audit-log'
+              ? 'bg-slate-900 text-white shadow-2xs font-semibold'
+              : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <History className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Audit Log</span>
         </button>
       </div>
 
@@ -923,6 +1047,284 @@ export default function SettingsPage() {
 
       {/* TAB 4: META BILLING & CONVERSATION PRICING */}
       {activeTab === 'billing' && <MetaBillingSection />}
+
+      {/* TAB 5: API KEY MANAGEMENT */}
+      {activeTab === 'api-keys' && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="font-normal text-sm text-slate-900">Developer API Keys</h3>
+              <p className="text-xs text-slate-500">
+                Keys authenticate requests to the Public REST API (<code className="font-mono text-[11px]">/api/v1/*</code>) via the <code className="font-mono text-[11px]">X-API-Key</code> header.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setIsCreatingKey(!isCreatingKey)}
+              className="px-3.5 py-1.5 rounded-xl bg-[#25d366] hover:bg-emerald-700 text-white text-xs font-normal flex items-center gap-1.5 transition-all self-start sm:self-auto"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>{isCreatingKey ? 'Cancel' : 'New API Key'}</span>
+            </button>
+          </div>
+
+          {/* Create Key Form */}
+          {isCreatingKey && (
+            <form onSubmit={handleCreateApiKey} className="p-4 rounded-2xl bg-white border border-slate-200 space-y-3 animate-in fade-in duration-150">
+              <h4 className="font-normal text-xs text-slate-900 uppercase tracking-wider">Generate New API Key</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-normal text-slate-700 mb-1">Key Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Zapier Integration"
+                    value={newKeyName}
+                    onChange={(e) => setNewKeyName(e.target.value)}
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-300"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1 mb-1">
+                    <label className="text-xs font-normal text-slate-700">Scopes (comma-separated)</label>
+                    <InfoTooltip content="e.g. read, write, messages:send, contacts:write. Use '*' for full access." />
+                  </div>
+                  <input
+                    type="text"
+                    value={newKeyScopes}
+                    onChange={(e) => setNewKeyScopes(e.target.value)}
+                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-slate-300 font-mono"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCreatingKey(false)}
+                  className="px-3.5 py-1.5 text-xs font-normal rounded-xl bg-slate-100 text-slate-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingKey || !newKeyName.trim()}
+                  className="px-4 py-1.5 text-xs font-normal rounded-xl bg-[#25d366] text-white shadow-xs disabled:opacity-50"
+                >
+                  {creatingKey ? 'Generating...' : 'Generate Key'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Newly created key reveal */}
+          {revealedKey && (
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-amber-900">
+                  "{revealedKey.name}" created — copy this key now
+                </h4>
+                <button onClick={() => setRevealedKey(null)} className="text-amber-500 hover:text-amber-700">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <p className="text-[11px] text-amber-800">
+                This is the only time the full key is shown. It cannot be retrieved again — store it somewhere safe.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  readOnly
+                  value={revealedKey.rawKey}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-amber-300 font-mono bg-white text-slate-800"
+                />
+                <button
+                  type="button"
+                  onClick={handleCopyRawKey}
+                  className="px-3.5 py-2 rounded-xl border border-amber-300 bg-white hover:bg-amber-100 text-amber-800 text-xs font-normal flex items-center gap-1 shrink-0"
+                >
+                  {rawKeyCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{rawKeyCopied ? 'Copied' : 'Copy'}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Keys List */}
+          {apiKeysLoading ? (
+            <div className="space-y-2.5">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="p-3.5 rounded-2xl bg-white border border-slate-200">
+                  <Skeleton width={220} height={14} className="mb-2" />
+                  <Skeleton width={140} height={11} />
+                </div>
+              ))}
+            </div>
+          ) : apiKeys.length === 0 ? (
+            <EmptyState
+              icon={KeyRound}
+              title="No API keys yet"
+              description="Generate a key to authenticate external integrations against the Public REST API."
+              actionLabel="New API Key"
+              onAction={() => setIsCreatingKey(true)}
+            />
+          ) : (
+            <div className="grid grid-cols-1 gap-2.5">
+              {apiKeys.map((k) => (
+                <div
+                  key={k.id}
+                  className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs flex items-start justify-between gap-3"
+                >
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="font-normal text-xs text-slate-900">{k.name}</h4>
+                      <span className="font-mono font-normal text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                        {k.keyPrefix}••••••••
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Scopes: <span className="font-mono">{k.scopes}</span>
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      Created {new Date(k.createdAt).toLocaleDateString()}
+                      {k.lastUsedAt ? ` • Last used ${new Date(k.lastUsedAt).toLocaleDateString()}` : ' • Never used'}
+                      {k.user?.email ? ` • by ${k.user.email}` : ''}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRevokeApiKey(k.id)}
+                    className="p-2 text-slate-400 hover:text-rose-600 rounded-full transition-colors shrink-0"
+                    title="Revoke key"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 6: AUDIT LOG */}
+      {activeTab === 'audit-log' && (
+        <div className="space-y-4">
+          <div>
+            <h3 className="font-normal text-sm text-slate-900">Security & Admin Audit Log</h3>
+            <p className="text-xs text-slate-500">Track logins, settings changes, module toggles, and API key activity.</p>
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <select
+              value={auditActionFilter}
+              onChange={(e) => setAuditActionFilter(e.target.value)}
+              className="px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white"
+            >
+              <option value="">All Actions</option>
+              <option value="LOGIN_SUCCESS">Login Success</option>
+              <option value="LOGIN_FAILED">Login Failed</option>
+              <option value="SETTINGS_UPDATED">Settings Updated</option>
+              <option value="AUTH_CONFIG_UPDATED">Auth Config Updated</option>
+              <option value="MODULE_TOGGLED">Module Toggled</option>
+              <option value="API_KEY_CREATED">API Key Created</option>
+              <option value="API_KEY_REVOKED">API Key Revoked</option>
+              <option value="ROLE_CHANGED">Role Changed</option>
+            </select>
+            <input
+              type="text"
+              placeholder="Filter by actor email..."
+              value={auditActorFilter}
+              onChange={(e) => setAuditActorFilter(e.target.value)}
+              className="flex-1 px-3 py-2 text-xs rounded-xl border border-slate-300"
+            />
+            <button
+              onClick={() => fetchAuditLog(1)}
+              className="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-black/5 text-slate-700 text-xs font-normal flex items-center gap-1.5 shadow-2xs"
+            >
+              <Search className="w-3.5 h-3.5" />
+              <span>Filter</span>
+            </button>
+          </div>
+
+          {/* Entries Table */}
+          <div className="card-base overflow-hidden">
+            {auditLoading ? (
+              <table className="w-full text-left border-collapse text-xs">
+                <tbody>
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <SkeletonTableRow key={i} columns={5} />
+                  ))}
+                </tbody>
+              </table>
+            ) : auditEntries.length === 0 ? (
+              <EmptyState
+                icon={History}
+                title="No audit events found"
+                description="Events like logins, settings changes, and API key activity will appear here."
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase text-[10px] font-semibold tracking-wider">
+                      <th className="py-2.5 px-4">Action</th>
+                      <th className="py-2.5 px-4">Actor</th>
+                      <th className="py-2.5 px-4">Target</th>
+                      <th className="py-2.5 px-4">IP Address</th>
+                      <th className="py-2.5 px-4">Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditEntries.map((entry) => (
+                      <tr key={entry.id} className="border-b border-slate-100 last:border-0">
+                        <td className="py-2.5 px-4">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              entry.action.includes('FAILED')
+                                ? 'bg-rose-50 text-rose-700'
+                                : entry.action.includes('SUCCESS') || entry.action.includes('CREATED')
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            {entry.action.replace(/_/g, ' ')}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-4 text-slate-700">{entry.actorEmail || 'System'}</td>
+                        <td className="py-2.5 px-4 text-slate-500">
+                          {entry.targetType ? `${entry.targetType}${entry.targetId ? ` (${entry.targetId.slice(0, 8)}…)` : ''}` : '—'}
+                        </td>
+                        <td className="py-2.5 px-4 text-slate-500 font-mono text-[11px]">{entry.ipAddress || '—'}</td>
+                        <td className="py-2.5 px-4 text-slate-500">{new Date(entry.createdAt).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Pagination */}
+          {auditTotalPages > 1 && (
+            <div className="flex items-center justify-center gap-2">
+              <button
+                onClick={() => fetchAuditLog(auditPage - 1)}
+                disabled={auditPage <= 1}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs disabled:opacity-40"
+              >
+                Previous
+              </button>
+              <span className="text-xs text-slate-500">Page {auditPage} of {auditTotalPages}</span>
+              <button
+                onClick={() => fetchAuditLog(auditPage + 1)}
+                disabled={auditPage >= auditTotalPages}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Meta Setup Guide Modal */}
       <MetaSetupGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />

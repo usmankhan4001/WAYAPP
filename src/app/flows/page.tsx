@@ -7,16 +7,12 @@ import {
   GitMerge,
   Plus,
   ArrowRight,
-  Play,
-  CheckCircle2,
-  Clock,
-  Trash2,
-  Sparkles,
   Zap,
-  Bot,
   Search,
+  X,
 } from 'lucide-react';
-import { Header } from '@/components/layout/Header';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 export default function FlowsPage() {
   const router = useRouter();
@@ -79,217 +75,224 @@ export default function FlowsPage() {
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100">
-      <Header />
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Conversation Flows & Visual Builder</h1>
+        <p className="text-xs text-slate-500">
+          Automated multi-step qualification funnels, interactive Meta list messages, and drag-and-drop conversational journeys
+        </p>
+      </div>
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-        <div>
-          <h1 className="text-2xl font-black text-white tracking-tight">Conversation Flows & Visual Builder</h1>
-          <p className="text-xs text-slate-400">
-            Automated multi-step qualification funnels, interactive Meta list messages, and drag-and-drop conversational journeys
-          </p>
-        </div>
-
-        {/* GCC Startup Lead Qualification Showcase Banner */}
-        <div className="bg-gradient-to-r from-emerald-950/80 via-slate-900 to-slate-900 border border-emerald-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-            <div className="space-y-2 max-w-2xl">
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                  Active Engine
-                </span>
-                <span className="text-xs font-semibold text-slate-400">GCCStartup Lead Qualification</span>
-              </div>
-              <h2 className="text-lg font-bold text-white tracking-tight">
-                4-Step Interactive Lead Qualification & Scoring Funnel
-              </h2>
-              <p className="text-xs text-slate-300">
-                Automatically engages inbound leads via Meta Quick Replies & Keywords, delivers native Interactive List Messages for Business Activity, Country, Goal, and Timeline, calculates lead score & temperature (<span className="text-rose-400 font-bold">HOT 🔥</span> / <span className="text-amber-400 font-bold">WARM 🟡</span>), tags contacts, and pauses for human advisor takeover.
-              </p>
+      {/* Example Lead Qualification Flow Showcase Banner */}
+      <div className="bg-gradient-to-r from-emerald-50 via-white to-white border border-emerald-200 rounded-3xl p-6 shadow-sm relative overflow-hidden">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+          <div className="space-y-2 max-w-2xl">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                Active Engine
+              </span>
+              <span className="text-xs font-semibold text-slate-500">Example: Lead Qualification</span>
             </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-3 text-center">
-                <span className="text-[10px] font-medium text-slate-400 block">Step 1</span>
-                <span className="text-xs font-bold text-white">Activity List</span>
-              </div>
-              <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-3 text-center">
-                <span className="text-[10px] font-medium text-slate-400 block">Step 2</span>
-                <span className="text-xs font-bold text-white">Country List</span>
-              </div>
-              <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-3 text-center">
-                <span className="text-[10px] font-medium text-slate-400 block">Step 3</span>
-                <span className="text-xs font-bold text-white">Goal List</span>
-              </div>
-              <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-3 text-center">
-                <span className="text-[10px] font-medium text-slate-400 block">Step 4</span>
-                <span className="text-xs font-bold text-white">Timeline List</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Top Controls */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search chatbot flows..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-800 bg-slate-900/90 text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-          </div>
-
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create New Flow</span>
-          </button>
-        </div>
-
-        {/* Flows Grid */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : filteredFlows.length === 0 ? (
-          <div className="text-center py-16 bg-slate-900/50 border border-slate-800/80 rounded-3xl p-8 space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-600/10 text-emerald-400 flex items-center justify-center mx-auto">
-              <GitMerge className="w-6 h-6" />
-            </div>
-            <h3 className="text-base font-bold text-white">No Visual Flows Found</h3>
-            <p className="text-xs text-slate-400 max-w-md mx-auto">
-              Build your first drag-and-drop conversational funnel to engage customers, route inquiries, and trigger tags automatically.
+            <h2 className="text-lg font-bold text-slate-900 tracking-tight">
+              4-Step Interactive Lead Qualification Funnel
+            </h2>
+            <p className="text-xs text-slate-600">
+              Automatically engages inbound leads with a keyword trigger and quick-reply questions covering Business Activity, Region, Goal, and Timeline, tags qualified leads by temperature (<span className="text-rose-600 font-bold">HOT 🔥</span> / <span className="text-amber-600 font-bold">WARM 🟡</span>), and hands off to your team in the inbox. Duplicate and customize it for your own business.
             </p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
-            >
-              <Plus className="w-4 h-4" /> Create Flow
-            </button>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredFlows.map((flow) => {
-              const isPublished = flow.status === 'PUBLISHED';
-              return (
-                <div
-                  key={flow.id}
-                  className="group bg-slate-900/80 backdrop-blur border border-slate-800 hover:border-slate-700 rounded-2xl p-5 flex flex-col justify-between transition-all hover:shadow-xl hover:shadow-emerald-950/20"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-emerald-600/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
-                          <GitMerge className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">
-                            {flow.name}
-                          </h4>
-                          <span className="text-[10px] text-slate-500">v{flow.version || 1}</span>
-                        </div>
-                      </div>
 
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                          isPublished
-                            ? 'bg-emerald-950/60 border-emerald-800 text-emerald-300'
-                            : 'bg-slate-800 border-slate-700 text-slate-400'
-                        }`}
-                      >
-                        {flow.status}
-                      </span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-white border border-slate-200 rounded-2xl p-3 text-center">
+              <span className="text-[10px] font-medium text-slate-400 block">Step 1</span>
+              <span className="text-xs font-bold text-slate-900">Activity List</span>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-2xl p-3 text-center">
+              <span className="text-[10px] font-medium text-slate-400 block">Step 2</span>
+              <span className="text-xs font-bold text-slate-900">Region List</span>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-2xl p-3 text-center">
+              <span className="text-[10px] font-medium text-slate-400 block">Step 3</span>
+              <span className="text-xs font-bold text-slate-900">Goal List</span>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-2xl p-3 text-center">
+              <span className="text-[10px] font-medium text-slate-400 block">Step 4</span>
+              <span className="text-xs font-bold text-slate-900">Timeline List</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Top Controls */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search chatbot flows..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="input-base text-xs pl-10"
+          />
+        </div>
+
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Create New Flow</span>
+        </button>
+      </div>
+
+      {/* Flows Grid */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="card-base p-5 space-y-3">
+              <div className="flex items-center gap-2.5">
+                <Skeleton variant="rounded" width={36} height={36} />
+                <Skeleton width={120} height={14} />
+              </div>
+              <Skeleton lines={2} />
+            </div>
+          ))}
+        </div>
+      ) : filteredFlows.length === 0 ? (
+        <div className="card-base">
+          <EmptyState
+            icon={GitMerge}
+            title="No Visual Flows Found"
+            description="Build your first drag-and-drop conversational funnel to engage customers, route inquiries, and trigger tags automatically."
+            actionLabel="Create Flow"
+            onAction={() => setShowCreateModal(true)}
+          />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredFlows.map((flow) => {
+            const isPublished = flow.status === 'PUBLISHED';
+            return (
+              <div
+                key={flow.id}
+                className="group card-base hover:border-slate-300 p-5 flex flex-col justify-between transition-all hover:shadow-md"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center">
+                        <GitMerge className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                          {flow.name}
+                        </h4>
+                        <span className="text-[10px] text-slate-400">v{flow.version || 1}</span>
+                      </div>
                     </div>
 
-                    <p className="text-xs text-slate-400 line-clamp-2 min-h-[32px]">
-                      {flow.description || 'No description provided.'}
-                    </p>
-                  </div>
-
-                  <div className="pt-4 mt-4 border-t border-slate-800/80 flex items-center justify-between">
-                    <span className="text-[11px] text-slate-500 flex items-center gap-1.5">
-                      <Zap className="w-3 h-3 text-emerald-400" />
-                      {flow._count?.runs || 0} executions
-                    </span>
-
-                    <Link
-                      href={`/flows/${flow.id}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white transition-colors"
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                        isPublished
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                          : 'bg-slate-100 border-slate-200 text-slate-500'
+                      }`}
                     >
-                      <span>Edit Canvas</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
+                      {flow.status}
+                    </span>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
 
-        {/* Create Flow Modal */}
-        {showCreateModal && (
-          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+                  <p className="text-xs text-slate-500 line-clamp-2 min-h-[32px]">
+                    {flow.description || 'No description provided.'}
+                  </p>
+                </div>
+
+                <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                    <Zap className="w-3 h-3 text-emerald-600" />
+                    {flow._count?.runs || 0} executions
+                  </span>
+
+                  <Link
+                    href={`/flows/${flow.id}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-800 transition-colors"
+                  >
+                    <span>Edit Canvas</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Create Flow Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-600/10 text-emerald-400 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center">
                   <GitMerge className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">Create Visual Flow</h3>
-                  <p className="text-xs text-slate-400">Initialize a new chatbot canvas</p>
+                  <h3 className="text-base font-bold text-slate-900">Create Visual Flow</h3>
+                  <p className="text-xs text-slate-500">Initialize a new chatbot canvas</p>
                 </div>
               </div>
-
-              <form onSubmit={handleCreateFlow} className="space-y-3.5">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">Flow Name</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Lead Qualification & Onboarding"
-                    value={newFlowName}
-                    onChange={(e) => setNewFlowName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">Description (optional)</label>
-                  <textarea
-                    rows={2}
-                    placeholder="Describe what this customer journey does..."
-                    value={newFlowDesc}
-                    onChange={(e) => setNewFlowDesc(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
-                  />
-                </div>
-
-                <div className="flex items-center justify-end gap-2.5 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateModal(false)}
-                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={creating || !newFlowName.trim()}
-                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white disabled:opacity-50"
-                  >
-                    {creating ? 'Creating...' : 'Open Canvas'}
-                  </button>
-                </div>
-              </form>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-slate-400 hover:text-slate-700"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
+
+            <form onSubmit={handleCreateFlow} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Flow Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Lead Qualification & Onboarding"
+                  value={newFlowName}
+                  onChange={(e) => setNewFlowName(e.target.value)}
+                  className="input-base text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Description (optional)</label>
+                <textarea
+                  rows={2}
+                  placeholder="Describe what this customer journey does..."
+                  value={newFlowDesc}
+                  onChange={(e) => setNewFlowDesc(e.target.value)}
+                  className="input-base text-xs resize-none py-2.5 h-auto"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="btn-secondary text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating || !newFlowName.trim()}
+                  className="btn-primary text-xs"
+                >
+                  {creating ? 'Creating...' : 'Open Canvas'}
+                </button>
+              </div>
+            </form>
           </div>
-        )}
-      </main>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth/rbac';
 import { generateApiKey } from '@/lib/api/auth';
+import { writeAuditLog } from '@/lib/audit-log';
+import { getClientIp } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
@@ -60,6 +62,16 @@ export async function POST(request: NextRequest) {
         userId: session.userId,
         expiresAt,
       },
+    });
+
+    writeAuditLog({
+      action: 'API_KEY_CREATED',
+      actorId: session.userId,
+      actorEmail: session.email,
+      targetType: 'ApiKey',
+      targetId: apiKey.id,
+      detail: { name: apiKey.name, scopes },
+      ipAddress: getClientIp(request),
     });
 
     // Return rawKey ONLY once on creation

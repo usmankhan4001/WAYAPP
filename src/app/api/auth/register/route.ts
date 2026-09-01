@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { signSessionToken, SESSION_COOKIE_NAME } from '@/lib/auth/jwt';
-import { isAllowedGccUser } from '@/lib/auth/session';
+import { isAllowedUser } from '@/lib/auth/session';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 const RegisterSchema = z.object({
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     // If not first user, check domain / authorization whitelist
     if (!isFirstUser) {
-      const isAllowed = await isAllowedGccUser(email);
+      const isAllowed = await isAllowedUser(email);
       if (!isAllowed) {
         return NextResponse.json(
           {

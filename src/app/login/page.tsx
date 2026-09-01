@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -14,6 +14,13 @@ import {
   UserPlus,
 } from 'lucide-react';
 
+const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+  META_APP_ID_MISSING: 'Social sign-in is not configured yet. Ask your admin to set the Meta App ID in Settings, or sign in with email and password.',
+  INVALID_OAUTH_STATE: 'Your sign-in session expired or is invalid. Please try again.',
+  EMAIL_REQUIRED_FROM_META: 'We could not read an email address from your Meta account. Please use email/password sign-in instead.',
+  ACCESS_DENIED: 'This account is not authorized to access this instance.',
+};
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -23,6 +30,26 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [needsSetup, setNeedsSetup] = useState(false);
+
+  useEffect(() => {
+    const oauthError = searchParams.get('error');
+    if (oauthError) {
+      setErrorMsg(OAUTH_ERROR_MESSAGES[oauthError] || oauthError);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/auth/bootstrap-status')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.needsSetup) {
+          router.replace('/setup');
+        }
+      })
+      .catch((error) => console.warn('[Login] Bootstrap status check failed:', error));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleMetaLogin = () => {
     setLoading(true);
@@ -123,7 +150,7 @@ function LoginForm() {
                 <input
                   type="email"
                   required
-                  placeholder="name@gccstartup.com"
+                  placeholder="name@yourcompany.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950/70 text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-sans"

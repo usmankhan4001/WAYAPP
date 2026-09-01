@@ -199,14 +199,14 @@ export function Header({ onToggleMobileMenu, onOpenMetaGuide }: HeaderProps) {
         {user && (
           <div className="flex items-center gap-2 pl-2 border-l border-slate-200 ml-1">
             <div className="w-7 h-7 rounded-full bg-emerald-600 text-white font-semibold text-[11px] flex items-center justify-center shrink-0 shadow-2xs">
-              {user.name ? user.name.substring(0, 1).toUpperCase() : 'G'}
+              {user.name ? user.name.substring(0, 1).toUpperCase() : 'U'}
             </div>
             <div className="hidden xl:block text-left min-w-0 max-w-[120px]">
               <span className="text-[11px] font-medium text-slate-800 truncate block leading-tight">
                 {user.name || user.email}
               </span>
               <span className="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200 uppercase tracking-wider">
-                {user.role === 'SUPER_ADMIN' ? 'GCC Admin' : 'GCC Member'}
+                {user.role === 'SUPER_ADMIN' ? 'Super Admin' : user.role === 'ADMIN' ? 'Admin' : user.role === 'MEMBER' ? 'Team Member' : 'Viewer'}
               </span>
             </div>
             <button

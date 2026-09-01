@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { verifySessionToken, UserSessionPayload, SESSION_COOKIE_NAME } from './jwt';
 import { requireAuth, requireRole, getSessionFromRequest, hasMinimumRole } from './rbac';
 import type { UserRole } from './rbac';
+import { logger } from '@/lib/logger';
 
 export { requireAuth, requireRole, getSessionFromRequest, hasMinimumRole };
 export type { UserRole };
@@ -12,7 +13,7 @@ export type { UserRole };
  * AuthConfig allow-list (allowedDomains suffix match / allowedEmails exact match).
  * Empty allow-lists mean "no restrictions".
  */
-export async function isAllowedGccUser(email: string | undefined | null): Promise<boolean> {
+export async function isAllowedUser(email: string | undefined | null): Promise<boolean> {
   if (!email) return false;
 
   try {
@@ -33,8 +34,8 @@ export async function isAllowedGccUser(email: string | undefined | null): Promis
 
     const emailDomain = lowerEmail.split('@')[1] || '';
     return allowedDomains.includes(emailDomain);
-  } catch {
-    // DB unavailable — fail closed
+  } catch (error) {
+    logger.error({ error }, 'Failed to evaluate auth allow-list; failing closed');
     return false;
   }
 }
@@ -64,7 +65,8 @@ export async function getAuthSession(): Promise<UserSessionPayload | null> {
     if (payload.jti && (!dbSession || dbSession.expiresAt < new Date())) return null;
 
     return payload;
-  } catch {
+  } catch (error) {
+    logger.error({ error }, 'Failed to resolve auth session from cookies');
     return null;
   }
 }

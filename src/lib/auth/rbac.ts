@@ -40,7 +40,11 @@ export function hasMinimumRole(userRole: string, requiredRole: UserRole): boolea
 export async function getSessionFromRequest(request?: NextRequest): Promise<UserSessionPayload | null> {
   if (!request) return null;
 
-  const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  // Prefer a Bearer token (mobile / API clients), fall back to the session cookie (web).
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.startsWith('Bearer ')
+    ? authHeader.slice(7).trim()
+    : request.cookies.get(SESSION_COOKIE_NAME)?.value;
   if (!token) return null;
 
   const payload = await verifySessionToken(token);

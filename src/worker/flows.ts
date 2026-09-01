@@ -223,6 +223,14 @@ export async function advanceFlowRun(runId: string, userInput?: string): Promise
           b.id.toLowerCase() === choice
       );
 
+      // Normalize to the button's canonical title (not the raw reply, which
+      // may be a numeric shorthand like "1" or a button id) so downstream
+      // condition nodes checking `lastInput` see consistent, matchable text
+      // regardless of how the contact answered.
+      if (matchedBtn) {
+        variables.lastInput = matchedBtn.title;
+      }
+
       if (matchedBtn?.nextNodeId) {
         currentNodeId = matchedBtn.nextNodeId;
       } else {

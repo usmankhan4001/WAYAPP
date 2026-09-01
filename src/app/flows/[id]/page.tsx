@@ -159,6 +159,10 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
   const [simVariables, setSimVariables] = useState<Record<string, any>>({});
   const [simLoading, setSimLoading] = useState(false);
 
+  // Tags/Groups for the Action node's target picker
+  const [tags, setTags] = useState<{ id: string; name: string }[]>([]);
+  const [groups, setGroups] = useState<{ id: string; name: string }[]>([]);
+
   useEffect(() => {
     async function loadFlow() {
       try {
@@ -179,6 +183,19 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
       }
     }
     loadFlow();
+
+    async function loadTagsAndGroups() {
+      try {
+        const [tagsRes, groupsRes] = await Promise.all([fetch('/api/tags'), fetch('/api/groups')]);
+        const tagsData = tagsRes.ok ? await tagsRes.json() : [];
+        const groupsData = groupsRes.ok ? await groupsRes.json() : [];
+        setTags(Array.isArray(tagsData) ? tagsData : []);
+        setGroups(Array.isArray(groupsData) ? groupsData : (groupsData.groups || []));
+      } catch (err) {
+        console.error('[FlowEditor] Failed to load tags/groups:', err);
+      }
+    }
+    loadTagsAndGroups();
   }, [id]);
 
   const onNodesChange = useCallback(
@@ -242,6 +259,11 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
   };
 
   const handleSave = async (publishState?: boolean) => {
+    if (publishState === true && !nodes.some((n) => n.type === 'trigger')) {
+      window.alert("This flow has no Trigger node, so it will never start for real contacts. Add a Trigger node (top-left toolbar) before publishing.");
+      return;
+    }
+
     setSaving(true);
     try {
       const res = await fetch(`/api/flows/${id}`, {
@@ -286,9 +308,14 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
         const data = await res.json();
         setSimCurrentNodeId(data.currentNodeId);
         setSimVariables(data.variables || {});
-        if (data.message) {
-          setSimMessages([{ sender: 'bot', text: data.message, buttons: data.buttons }]);
-        }
+        const msgs: string[] = Array.isArray(data.messages) ? data.messages : (data.message ? [data.message] : []);
+        setSimMessages(
+          msgs.map((text, idx) => ({
+            sender: 'bot' as const,
+            text,
+            buttons: idx === msgs.length - 1 ? data.buttons : undefined,
+          }))
+        );
       }
     } catch (err) {
       console.error(err);
@@ -319,9 +346,15 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
         const data = await res.json();
         setSimCurrentNodeId(data.currentNodeId);
         setSimVariables(data.variables || {});
-        if (data.message) {
-          setSimMessages([...newMsgs, { sender: 'bot', text: data.message, buttons: data.buttons }]);
-        }
+        const msgs: string[] = Array.isArray(data.messages) ? data.messages : (data.message ? [data.message] : []);
+        setSimMessages([
+          ...newMsgs,
+          ...msgs.map((text, idx) => ({
+            sender: 'bot' as const,
+            text,
+            buttons: idx === msgs.length - 1 ? data.buttons : undefined,
+          })),
+        ]);
       }
     } catch (err) {
       console.error(err);
@@ -341,7 +374,23 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
   const isPublished = flow.status === 'PUBLISHED';
 
   return (
-    <div className="flex flex-col h-screen bg-slate-950 text-slate-100 overflow-hidden">
+    <>
+      {/* Small-screen notice: the drag-and-drop canvas needs a tablet/desktop-sized viewport */}
+      <div className="sm:hidden h-screen flex flex-col items-center justify-center bg-slate-950 text-slate-100 p-8 text-center gap-3">
+        <Settings className="w-10 h-10 text-emerald-400" />
+        <h2 className="text-sm font-bold text-white">Flow Builder needs a bigger screen</h2>
+        <p className="text-xs text-slate-400 max-w-xs">
+          The visual flow canvas is built for drag-and-drop editing and works best on a tablet or desktop. Please switch devices to edit this flow.
+        </p>
+        <Link
+          href="/flows"
+          className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition-colors"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Flows
+        </Link>
+      </div>
+
+      <div className="hidden sm:flex flex-col h-screen bg-slate-950 text-slate-100 overflow-hidden">
       {/* Top Navigation Bar */}
       <header className="h-14 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between shrink-0 z-20">
         <div className="flex items-center gap-3">
@@ -406,6 +455,13 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
         {/* Node Palette Floating Bar */}
         <div className="absolute top-4 left-4 z-10 bg-slate-900/95 backdrop-blur-md border border-slate-800 rounded-2xl p-2 shadow-2xl flex items-center gap-1.5">
           <button
+            onClick={() => handleAddNode('trigger')}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-emerald-600 text-xs font-semibold text-white transition-colors"
+          >
+            <Zap className="w-3.5 h-3.5 text-emerald-400" />
+            <span>+ Trigger</span>
+          </button>
+          <button
             onClick={() => handleAddNode('message')}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-blue-600 text-xs font-semibold text-white transition-colors"
           >
@@ -454,7 +510,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
 
         {/* Selected Node Properties Sidebar */}
         {selectedNode && (
-          <aside className="w-80 bg-slate-900 border-l border-slate-800 p-5 overflow-y-auto space-y-5 shrink-0 z-10 shadow-2xl">
+          <aside className="w-80 max-w-[85vw] bg-slate-900 border-l border-slate-800 p-5 overflow-y-auto space-y-5 shrink-0 z-10 shadow-2xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Settings className="w-4 h-4 text-emerald-400" />
@@ -483,6 +539,39 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                       />
                     </div>
 
+                    {selectedNode.type === 'trigger' && (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-400 mb-1">Trigger Type</label>
+                          <select
+                            value={String(nodeData.type || 'ANY_INBOUND')}
+                            onChange={(e) => handleUpdateSelectedNodeData('type', e.target.value)}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs"
+                          >
+                            <option value="ANY_INBOUND">Any Inbound Message</option>
+                            <option value="KEYWORD">Specific Keyword</option>
+                          </select>
+                        </div>
+                        {nodeData.type === 'KEYWORD' && (
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                              Keyword (matches if the message contains this text)
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. start, hello, pricing"
+                              value={String(nodeData.text || '')}
+                              onChange={(e) => handleUpdateSelectedNodeData('text', e.target.value)}
+                              className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs"
+                            />
+                          </div>
+                        )}
+                        <p className="text-[10px] text-slate-500">
+                          Every published flow needs exactly one Trigger node — it's the only way this flow can start.
+                        </p>
+                      </div>
+                    )}
+
                     {selectedNode.type === 'message' && (
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-400 mb-1">
@@ -509,22 +598,50 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                           />
                         </div>
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-400 mb-1">Buttons</label>
+                          <label className="block text-[11px] font-semibold text-slate-400 mb-1">
+                            Buttons (customer replies by number or by typing the option)
+                          </label>
                           <div className="space-y-2">
                             {(Array.isArray(nodeData.buttons) ? nodeData.buttons : []).map((btn: any, idx: number) => (
-                              <input
-                                key={idx}
-                                type="text"
-                                value={String(btn.title || '')}
-                                onChange={(e) => {
-                                  const newBtns = [...(Array.isArray(nodeData.buttons) ? nodeData.buttons : [])];
-                                  newBtns[idx] = { ...newBtns[idx], title: e.target.value };
-                                  handleUpdateSelectedNodeData('buttons', newBtns);
-                                }}
-                                className="w-full px-2.5 py-1.5 rounded-lg border border-purple-800/80 bg-slate-950 text-xs text-purple-200"
-                              />
+                              <div key={idx} className="flex items-center gap-1.5">
+                                <input
+                                  type="text"
+                                  value={String(btn.title || '')}
+                                  onChange={(e) => {
+                                    const newBtns = [...(Array.isArray(nodeData.buttons) ? nodeData.buttons : [])];
+                                    newBtns[idx] = { ...newBtns[idx], title: e.target.value };
+                                    handleUpdateSelectedNodeData('buttons', newBtns);
+                                  }}
+                                  className="flex-1 px-2.5 py-1.5 rounded-lg border border-purple-800/80 bg-slate-950 text-xs text-purple-200"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newBtns = (Array.isArray(nodeData.buttons) ? nodeData.buttons : []).filter(
+                                      (_: any, i: number) => i !== idx
+                                    );
+                                    handleUpdateSelectedNodeData('buttons', newBtns);
+                                  }}
+                                  className="w-6 h-6 shrink-0 rounded-lg bg-slate-800 hover:bg-rose-900 text-slate-400 hover:text-rose-300 flex items-center justify-center"
+                                  aria-label={`Remove button ${btn.title || idx + 1}`}
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
                             ))}
                           </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const current = Array.isArray(nodeData.buttons) ? nodeData.buttons : [];
+                              const newBtns = [...current, { id: `btn_${Date.now()}`, title: `Option ${current.length + 1}` }];
+                              handleUpdateSelectedNodeData('buttons', newBtns);
+                            }}
+                            className="mt-2 w-full py-1.5 rounded-lg border border-dashed border-slate-700 hover:border-purple-600 hover:bg-purple-950/30 text-[11px] font-semibold text-slate-400 hover:text-purple-300 flex items-center justify-center gap-1.5 transition-colors"
+                          >
+                            <Plus className="w-3 h-3" />
+                            <span>Add Option</span>
+                          </button>
                         </div>
                       </div>
                     )}
@@ -564,6 +681,92 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
                         </div>
                       </div>
                     )}
+
+                    {selectedNode.type === 'action' && (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-400 mb-1">Action Type</label>
+                          <select
+                            value={String(nodeData.actionType || 'ADD_TAG')}
+                            onChange={(e) => handleUpdateSelectedNodeData('actionType', e.target.value)}
+                            className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs"
+                          >
+                            <option value="ADD_TAG">Add Tag to Contact</option>
+                            <option value="ADD_TO_GROUP">Add Contact to Group</option>
+                            <option value="UPDATE_CONTACT">Set a Flow Variable</option>
+                          </select>
+                        </div>
+
+                        {nodeData.actionType === 'ADD_TAG' && (
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-400 mb-1">Tag</label>
+                            <select
+                              value={String(nodeData.targetId || '')}
+                              onChange={(e) => handleUpdateSelectedNodeData('targetId', e.target.value)}
+                              className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs"
+                            >
+                              <option value="">Select a tag&hellip;</option>
+                              {tags.map((tag) => (
+                                <option key={tag.id} value={tag.id}>{tag.name}</option>
+                              ))}
+                            </select>
+                            {tags.length === 0 && (
+                              <p className="text-[10px] text-amber-400 mt-1">
+                                No tags exist yet — create one from Contacts first.
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {nodeData.actionType === 'ADD_TO_GROUP' && (
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-400 mb-1">Group</label>
+                            <select
+                              value={String(nodeData.targetId || '')}
+                              onChange={(e) => handleUpdateSelectedNodeData('targetId', e.target.value)}
+                              className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs"
+                            >
+                              <option value="">Select a group&hellip;</option>
+                              {groups.map((group) => (
+                                <option key={group.id} value={group.id}>{group.name}</option>
+                              ))}
+                            </select>
+                            {groups.length === 0 && (
+                              <p className="text-[10px] text-amber-400 mt-1">
+                                No groups exist yet — create one from Contacts first.
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {nodeData.actionType === 'UPDATE_CONTACT' && (
+                          <>
+                            <div>
+                              <label className="block text-[11px] font-semibold text-slate-400 mb-1">Variable Name</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. leadScore"
+                                value={String(nodeData.attributeKey || '')}
+                                onChange={(e) => handleUpdateSelectedNodeData('attributeKey', e.target.value)}
+                                className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-semibold text-slate-400 mb-1">Value</label>
+                              <input
+                                type="text"
+                                value={String(nodeData.attributeValue || '')}
+                                onChange={(e) => handleUpdateSelectedNodeData('attributeValue', e.target.value)}
+                                className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs"
+                              />
+                              <p className="text-[10px] text-slate-500 mt-1">
+                                Stored for this conversation only — not saved to the contact record.
+                              </p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </>
                 );
               })()}
@@ -583,7 +786,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
 
         {/* Interactive Simulator Modal / Drawer */}
         {showSimulator && (
-          <div className="absolute right-4 bottom-4 w-96 bg-slate-900/95 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl z-30 flex flex-col h-[520px] overflow-hidden">
+          <div className="absolute right-4 bottom-4 w-96 max-w-[calc(100vw-2rem)] bg-slate-900/95 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl z-30 flex flex-col h-[520px] max-h-[calc(100vh-6rem)] overflow-hidden">
             <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
               <div className="flex items-center gap-2">
                 <Play className="w-4 h-4 text-emerald-400" />
@@ -671,6 +874,7 @@ export default function FlowEditorPage({ params }: { params: Promise<{ id: strin
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

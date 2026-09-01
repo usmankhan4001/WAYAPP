@@ -13,14 +13,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.gccstartup.wayapp"
+      "bundleIdentifier": "com.wayapp.mobile"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#020617"
       },
-      "package": "com.gccstartup.wayapp"
+      "package": "com.wayapp.mobile"
     },
     "plugins": [
       "expo-router",

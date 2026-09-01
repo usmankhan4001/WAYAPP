@@ -4,8 +4,8 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { signSessionToken, SESSION_COOKIE_NAME } from '@/lib/auth/jwt';
-import { isAllowedGccUser } from '@/lib/auth/session';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { writeAuditLog } from '@/lib/audit-log';
 
 const LoginSchema = z.object({
   email: z.string().email('Valid email address is required').trim().toLowerCase(),
@@ -56,10 +56,12 @@ export async function POST(request: NextRequest) {
 
       // Timing attack mitigation: do dummy hash comparison
       await bcrypt.compare(password, '$2a$12$e8YdC0fP5kS.yX4E4jWwUe1R.t/VqXpC8oWj7nKqG9L4hN9vN1/Gy');
+      writeAuditLog({ action: 'LOGIN_FAILED', actorEmail: email, ipAddress: clientIp, detail: { reason: 'user_not_found' } });
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
     if (!user.isActive || user.status === 'SUSPENDED') {
+      writeAuditLog({ action: 'LOGIN_FAILED', actorId: user.id, actorEmail: email, ipAddress: clientIp, detail: { reason: 'account_suspended' } });
       return NextResponse.json(
         { error: 'Account suspended. Please contact your system administrator.' },
         { status: 403 }
@@ -78,6 +80,7 @@ export async function POST(request: NextRequest) {
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
+      writeAuditLog({ action: 'LOGIN_FAILED', actorId: user.id, actorEmail: email, ipAddress: clientIp, detail: { reason: 'bad_password' } });
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
@@ -101,6 +104,8 @@ export async function POST(request: NextRequest) {
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
     });
+
+    writeAuditLog({ action: 'LOGIN_SUCCESS', actorId: user.id, actorEmail: user.email, ipAddress: clientIp });
 
     // 7. Sign JWT with jti
     const sessionToken = await signSessionToken({

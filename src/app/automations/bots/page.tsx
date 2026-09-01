@@ -9,19 +9,23 @@ import {
   Zap,
   Globe,
   Trash2,
-  Settings,
   Brain,
-  Power,
-  Shield,
-  CheckCircle2,
+  X,
+  Pencil,
+  Play,
+  Pause,
+  FlaskConical,
+  Loader2,
 } from 'lucide-react';
-import { Header } from '@/components/layout/Header';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 export default function BotsManagementPage() {
   const [bots, setBots] = useState<any[]>([]);
   const [kbs, setKbs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form State
   const [name, setName] = useState('');
@@ -38,6 +42,12 @@ export default function BotsManagementPage() {
   const [httpWebhookUrl, setHttpWebhookUrl] = useState('');
   const [replyText, setReplyText] = useState('Hello! Thanks for reaching out.');
   const [saving, setSaving] = useState(false);
+
+  // Test panel state
+  const [testingBot, setTestingBot] = useState<any | null>(null);
+  const [testMessage, setTestMessage] = useState('');
+  const [testResult, setTestResult] = useState<any | null>(null);
+  const [testLoading, setTestLoading] = useState(false);
 
   const fetchBotsAndKbs = async () => {
     try {
@@ -59,6 +69,63 @@ export default function BotsManagementPage() {
     fetchBotsAndKbs();
   }, []);
 
+  const resetForm = () => {
+    setEditingId(null);
+    setName('');
+    setDescription('');
+    setKind('AI');
+    setAiProvider('gemini');
+    setAiApiKey('');
+    setSystemPrompt('You are a friendly customer service AI assistant on WhatsApp. Answer concisely and politely.');
+    setSelectedKbId('');
+    setKeywordList('price, pricing, help, order');
+    setMatchType('CONTAINS');
+    setHttpWebhookUrl('');
+    setReplyText('Hello! Thanks for reaching out.');
+  };
+
+  const handleOpenEdit = (bot: any) => {
+    setEditingId(bot.id);
+    setName(bot.name || '');
+    setDescription(bot.description || '');
+    setKind(bot.kind || 'AI');
+    setSelectedKbId(bot.knowledgeBaseId || '');
+
+    let triggerConfig: any = {};
+    try {
+      triggerConfig = JSON.parse(bot.triggerConfig || '{}');
+    } catch (error) {
+      console.warn('[Bots] Failed to parse triggerConfig for edit:', error);
+    }
+    setMatchType(triggerConfig.matchType || 'CONTAINS');
+    setKeywordList(Array.isArray(triggerConfig.keywords) ? triggerConfig.keywords.join(', ') : '');
+    setHttpWebhookUrl(triggerConfig.webhookUrl || '');
+
+    if (bot.kind === 'AI') {
+      let aiConfig: any = {};
+      try {
+        aiConfig = JSON.parse(bot.aiConfig || '{}');
+      } catch (error) {
+        console.warn('[Bots] Failed to parse aiConfig for edit:', error);
+      }
+      setAiProvider(aiConfig.provider || 'gemini');
+      setSystemPrompt(aiConfig.systemPrompt || '');
+      setAiApiKey(aiConfig.hasApiKey ? '••••••••••••' : '');
+    }
+
+    if (bot.kind === 'KEYWORD') {
+      let actions: any[] = [];
+      try {
+        actions = JSON.parse(bot.actionsJson || '[]');
+      } catch (error) {
+        console.warn('[Bots] Failed to parse actionsJson for edit:', error);
+      }
+      setReplyText(actions.find((a) => a.type === 'SEND_TEXT')?.payload?.text || '');
+    }
+
+    setShowCreateModal(true);
+  };
+
   const handleCreateBot = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
@@ -79,7 +146,7 @@ export default function BotsManagementPage() {
       const aiConfig = kind === 'AI'
         ? {
             provider: aiProvider,
-            apiKey: aiApiKey.trim() || undefined,
+            apiKey: aiApiKey.trim() && !aiApiKey.includes('••••') ? aiApiKey.trim() : undefined,
             systemPrompt,
           }
         : undefined;
@@ -88,8 +155,8 @@ export default function BotsManagementPage() {
         ? [{ type: 'SEND_TEXT', payload: { text: replyText } }]
         : [];
 
-      const res = await fetch('/api/bots', {
-        method: 'POST',
+      const res = await fetch(editingId ? `/api/bots/${editingId}` : '/api/bots', {
+        method: editingId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: name.trim(),
@@ -99,14 +166,13 @@ export default function BotsManagementPage() {
           aiConfig,
           actionsJson,
           knowledgeBaseId: selectedKbId || undefined,
-          isActive: true,
+          ...(editingId ? {} : { isActive: true }),
         }),
       });
 
       if (res.ok) {
         setShowCreateModal(false);
-        setName('');
-        setDescription('');
+        resetForm();
         fetchBotsAndKbs();
       }
     } catch (err) {
@@ -126,290 +192,461 @@ export default function BotsManagementPage() {
     }
   };
 
+  const handleToggleActive = async (bot: any) => {
+    try {
+      await fetch(`/api/bots/${bot.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !bot.isActive }),
+      });
+      fetchBotsAndKbs();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleOpenTest = (bot: any) => {
+    setTestingBot(bot);
+    setTestMessage('');
+    setTestResult(null);
+  };
+
+  const handleRunTest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!testingBot || !testMessage.trim()) return;
+
+    setTestLoading(true);
+    setTestResult(null);
+    try {
+      const res = await fetch(`/api/bots/${testingBot.id}/test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: testMessage.trim() }),
+      });
+      const data = await res.json();
+      setTestResult(res.ok ? data : { error: data.error || 'Test request failed' });
+    } catch (err: any) {
+      setTestResult({ error: err.message || 'Network error' });
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100">
-      <Header />
-
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-        <div>
-          <h1 className="text-2xl font-black text-white tracking-tight">Bots & AI Agents</h1>
-          <p className="text-xs text-slate-400">
-            Configure 24/7 AI conversation agents, Knowledge Base RAG retrieval, and keyword responders
-          </p>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Link
-              href="/automations"
-              className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-400 hover:text-white transition-colors"
-            >
-              &larr; Automations
-            </Link>
-            <Link
-              href="/automations/knowledge"
-              className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-400 hover:text-white transition-colors"
-            >
-              Knowledge Base &rarr;
-            </Link>
-          </div>
-
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition-all"
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Bots & AI Agents</h1>
+        <p className="text-xs text-slate-500">
+          Configure 24/7 AI conversation agents, Knowledge Base RAG retrieval, and keyword responders
+        </p>
+      </div>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Link
+            href="/automations"
+            className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-500 hover:text-slate-900 transition-colors"
           >
-            <Plus className="w-4 h-4" />
-            <span>Create New Bot</span>
-          </button>
+            &larr; Automations
+          </Link>
+          <Link
+            href="/automations/knowledge"
+            className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-500 hover:text-slate-900 transition-colors"
+          >
+            Knowledge Base &rarr;
+          </Link>
         </div>
 
-        {/* Bots List */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : bots.length === 0 ? (
-          <div className="text-center py-16 bg-slate-900/50 border border-slate-800 rounded-3xl p-8 space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-600/10 text-emerald-400 flex items-center justify-center mx-auto">
-              <Bot className="w-6 h-6" />
+        <button
+          onClick={() => {
+            resetForm();
+            setShowCreateModal(true);
+          }}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Create New Bot</span>
+        </button>
+      </div>
+
+      {/* Bots List */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="card-base p-5 space-y-3">
+              <div className="flex items-center gap-2.5">
+                <Skeleton variant="rounded" width={36} height={36} />
+                <Skeleton width={120} height={14} />
+              </div>
+              <Skeleton lines={2} />
             </div>
-            <h3 className="text-base font-bold text-white">No Active Bots Found</h3>
-            <p className="text-xs text-slate-400 max-w-md mx-auto">
-              Deploy an AI assistant powered by Gemini or Claude to answer incoming customer inquiries 24/7.
-            </p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
-            >
-              <Plus className="w-4 h-4" /> Create Bot
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {bots.map((bot) => {
-              const isAi = bot.kind === 'AI';
-              const isHttp = bot.kind === 'HTTP';
+          ))}
+        </div>
+      ) : bots.length === 0 ? (
+        <div className="card-base">
+          <EmptyState
+            icon={Bot}
+            title="No Active Bots Found"
+            description="Deploy an AI assistant powered by Gemini or Claude to answer incoming customer inquiries 24/7."
+            actionLabel="Create Bot"
+            onAction={() => {
+              resetForm();
+              setShowCreateModal(true);
+            }}
+          />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {bots.map((bot) => {
+            const isAi = bot.kind === 'AI';
+            const isHttp = bot.kind === 'HTTP';
 
-              return (
-                <div
-                  key={bot.id}
-                  className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between space-y-4 hover:border-slate-700 transition-all"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center border ${
-                            isAi
-                              ? 'bg-purple-600/10 border-purple-500/20 text-purple-400'
-                              : isHttp
-                              ? 'bg-blue-600/10 border-blue-500/20 text-blue-400'
-                              : 'bg-emerald-600/10 border-emerald-500/20 text-emerald-400'
-                          }`}
-                        >
-                          {isAi ? <Sparkles className="w-4 h-4" /> : isHttp ? <Globe className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-bold text-white">{bot.name}</h4>
-                          <span className="text-[10px] text-slate-400 font-semibold uppercase">{bot.kind} BOT</span>
-                        </div>
+            return (
+              <div
+                key={bot.id}
+                className={`card-base p-5 flex flex-col justify-between space-y-4 hover:border-slate-300 transition-all ${bot.isActive ? '' : 'opacity-60'}`}
+              >
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center border ${
+                          isAi
+                            ? 'bg-purple-50 border-purple-200 text-purple-600'
+                            : isHttp
+                            ? 'bg-blue-50 border-blue-200 text-blue-600'
+                            : 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                        }`}
+                      >
+                        {isAi ? <Sparkles className="w-4 h-4" /> : isHttp ? <Globe className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
                       </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-900">{bot.name}</h4>
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase">{bot.kind} BOT</span>
+                      </div>
+                    </div>
 
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleOpenTest(bot)}
+                        className="text-slate-400 hover:text-purple-600 transition-colors p-1"
+                        aria-label="Test bot"
+                        title="Test bot"
+                      >
+                        <FlaskConical className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleOpenEdit(bot)}
+                        className="text-slate-400 hover:text-slate-700 transition-colors p-1"
+                        aria-label="Edit bot"
+                        title="Edit bot"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleToggleActive(bot)}
+                        className={`transition-colors p-1 ${bot.isActive ? 'text-emerald-600 hover:text-emerald-700' : 'text-slate-400 hover:text-slate-600'}`}
+                        aria-label={bot.isActive ? 'Pause bot' : 'Activate bot'}
+                        title={bot.isActive ? 'Pause bot' : 'Activate bot'}
+                      >
+                        {bot.isActive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                      </button>
                       <button
                         onClick={() => handleDeleteBot(bot.id)}
-                        className="text-slate-500 hover:text-rose-400 transition-colors p-1"
+                        className="text-slate-400 hover:text-rose-600 transition-colors p-1"
+                        aria-label="Delete bot"
+                        title="Delete bot"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-
-                    <p className="text-xs text-slate-400 line-clamp-2">
-                      {bot.description || 'No description provided.'}
-                    </p>
-
-                    {bot.knowledgeBase && (
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-950/40 border border-purple-800/50 text-purple-300 text-[11px]">
-                        <Brain className="w-3.5 h-3.5" />
-                        <span>KB: {bot.knowledgeBase.name}</span>
-                      </div>
-                    )}
                   </div>
 
-                  <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
-                    <span className="flex items-center gap-1">
-                      <Zap className="w-3 h-3 text-emerald-400" />
-                      {bot.executionCount || 0} runs
-                    </span>
-                    <span className="text-emerald-400 font-semibold">Active</span>
-                  </div>
+                  <p className="text-xs text-slate-500 line-clamp-2">
+                    {bot.description || 'No description provided.'}
+                  </p>
+
+                  {bot.knowledgeBase && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 border border-purple-200 text-purple-700 text-[11px]">
+                      <Brain className="w-3.5 h-3.5" />
+                      <span>KB: {bot.knowledgeBase.name}</span>
+                    </div>
+                  )}
                 </div>
-              );
-            })}
-          </div>
-        )}
 
-        {/* Create Bot Modal */}
-        {showCreateModal && (
-          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+                  <span className="flex items-center gap-1">
+                    <Zap className="w-3 h-3 text-emerald-600" />
+                    {bot.executionCount || 0} runs
+                  </span>
+                  <span className={`font-semibold ${bot.isActive ? 'text-emerald-700' : 'text-slate-400'}`}>
+                    {bot.isActive ? 'Active' : 'Paused'}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Create Bot Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-600/10 text-emerald-400 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center">
                   <Bot className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">Create WhatsApp Bot</h3>
-                  <p className="text-xs text-slate-400">Configure triggers, AI personality, and Knowledge Base</p>
+                  <h3 className="text-base font-bold text-slate-900">{editingId ? 'Edit WhatsApp Bot' : 'Create WhatsApp Bot'}</h3>
+                  <p className="text-xs text-slate-500">Configure triggers, AI personality, and Knowledge Base</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowCreateModal(false);
+                  resetForm();
+                }}
+                className="text-slate-400 hover:text-slate-700"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateBot} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Bot Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 24/7 AI Customer Concierge"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="input-base text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Bot Kind</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['AI', 'KEYWORD', 'HTTP'] as const).map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setKind(k)}
+                      className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all ${
+                        kind === k
+                          ? 'bg-emerald-600 border-emerald-600 text-white'
+                          : 'bg-white border-slate-200 text-slate-500 hover:text-slate-900'
+                      }`}
+                    >
+                      {k}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              <form onSubmit={handleCreateBot} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">Bot Name</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. 24/7 AI Customer Concierge"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">Bot Kind</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(['AI', 'KEYWORD', 'HTTP'] as const).map((k) => (
-                      <button
-                        key={k}
-                        type="button"
-                        onClick={() => setKind(k)}
-                        className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all ${
-                          kind === k
-                            ? 'bg-emerald-600 border-emerald-500 text-white'
-                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                        }`}
+              {kind === 'AI' && (
+                <div className="space-y-3.5 p-4 rounded-2xl bg-purple-50/60 border border-purple-200">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-purple-700 mb-1">AI Provider</label>
+                      <select
+                        value={aiProvider}
+                        onChange={(e) => setAiProvider(e.target.value)}
+                        className="input-base text-xs"
                       >
-                        {k}
-                      </button>
-                    ))}
+                        <option value="gemini">Google Gemini (Recommended)</option>
+                        <option value="openai">OpenAI (GPT-4o)</option>
+                        <option value="anthropic">Anthropic (Claude 3.5)</option>
+                        <option value="openrouter">OpenRouter (Meta Llama 3.3)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-semibold text-purple-700 mb-1">Attach Knowledge Base</label>
+                      <select
+                        value={selectedKbId}
+                        onChange={(e) => setSelectedKbId(e.target.value)}
+                        className="input-base text-xs"
+                      >
+                        <option value="">None (General Assistant)</option>
+                        {kbs.map((kb) => (
+                          <option key={kb.id} value={kb.id}>
+                            {kb.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-purple-700 mb-1">API Key (Encrypted at rest)</label>
+                    <input
+                      type="password"
+                      placeholder="Paste provider API key (or leave empty to use server ENV)"
+                      value={aiApiKey}
+                      onChange={(e) => setAiApiKey(e.target.value)}
+                      className="input-base text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-purple-700 mb-1">System Instructions</label>
+                    <textarea
+                      rows={3}
+                      value={systemPrompt}
+                      onChange={(e) => setSystemPrompt(e.target.value)}
+                      className="input-base text-xs resize-none font-sans py-2.5 h-auto"
+                    />
                   </div>
                 </div>
+              )}
 
-                {kind === 'AI' && (
-                  <div className="space-y-3.5 p-4 rounded-2xl bg-purple-950/20 border border-purple-900/40">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-purple-300 mb-1">AI Provider</label>
-                        <select
-                          value={aiProvider}
-                          onChange={(e) => setAiProvider(e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs"
-                        >
-                          <option value="gemini">Google Gemini (Recommended)</option>
-                          <option value="openai">OpenAI (GPT-4o)</option>
-                          <option value="anthropic">Anthropic (Claude 3.5)</option>
-                          <option value="openrouter">OpenRouter (Meta Llama 3.3)</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-semibold text-purple-300 mb-1">Attach Knowledge Base</label>
-                        <select
-                          value={selectedKbId}
-                          onChange={(e) => setSelectedKbId(e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs"
-                        >
-                          <option value="">None (General Assistant)</option>
-                          {kbs.map((kb) => (
-                            <option key={kb.id} value={kb.id}>
-                              {kb.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-purple-300 mb-1">API Key (Encrypted at rest)</label>
-                      <input
-                        type="password"
-                        placeholder="Paste provider API key (or leave empty to use server ENV)"
-                        value={aiApiKey}
-                        onChange={(e) => setAiApiKey(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-purple-300 mb-1">System Instructions</label>
-                      <textarea
-                        rows={3}
-                        value={systemPrompt}
-                        onChange={(e) => setSystemPrompt(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs resize-none font-sans"
-                      />
-                    </div>
+              {kind === 'KEYWORD' && (
+                <div className="space-y-3 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Keywords (comma-separated)</label>
+                    <input
+                      type="text"
+                      value={keywordList}
+                      onChange={(e) => setKeywordList(e.target.value)}
+                      className="input-base text-xs"
+                    />
                   </div>
-                )}
-
-                {kind === 'KEYWORD' && (
-                  <div className="space-y-3 p-4 rounded-2xl bg-slate-950 border border-slate-800">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">Keywords (comma-separated)</label>
-                      <input
-                        type="text"
-                        value={keywordList}
-                        onChange={(e) => setKeywordList(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-900 text-white text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">Response Message</label>
-                      <textarea
-                        rows={3}
-                        value={replyText}
-                        onChange={(e) => setReplyText(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-900 text-white text-xs resize-none"
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Response Message</label>
+                    <textarea
+                      rows={3}
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      className="input-base text-xs resize-none py-2.5 h-auto"
+                    />
                   </div>
-                )}
-
-                {kind === 'HTTP' && (
-                  <div className="space-y-3 p-4 rounded-2xl bg-slate-950 border border-slate-800">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">Webhook Target URL</label>
-                      <input
-                        type="url"
-                        placeholder="https://api.yourdomain.com/whatsapp-hook"
-                        value={httpWebhookUrl}
-                        onChange={(e) => setHttpWebhookUrl(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-900 text-white text-xs"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-end gap-2.5 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateModal(false)}
-                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving || !name.trim()}
-                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white disabled:opacity-50"
-                  >
-                    {saving ? 'Creating...' : 'Deploy Bot'}
-                  </button>
                 </div>
-              </form>
-            </div>
+              )}
+
+              {kind === 'HTTP' && (
+                <div className="space-y-3 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Webhook Target URL</label>
+                    <input
+                      type="url"
+                      placeholder="https://api.yourdomain.com/whatsapp-hook"
+                      value={httpWebhookUrl}
+                      onChange={(e) => setHttpWebhookUrl(e.target.value)}
+                      className="input-base text-xs"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    resetForm();
+                  }}
+                  className="btn-secondary text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving || !name.trim()}
+                  className="btn-primary text-xs"
+                >
+                  {saving ? (editingId ? 'Saving...' : 'Creating...') : editingId ? 'Save Changes' : 'Deploy Bot'}
+                </button>
+              </div>
+            </form>
           </div>
-        )}
-      </main>
+        </div>
+      )}
+
+      {/* Test Bot Panel */}
+      {testingBot && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center">
+                  <FlaskConical className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Test &ldquo;{testingBot.name}&rdquo;</h3>
+                  <p className="text-xs text-slate-500">Simulates a reply without sending a real WhatsApp message</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setTestingBot(null)}
+                className="text-slate-400 hover:text-slate-700"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleRunTest} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Test Message (as if from a customer)</label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="e.g. What are your prices?"
+                  value={testMessage}
+                  onChange={(e) => setTestMessage(e.target.value)}
+                  className="input-base text-xs"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={testLoading || !testMessage.trim()}
+                className="btn-primary text-xs w-full justify-center"
+              >
+                {testLoading ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Testing...</span>
+                  </>
+                ) : (
+                  <span>Run Test</span>
+                )}
+              </button>
+            </form>
+
+            {testResult && (
+              <div className="space-y-2">
+                {testResult.error ? (
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs">
+                    {testResult.error}
+                  </div>
+                ) : testResult.triggerMatched === false ? (
+                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs">
+                    {testResult.note || 'This message would not trigger the bot.'}
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 space-y-1.5">
+                    <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Bot Would Reply</span>
+                    <p className="text-xs text-slate-800 whitespace-pre-wrap">{testResult.reply || '(no reply text)'}</p>
+                    {testResult.usedKnowledgeBase && (
+                      <span className="inline-flex items-center gap-1 text-[10px] text-purple-700 font-semibold">
+                        <Brain className="w-3 h-3" /> Used Knowledge Base context
+                      </span>
+                    )}
+                    {testResult.note && (
+                      <p className="text-[10px] text-amber-700">{testResult.note}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

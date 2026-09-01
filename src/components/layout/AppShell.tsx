@@ -32,7 +32,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       if (authData?.authenticated && authData.user) {
         setUser(authData.user);
       }
-    } catch {
+    } catch (error) {
+      console.warn('[AppShell] Failed to load session/settings:', error);
     } finally {
       setLoading(false);
     }
@@ -42,8 +43,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     fetchSessionAndSettings();
   }, [pathname]);
 
-  // Bypass shell completely on login page
-  if (pathname === '/login' || pathname === '/register') {
+  // Bypass shell completely on pre-auth / first-run pages
+  if (pathname === '/login' || pathname === '/register' || pathname === '/setup') {
     return <>{children}</>;
   }
 

@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAuth } from '@/lib/auth/rbac';
 import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if ('response' in authResult) return authResult.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const contactId = searchParams.get('contactId');
@@ -65,6 +69,10 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if ('response' in authResult) return authResult.response;
+  const { session } = authResult;
+
   try {
     const body = await request.json();
     const { contactId, leadStage, dealValue, company, city, tagIds, noteText, authorId, assignToId } = body;
@@ -126,7 +134,7 @@ export async function POST(request: NextRequest) {
     if (noteText && noteText.trim()) {
       let author = authorId ? await prisma.user.findUnique({ where: { id: authorId } }) : null;
       if (!author) {
-        author = await prisma.user.findFirst();
+        author = await prisma.user.findUnique({ where: { id: session.userId } });
       }
 
       if (author) {

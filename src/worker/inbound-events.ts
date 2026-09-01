@@ -1,4 +1,3 @@
-import { processConversationEvent } from '@/lib/whatsapp/conversation-engine';
 import { processInboundFlow } from './flows';
 import { processInboundBot } from './bots';
 import { processInboundAutomation } from '@/lib/whatsapp/automation';
@@ -18,18 +17,7 @@ export async function processInboundEvent(event: InboundConversationEvent): Prom
     body: bodyText,
   }).catch((err) => logger.error({ err }, 'Webhook enqueue error'));
 
-  // 2. Try Stateful Conversation Flow Engine first (GCC Lead Qualification & Interactive Funnels)
-  try {
-    const handledByConversationEngine = await processConversationEvent(event);
-    if (handledByConversationEngine) {
-      logger.info({ contactId }, '[InboundEvents] Handled by Stateful Conversation Flow Engine');
-      return;
-    }
-  } catch (convErr: any) {
-    logger.error({ err: convErr.message }, '[InboundEvents] Error in ConversationFlowEngine');
-  }
-
-  // 3. Try Visual Flow Builder Engine
+  // 2. Try Visual Flow Builder Engine
   const handledByFlow = await processInboundFlow({
     contactId,
     phoneNumber,
@@ -41,7 +29,7 @@ export async function processInboundEvent(event: InboundConversationEvent): Prom
     return;
   }
 
-  // 4. Try Bot Engine (AI / Keyword / HTTP)
+  // 3. Try Bot Engine (AI / Keyword / HTTP)
   const handledByBot = await processInboundBot({
     contactId,
     conversationId,
@@ -54,7 +42,7 @@ export async function processInboundEvent(event: InboundConversationEvent): Prom
     return;
   }
 
-  // 5. Try Legacy/Generic Keyword Automations
+  // 4. Try Legacy/Generic Keyword Automations
   try {
     await processInboundAutomation({
       contactId,

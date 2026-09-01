@@ -3,12 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  Send,
   Plus,
   Trash2,
   ExternalLink,
 } from 'lucide-react';
 import { formatDateTime } from '@/lib/utils';
+import { SkeletonTableRow } from '@/components/ui/Skeleton';
+import { EmptyCampaigns } from '@/components/ui/EmptyState';
 
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
@@ -79,19 +80,15 @@ export default function CampaignsPage() {
       {/* Campaigns Table */}
       <div className="card-base overflow-hidden">
         {loading ? (
-          <div className="py-12 flex justify-center">
-            <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-          </div>
+          <table className="w-full text-left border-collapse text-xs">
+            <tbody>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <SkeletonTableRow key={i} columns={8} />
+              ))}
+            </tbody>
+          </table>
         ) : filteredCampaigns.length === 0 ? (
-          <div className="py-14 text-center space-y-2">
-            <Send className="w-8 h-8 text-slate-300 mx-auto" />
-            <h3 className="text-xs font-semibold text-slate-800">No campaigns found</h3>
-            <p className="text-[11px] text-slate-500">Create your first broadcast to engage your WhatsApp audience.</p>
-            <Link href="/campaigns/new" className="btn-primary h-8 px-3 text-xs mt-1">
-              <Plus className="w-3.5 h-3.5" />
-              <span>Create Campaign</span>
-            </Link>
-          </div>
+          <EmptyCampaigns />
         ) : (
           <div>
             {/* Desktop Table View */}

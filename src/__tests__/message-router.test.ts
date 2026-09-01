@@ -87,7 +87,7 @@ describe('Marketing Messages API & Message Router', () => {
       const result = await MessageRouter.routeAndSend({
         contactId: contact.id,
         phoneNumber: contact.phoneNumber,
-        templateName: 'gcc_initial_qualification',
+        templateName: 'initial_qualification',
         templateCategory: 'MARKETING',
         optimizationMode: 'OPTIMIZED',
       });

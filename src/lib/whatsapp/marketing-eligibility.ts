@@ -9,6 +9,7 @@ export interface EligibilityResult {
     | 'TEMPLATE_NOT_MARKETING'
     | 'TEMPLATE_NOT_APPROVED'
     | 'ACTIVE_HUMAN_HANDOFF'
+    | 'ACTIVE_FLOW_RUN'
     | 'OK';
   details?: string;
 }
@@ -86,12 +87,20 @@ export async function checkMarketingEligibility(
 
   // 4. Check Active Human Handoff (optional guardrail)
   if (checkHandoff) {
-    const activeSession = await prisma.conversationSession.findFirst({
+    const activeSession = await prisma.flowRun.findFirst({
       where: {
         contactId,
         status: 'ACTIVE',
       },
     });
+
+    if (activeSession) {
+      return {
+        allowed: false,
+        reason: 'ACTIVE_FLOW_RUN',
+        details: 'Contact is mid-way through an active automated flow; sending a marketing broadcast now could derail it.',
+      };
+    }
 
     const openConversation = await prisma.conversation.findUnique({
       where: { contactId },

@@ -5,7 +5,7 @@ describe('JWT Authentication & Verification (Fail-Closed)', () => {
   it('signs and verifies a valid JWT session token', async () => {
     const payload = {
       userId: 'user_123',
-      email: 'admin@gccstartup.com',
+      email: 'admin@example.com',
       name: 'Admin User',
       role: 'SUPER_ADMIN',
     };
@@ -17,7 +17,7 @@ describe('JWT Authentication & Verification (Fail-Closed)', () => {
     const verified = await verifySessionToken(token);
     expect(verified).not.toBeNull();
     expect(verified?.userId).toBe('user_123');
-    expect(verified?.email).toBe('admin@gccstartup.com');
+    expect(verified?.email).toBe('admin@example.com');
     expect(verified?.role).toBe('SUPER_ADMIN');
   });
 
@@ -30,7 +30,7 @@ describe('JWT Authentication & Verification (Fail-Closed)', () => {
   it('fails closed on token signed with different key or tampered payload', async () => {
     const payload = {
       userId: 'user_123',
-      email: 'admin@gccstartup.com',
+      email: 'admin@example.com',
       name: 'Admin User',
       role: 'SUPER_ADMIN',
     };

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { signSessionToken, SESSION_COOKIE_NAME } from '@/lib/auth/jwt';
-import { isAllowedGccUser } from '@/lib/auth/session';
+import { isAllowedUser } from '@/lib/auth/session';
 import { timingSafeCompare } from '@/lib/crypto';
 
 export async function GET(request: NextRequest) {
@@ -74,10 +74,10 @@ export async function GET(request: NextRequest) {
     const avatarUrl = profile.picture?.data?.url || null;
 
     // 3. Security Gate: Verify Allowed Domain / Whitelist
-    const isAllowed = await isAllowedGccUser(email);
+    const isAllowed = await isAllowedUser(email);
     if (!isAllowed) {
       return NextResponse.redirect(
-        new URL('/login?error=ACCESS_DENIED_NOT_GCC_USER', request.url)
+        new URL('/login?error=ACCESS_DENIED', request.url)
       );
     }
 

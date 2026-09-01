@@ -36,6 +36,8 @@ import { CsvImportModal } from '@/components/contacts/CsvImportModal';
 import { GroupTagModal } from '@/components/contacts/GroupTagModal';
 import { ContactFormModal } from '@/components/contacts/ContactFormModal';
 import { InfoTooltip, Tooltip } from '@/components/ui/Tooltip';
+import { SkeletonCard } from '@/components/ui/Skeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 const LEAD_STAGES = [
   { id: 'NEW_LEAD', label: 'New Lead', color: 'bg-blue-100 text-blue-800 border-blue-200' },
@@ -579,10 +581,12 @@ export default function ContactsPage() {
         </div>
       )}
 
-      {/* Loading Spinner */}
+      {/* Loading Skeleton */}
       {loading ? (
-        <div className="py-24 flex justify-center">
-          <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
         </div>
       ) : viewMode === 'kanban' ? (
         /* KANBAN PIPELINE BOARD */
@@ -700,20 +704,13 @@ export default function ContactsPage() {
         /* TABLE VIEW */
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           {contacts.length === 0 ? (
-            <div className="py-16 text-center space-y-3">
-              <Users className="w-10 h-10 text-slate-300 mx-auto" />
-              <h3 className="text-sm font-bold text-slate-800">No contacts in database</h3>
-              <p className="text-xs text-slate-500">
-                Upload a customer CSV file or add your first WhatsApp recipient.
-              </p>
-              <button
-                onClick={() => setIsImportOpen(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <span>Import Contacts CSV</span>
-              </button>
-            </div>
+            <EmptyState
+              icon={Users}
+              title="No contacts in database"
+              description="Upload a customer CSV file or add your first WhatsApp recipient."
+              actionLabel="Import Contacts CSV"
+              onAction={() => setIsImportOpen(true)}
+            />
           ) : (
             <div>
               {/* Desktop Table View */}

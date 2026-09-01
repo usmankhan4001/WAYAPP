@@ -1,48 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { isModuleEnabled } from '@/lib/modules';
+import { requireAuth } from '@/lib/auth/rbac';
 import { logger } from '@/lib/logger';
 
 const DEFAULT_SNIPPETS = [
   {
     shortcut: '/pricing',
     title: 'Pricing & Standard Packages',
-    content: 'Hi! Our standard plans start at $29/mo with 0% markup on official WhatsApp message rates. All plans include shared inbox, CRM tags, and unlimited contacts. Would you like our detailed package breakdown? 📊',
+    content: 'Hi! Thanks for your interest in our plans. Would you like me to send over our detailed package breakdown? 📊',
     category: 'PRICING',
   },
   {
     shortcut: '/brochure',
-    title: 'Product Catalog & PDF Brochure',
-    content: 'Here is our complete catalog and solutions brochure: https://gccstartup.com/brochure.pdf 📄 Let me know if you would like me to explain any specific feature!',
+    title: 'Product Catalog & Brochure',
+    content: 'Here is our complete catalog and solutions brochure: [add your brochure link here] 📄 Let me know if you would like me to explain any specific feature!',
     category: 'GENERAL',
   },
   {
     shortcut: '/demo',
     title: 'Book a 1-on-1 Consultation Demo',
-    content: 'We would love to show you a live interactive walkthrough! You can pick a convenient 15-minute slot on our calendar here: https://calendly.com/gccstartup/demo 📅',
+    content: 'We would love to show you a live interactive walkthrough! You can pick a convenient time slot on our calendar here: [add your booking link here] 📅',
     category: 'CLOSING',
   },
   {
     shortcut: '/discount',
     title: 'Limited-Time Seasonal Offer',
-    content: 'Great news! We are currently running an exclusive 20% discount on all annual enterprise plans. Use coupon code WAYAPP20 upon signup! 🎁',
+    content: 'Great news! We are currently running a limited-time discount — let me know if you would like the details. 🎁',
     category: 'PRICING',
   },
   {
     shortcut: '/location',
     title: 'Office Address & Working Hours',
-    content: '📍 Our head office is located at Downtown Commercial Tower, Level 14, Dubai, UAE. We are open Monday to Friday, 9:00 AM – 6:00 PM GST.',
+    content: '📍 [Add your office address here]. We are open [add your working hours here].',
     category: 'SUPPORT',
   },
   {
     shortcut: '/bank-details',
     title: 'Direct Wire / Bank Transfer Info',
-    content: 'Bank: Emirates NBD\nAccount Title: GCC Startup FZ-LLC\nIBAN: AE070260000123456789012\nCurrency: AED / USD\nPlease share payment proof once transferred so we can activate your account immediately! 💳',
+    content: 'Bank: [Add your bank name]\nAccount Title: [Add your account title]\nIBAN: [Add your IBAN]\nPlease share payment proof once transferred so we can activate your account immediately! 💳',
     category: 'PRICING',
   },
 ];
 
 export async function GET(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if ('response' in authResult) return authResult.response;
+
   try {
     const enabled = await isModuleEnabled('canned_snippets');
     if (!enabled) {
@@ -82,6 +86,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if ('response' in authResult) return authResult.response;
+
   try {
     const body = await request.json();
     const { shortcut, title, content, category = 'GENERAL', action } = body;
@@ -115,6 +122,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if ('response' in authResult) return authResult.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { CampaignWizard } from '@/components/campaigns/CampaignWizard';
+import { SkeletonCard, Skeleton } from '@/components/ui/Skeleton';
 
 export default function NewCampaignPage() {
   const [templates, setTemplates] = useState<any[]>([]);
@@ -28,8 +29,16 @@ export default function NewCampaignPage() {
 
   if (loading) {
     return (
-      <div className="py-20 flex justify-center">
-        <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-6">
+        <Skeleton width={220} height={20} />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+        <div className="card-base p-5 space-y-3">
+          <Skeleton lines={4} />
+        </div>
       </div>
     );
   }

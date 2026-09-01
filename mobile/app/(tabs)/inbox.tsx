@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,18 +11,34 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { mobileApiFetch } from '../../lib/api';
+import { mobileApiFetch, getCurrentUserId } from '../../lib/api';
+
+const FILTERS: { id: 'all' | 'mine' | 'unassigned'; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'mine', label: 'Assigned to Me' },
+  { id: 'unassigned', label: 'Unassigned' },
+];
 
 export default function MobileInboxScreen() {
   const router = useRouter();
   const [filter, setFilter] = useState<'all' | 'mine' | 'unassigned'>('all');
+  const [userId, setUserId] = useState<string | null>(null);
 
-  const { data: conversations, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ['mobile_conversations', filter],
+  useEffect(() => {
+    getCurrentUserId().then(setUserId);
+  }, []);
+
+  const { data: conversations, isLoading, isError, refetch, isRefetching } = useQuery({
+    queryKey: ['mobile_conversations', filter, userId],
     queryFn: async () => {
-      const data = await mobileApiFetch(`/api/v1/conversations`);
+      const params = new URLSearchParams();
+      if (filter === 'mine' && userId) params.set('assignedToId', userId);
+      if (filter === 'unassigned') params.set('assignedToId', 'none');
+      const qs = params.toString();
+      const data = await mobileApiFetch(`/api/v1/conversations${qs ? `?${qs}` : ''}`);
       return Array.isArray(data) ? data : [];
     },
+    enabled: filter !== 'mine' || Boolean(userId),
     refetchInterval: 5000,
   });
 
@@ -74,9 +90,30 @@ export default function MobileInboxScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.filterRow}>
+        {FILTERS.map((f) => (
+          <TouchableOpacity
+            key={f.id}
+            style={[styles.filterChip, filter === f.id && styles.filterChipActive]}
+            onPress={() => setFilter(f.id)}
+          >
+            <Text style={[styles.filterChipText, filter === f.id && styles.filterChipTextActive]}>
+              {f.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       {isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator color="#10b981" />
+        </View>
+      ) : isError ? (
+        <View style={styles.center}>
+          <Text style={styles.emptyText}>Couldn't load conversations.</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={() => refetch()}>
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
@@ -93,7 +130,7 @@ export default function MobileInboxScreen() {
           }
           ListEmptyComponent={
             <View style={styles.center}>
-              <Text style={styles.emptyText}>No active conversations</Text>
+              <Text style={styles.emptyText}>No conversations here</Text>
             </View>
           }
         />
@@ -110,6 +147,33 @@ const styles = StyleSheet.create({
   list: {
     padding: 12,
   },
+  filterRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#0f172a',
+    borderWidth: 1,
+    borderColor: '#1e293b',
+  },
+  filterChipActive: {
+    backgroundColor: '#059669',
+    borderColor: '#059669',
+  },
+  filterChipText: {
+    color: '#64748b',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  filterChipTextActive: {
+    color: '#ffffff',
+  },
   center: {
     flex: 1,
     alignItems: 'center',
@@ -119,6 +183,20 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#64748b',
     fontSize: 13,
+  },
+  retryBtn: {
+    marginTop: 12,
+    backgroundColor: '#0f172a',
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  retryText: {
+    color: '#34d399',
+    fontSize: 12,
+    fontWeight: '700',
   },
   convCard: {
     flexDirection: 'row',

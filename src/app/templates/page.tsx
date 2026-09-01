@@ -19,6 +19,8 @@ import { WhatsAppMockupPreview } from '@/components/templates/WhatsAppMockupPrev
 import { TemplateBuilderModal } from '@/components/templates/TemplateBuilderModal';
 import { SendTestModal } from '@/components/templates/SendTestModal';
 import { InfoTooltip, Tooltip } from '@/components/ui/Tooltip';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 export default function TemplatesPage() {
   const [templates, setTemplates] = useState<any[]>([]);
@@ -148,23 +150,26 @@ export default function TemplatesPage() {
         {/* Templates List */}
         <div className="lg:col-span-7 space-y-3">
           {loading ? (
-            <div className="py-20 flex justify-center">
-              <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="p-4 rounded-2xl border-2 border-slate-200 bg-white space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Skeleton width={140} height={14} />
+                    <Skeleton width={70} height={18} variant="rounded" />
+                  </div>
+                  <Skeleton lines={2} />
+                </div>
+              ))}
             </div>
           ) : templates.length === 0 ? (
-            <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
-              <FileText className="w-10 h-10 text-slate-300 mx-auto" />
-              <h4 className="text-sm font-bold text-slate-800">No Templates Found</h4>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                Create a template with custom variables or click &ldquo;Sync from Meta&rdquo; to pull your existing WhatsApp Business templates.
-              </p>
-              <button
-                onClick={() => setIsCreateOpen(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Create First Template</span>
-              </button>
+            <div className="bg-white rounded-2xl border border-slate-200">
+              <EmptyState
+                icon={FileText}
+                title="No Templates Found"
+                description={'Create a template with custom variables or click "Sync from Meta" to pull your existing WhatsApp Business templates.'}
+                actionLabel="Create First Template"
+                onAction={() => setIsCreateOpen(true)}
+              />
             </div>
           ) : (
             templates.map((tpl) => {

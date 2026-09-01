@@ -25,7 +25,7 @@ describe('WhatsApp Flows 3.0 & Meta CAPI', () => {
     const result = await sendMetaConversionEvent({
       eventName: 'Lead',
       phoneNumber: '+971501234567',
-      email: 'lead@gccstartup.com',
+      email: 'lead@example.com',
       firstName: 'Omar',
       value: 500,
       currency: 'USD',

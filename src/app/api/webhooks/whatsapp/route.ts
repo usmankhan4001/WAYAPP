@@ -322,9 +322,9 @@ export async function POST(request: NextRequest) {
                 },
               }).catch(() => {});
 
-              await prisma.conversationSession.updateMany({
+              await prisma.flowRun.updateMany({
                 where: { contactId: contact.id, status: 'ACTIVE' },
-                data: { status: 'CANCELLED' },
+                data: { status: 'CANCELLED', exitedAt: new Date() },
               }).catch(() => {});
             }
 

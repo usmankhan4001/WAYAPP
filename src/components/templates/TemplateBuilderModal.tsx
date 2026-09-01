@@ -83,7 +83,7 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
     }>
   >([
     { type: 'QUICK_REPLY', text: 'Track Order' },
-    { type: 'URL', text: 'View Invoice', url: 'https://gccstartup.com/orders/{{1}}', urlSample: 'ORD-98241' },
+    { type: 'URL', text: 'View Invoice', url: 'https://example.com/orders/{{1}}', urlSample: 'ORD-98241' },
   ]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -114,7 +114,7 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
     if (type === 'QUICK_REPLY') {
       setButtons([...buttons, { type: 'QUICK_REPLY', text: 'Reply Option' }]);
     } else if (type === 'URL') {
-      setButtons([...buttons, { type: 'URL', text: 'Visit Website', url: 'https://gccstartup.com' }]);
+      setButtons([...buttons, { type: 'URL', text: 'Visit Website', url: 'https://example.com' }]);
     } else if (type === 'PHONE_NUMBER') {
       setButtons([...buttons, { type: 'PHONE_NUMBER', text: 'Call Us', phone_number: '+971501234567' }]);
     } else if (type === 'COPY_CODE') {
@@ -233,7 +233,7 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
       const validButtons = buttons.map((b) => {
         const btn: any = { type: b.type, text: b.text.trim() };
         if (b.type === 'URL') {
-          btn.url = b.url?.trim() || 'https://gccstartup.com';
+          btn.url = b.url?.trim() || 'https://example.com';
           if (btn.url.includes('{{1}}')) {
             btn.example = [b.urlSample || 'sample_slug'];
           }
@@ -557,7 +557,7 @@ export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBui
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <input
                             type="url"
-                            placeholder="https://gccstartup.com/orders/{{1}}"
+                            placeholder="https://example.com/orders/{{1}}"
                             value={btn.url || ''}
                             onChange={(e) => {
                               const copy = [...buttons];

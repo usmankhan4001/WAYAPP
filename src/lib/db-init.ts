@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import crypto from 'crypto';
-import { ensureDefaultFlows } from '@/lib/whatsapp/conversation-engine';
+import { ensureDefaultFlow } from '@/lib/whatsapp/default-flow-seed';
 
 let isInitialized = false;
 
@@ -57,7 +57,7 @@ async function ensureDefaultAuthConfig(): Promise<void> {
     await prisma.authConfig.create({
       data: {
         id: 'default',
-        allowedDomains: 'gccstartup.com',
+        allowedDomains: '',
         allowedEmails: '',
         requireAuth: true,
         allowRegistration: true,
@@ -79,8 +79,8 @@ export async function ensureDatabaseSchema(): Promise<void> {
   try {
     await ensureDefaultSettings();
     await ensureDefaultAuthConfig();
-    await ensureDefaultFlows().catch((err: any) => {
-      logger.warn({ error: err.message }, '[Database] Default flows seeding skipped');
+    await ensureDefaultFlow().catch((err: any) => {
+      logger.warn({ error: err.message }, '[Database] Default flow seeding skipped');
     });
 
     isInitialized = true;

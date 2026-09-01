@@ -25,7 +25,9 @@ export async function GET(request: NextRequest) {
             hasApiKey: Boolean(parsed.apiKeyEncrypted),
             apiKeyEncrypted: undefined,
           };
-        } catch {}
+        } catch (error) {
+          logger.warn({ error, botId: b.id }, 'Failed to parse aiConfig while sanitizing bot list');
+        }
       }
       return {
         ...b,

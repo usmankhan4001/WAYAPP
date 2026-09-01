@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,15 +10,24 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { setAuthToken, mobileApiFetch } from '../lib/api';
+import { setAuthToken, setCurrentUserId, mobileApiFetch, getServerUrl, setServerUrl } from '../lib/api';
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [serverUrl, setServerUrlInput] = useState('');
+  const [showServerField, setShowServerField] = useState(false);
+
+  useEffect(() => {
+    getServerUrl().then(setServerUrlInput);
+  }, []);
 
   const handleLogin = async () => {
+    if (serverUrl.trim()) {
+      await setServerUrl(serverUrl.trim());
+    }
     if (!email.trim() || !password) {
       Alert.alert('Error', 'Please enter your email and password');
       return;
@@ -36,6 +45,9 @@ export default function LoginScreen() {
 
       if (data.access_token) {
         await setAuthToken(data.access_token);
+        if (data.user?.id) {
+          await setCurrentUserId(data.user.id);
+        }
         router.replace('/(tabs)/inbox');
       }
     } catch (err: any) {
@@ -61,7 +73,7 @@ export default function LoginScreen() {
             <Text style={styles.label}>Business Email</Text>
             <TextInput
               style={styles.input}
-              placeholder="name@gccstartup.com"
+              placeholder="name@yourcompany.com"
               placeholderTextColor="#64748b"
               value={email}
               onChangeText={setEmail}
@@ -93,6 +105,31 @@ export default function LoginScreen() {
               <Text style={styles.buttonText}>Sign In</Text>
             )}
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.serverToggle}
+            onPress={() => setShowServerField(!showServerField)}
+          >
+            <Text style={styles.serverToggleText}>
+              {showServerField ? 'Hide server settings' : 'Connecting to a different server?'}
+            </Text>
+          </TouchableOpacity>
+
+          {showServerField && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Server URL</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="https://your-instance.example.com"
+                placeholderTextColor="#64748b"
+                value={serverUrl}
+                onChangeText={setServerUrlInput}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+              />
+            </View>
+          )}
         </View>
       </View>
     </SafeAreaView>
@@ -179,5 +216,14 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '700',
+  },
+  serverToggle: {
+    marginTop: 16,
+    alignItems: 'center',
+  },
+  serverToggleText: {
+    color: '#64748b',
+    fontSize: 11,
+    fontWeight: '600',
   },
 });

@@ -31,7 +31,9 @@ export async function GET(
           hasApiKey: Boolean(parsed.apiKeyEncrypted),
           apiKeyEncrypted: undefined,
         };
-      } catch {}
+      } catch (error) {
+        logger.warn({ error, botId: id }, 'Failed to parse aiConfig while sanitizing bot');
+      }
     }
 
     return NextResponse.json({
@@ -66,7 +68,9 @@ export async function PUT(
       if (existing.aiConfig) {
         try {
           existingEncrypted = JSON.parse(existing.aiConfig).apiKeyEncrypted;
-        } catch {}
+        } catch (error) {
+          logger.warn({ error, botId: id }, 'Failed to parse existing aiConfig during update');
+        }
       }
 
       if (parsed.apiKey && !parsed.apiKey.includes('••••')) {

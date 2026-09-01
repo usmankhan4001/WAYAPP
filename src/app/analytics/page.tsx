@@ -18,6 +18,7 @@ import { ConversionFunnelChart } from '@/components/analytics/ConversionFunnelCh
 import { VolumeTrendsChart } from '@/components/analytics/VolumeTrendsChart';
 import { MessageLogTable } from '@/components/analytics/MessageLogTable';
 import { InfoTooltip, Tooltip } from '@/components/ui/Tooltip';
+import { SkeletonCard, SkeletonChart } from '@/components/ui/Skeleton';
 
 export default function AnalyticsPage() {
   const [data, setData] = useState<any>(null);
@@ -119,8 +120,13 @@ export default function AnalyticsPage() {
       </div>
 
       {loading && !data ? (
-        <div className="py-24 flex justify-center">
-          <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
+          <SkeletonChart />
         </div>
       ) : (
         <>

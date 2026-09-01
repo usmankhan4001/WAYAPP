@@ -6,6 +6,7 @@ import { ArrowLeft, RefreshCw, Send, CheckCheck, Eye, MessageSquare, AlertCircle
 import { LiveProgressCard } from '@/components/campaigns/LiveProgressCard';
 import { MessageLogTable } from '@/components/analytics/MessageLogTable';
 import { WhatsAppMockupPreview } from '@/components/templates/WhatsAppMockupPreview';
+import { SkeletonCard, SkeletonChart } from '@/components/ui/Skeleton';
 
 export default function CampaignDetailPage({
   params,
@@ -45,8 +46,13 @@ export default function CampaignDetailPage({
 
   if (loading) {
     return (
-      <div className="py-24 flex justify-center">
-        <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+        <SkeletonChart />
       </div>
     );
   }

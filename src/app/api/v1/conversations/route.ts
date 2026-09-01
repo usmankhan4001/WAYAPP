@@ -14,7 +14,8 @@ export async function GET(request: NextRequest) {
 
     const where: any = {};
     if (status) where.status = status;
-    if (assignedToId) where.assignedToId = assignedToId;
+    if (assignedToId === 'none') where.assignedToId = null;
+    else if (assignedToId) where.assignedToId = assignedToId;
 
     const conversations = await prisma.conversation.findMany({
       where,

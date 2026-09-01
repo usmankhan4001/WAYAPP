@@ -6,6 +6,7 @@ import { WhatsAppClient } from '@/lib/whatsapp/client';
 import { encryptString, decryptString, maskSecret } from '@/lib/crypto';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { ensureDatabaseSchema } from '@/lib/db-init';
+import { writeAuditLog } from '@/lib/audit-log';
 
 export async function GET(request: NextRequest) {
   await ensureDatabaseSchema();
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
     authConfig = await prisma.authConfig.create({
       data: {
         id: 'default',
-        allowedDomains: 'gccstartup.com',
+        allowedDomains: '',
         allowedEmails: '',
         requireAuth: true,
       },
@@ -80,7 +81,7 @@ export async function GET(request: NextRequest) {
     hasAppSecret: Boolean(effectiveAppSecret),
     metaAppId: authConfig?.metaAppId || process.env.META_APP_ID || '',
     hasMetaAppSecret: Boolean(rawMetaSecret || process.env.META_APP_SECRET),
-    allowedDomains: authConfig?.allowedDomains || 'gccstartup.com',
+    allowedDomains: authConfig?.allowedDomains || '',
     allowedEmails: authConfig?.allowedEmails || '',
     requireAuth: authConfig?.requireAuth ?? true,
     updatedAt: settings.updatedAt,
@@ -96,6 +97,7 @@ export async function POST(request: NextRequest) {
   if ('response' in authResult) {
     return authResult.response;
   }
+  const { session } = authResult;
 
   const clientIp = getClientIp(request);
   const rateLimit = checkRateLimit(`settings:${clientIp}`, { limit: 30, windowSeconds: 60 });
@@ -212,6 +214,15 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      writeAuditLog({
+        action: 'SETTINGS_UPDATED',
+        actorId: session.userId,
+        actorEmail: session.email,
+        targetType: 'Settings',
+        detail: { action: 'ACTIVATE_CONNECTION' },
+        ipAddress: clientIp,
+      });
+
       return NextResponse.json({
         success: true,
         isConnected: true,
@@ -232,6 +243,14 @@ export async function POST(request: NextRequest) {
         data: {
           isConnected: false,
         },
+      });
+      writeAuditLog({
+        action: 'SETTINGS_UPDATED',
+        actorId: session.userId,
+        actorEmail: session.email,
+        targetType: 'Settings',
+        detail: { action: 'DISCONNECT_META' },
+        ipAddress: clientIp,
       });
       return NextResponse.json({
         success: true,
@@ -278,6 +297,14 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    writeAuditLog({
+      action: 'SETTINGS_UPDATED',
+      actorId: session.userId,
+      actorEmail: session.email,
+      targetType: 'Settings',
+      ipAddress: clientIp,
+    });
+
     // Also update AuthConfig if provided
     if (body.metaAppId !== undefined || body.metaAppSecret !== undefined || body.allowedDomains !== undefined) {
       const encryptedMetaSecret = body.metaAppSecret && !body.metaAppSecret.includes('••')
@@ -289,17 +316,26 @@ export async function POST(request: NextRequest) {
         update: {
           metaAppId: body.metaAppId?.trim() || null,
           ...(encryptedMetaSecret ? { metaAppSecret: encryptedMetaSecret } : {}),
-          allowedDomains: body.allowedDomains?.trim() || 'gccstartup.com',
+          allowedDomains: body.allowedDomains?.trim() ?? '',
           allowedEmails: body.allowedEmails?.trim() || '',
         },
         create: {
           id: 'default',
           metaAppId: body.metaAppId?.trim() || null,
           metaAppSecret: encryptedMetaSecret || null,
-          allowedDomains: body.allowedDomains?.trim() || 'gccstartup.com',
+          allowedDomains: body.allowedDomains?.trim() || '',
           allowedEmails: body.allowedEmails?.trim() || '',
           requireAuth: true,
         },
+      });
+
+      writeAuditLog({
+        action: 'AUTH_CONFIG_UPDATED',
+        actorId: session.userId,
+        actorEmail: session.email,
+        targetType: 'AuthConfig',
+        detail: { allowedDomains: body.allowedDomains ?? undefined },
+        ipAddress: clientIp,
       });
     }
 

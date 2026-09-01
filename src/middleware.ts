@@ -35,7 +35,9 @@ export async function middleware(request: NextRequest) {
       const secret = getJwtSecret();
       const { payload } = await jwtVerify(token, secret, { algorithms: ['HS256'] });
       valid = Boolean(payload.userId && payload.email);
-    } catch {
+    } catch (error) {
+      // Edge runtime: pino isn't available here, so use console directly.
+      console.warn('[Middleware] Session token verification failed:', error);
       valid = false;
     }
   }
@@ -52,6 +54,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|json|js)|manifest.json|manifest.webmanifest|sw.js|uploads|api|login|register).*)',
+    '/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|json|js)|manifest.json|manifest.webmanifest|sw.js|uploads|api|login|register|setup).*)',
   ],
 };

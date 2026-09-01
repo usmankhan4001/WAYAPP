@@ -21,6 +21,15 @@ export async function setAuthToken(token: string): Promise<void> {
 
 export async function clearAuthToken(): Promise<void> {
   await SecureStore.deleteItemAsync('wayapp_auth_token');
+  await SecureStore.deleteItemAsync('wayapp_user_id');
+}
+
+export async function getCurrentUserId(): Promise<string | null> {
+  return await SecureStore.getItemAsync('wayapp_user_id');
+}
+
+export async function setCurrentUserId(userId: string): Promise<void> {
+  await SecureStore.setItemAsync('wayapp_user_id', userId);
 }
 
 /**

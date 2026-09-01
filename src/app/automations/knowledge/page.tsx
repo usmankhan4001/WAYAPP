@@ -8,13 +8,13 @@ import {
   Sparkles,
   BookOpen,
   Trash2,
-  Edit,
-  ArrowRight,
-  FileText,
   CheckCircle2,
   Layers,
+  X,
+  Eye,
 } from 'lucide-react';
-import { Header } from '@/components/layout/Header';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 export default function KnowledgeBasePage() {
   const [kbs, setKbs] = useState<any[]>([]);
@@ -22,8 +22,11 @@ export default function KnowledgeBasePage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [name, setName] = useState('');
   const [rawNotes, setRawNotes] = useState('');
+  const [aiProvider, setAiProvider] = useState('gemini');
+  const [aiApiKey, setAiApiKey] = useState('');
   const [generating, setGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [viewingKb, setViewingKb] = useState<any | null>(null);
 
   const fetchKbs = async () => {
     try {
@@ -59,6 +62,10 @@ export default function KnowledgeBasePage() {
           name: name.trim(),
           rawNotes,
           action: 'GENERATE',
+          aiConfig: {
+            provider: aiProvider,
+            apiKey: aiApiKey.trim() || undefined,
+          },
         }),
       });
 
@@ -69,6 +76,7 @@ export default function KnowledgeBasePage() {
         setShowCreateModal(false);
         setName('');
         setRawNotes('');
+        setAiApiKey('');
         fetchKbs();
       }
     } catch (err: any) {
@@ -89,184 +97,263 @@ export default function KnowledgeBasePage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100">
-      <Header />
-
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-        <div>
-          <h1 className="text-2xl font-black text-white tracking-tight">AI Knowledge Base</h1>
-          <p className="text-xs text-slate-400">
-            Train customer support AI bots with company factsheets, FAQs, and pricing notes
-          </p>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Link
-              href="/automations"
-              className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-400 hover:text-white transition-colors"
-            >
-              &larr; Automations Overview
-            </Link>
-            <Link
-              href="/automations/bots"
-              className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-400 hover:text-white transition-colors"
-            >
-              Bots & AI Agents &rarr;
-            </Link>
-          </div>
-
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg shadow-purple-600/20 transition-all"
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight">AI Knowledge Base</h1>
+        <p className="text-xs text-slate-500">
+          Train customer support AI bots with company factsheets, FAQs, and pricing notes
+        </p>
+      </div>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Link
+            href="/automations"
+            className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-500 hover:text-slate-900 transition-colors"
           >
-            <Sparkles className="w-4 h-4" />
-            <span>Generate Knowledge Base</span>
-          </button>
+            &larr; Automations Overview
+          </Link>
+          <Link
+            href="/automations/bots"
+            className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-500 hover:text-slate-900 transition-colors"
+          >
+            Bots & AI Agents &rarr;
+          </Link>
         </div>
 
-        {/* Knowledge Base Cards */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : kbs.length === 0 ? (
-          <div className="text-center py-16 bg-slate-900/50 border border-slate-800 rounded-3xl p-8 space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-purple-600/10 text-purple-400 flex items-center justify-center mx-auto">
-              <Brain className="w-6 h-6" />
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-sm transition-all"
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>Generate Knowledge Base</span>
+        </button>
+      </div>
+
+      {/* Knowledge Base Cards */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="card-base p-5 space-y-3">
+              <div className="flex items-center gap-2.5">
+                <Skeleton variant="rounded" width={36} height={36} />
+                <Skeleton width={120} height={14} />
+              </div>
+              <Skeleton lines={3} />
             </div>
-            <h3 className="text-base font-bold text-white">No Knowledge Bases Found</h3>
-            <p className="text-xs text-slate-400 max-w-md mx-auto">
-              Paste your raw business notes or FAQ and let AI transform them into structured knowledge chunks for your WhatsApp bots.
-            </p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs"
-            >
-              <Plus className="w-4 h-4" /> Create Knowledge Base
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {kbs.map((kb) => {
-              let chunkCount = 0;
-              try {
-                chunkCount = JSON.parse(kb.chunks || '[]').length;
-              } catch {}
+          ))}
+        </div>
+      ) : kbs.length === 0 ? (
+        <div className="card-base">
+          <EmptyState
+            icon={Brain}
+            title="No Knowledge Bases Found"
+            description="Paste your raw business notes or FAQ and let AI transform them into structured knowledge chunks for your WhatsApp bots."
+            actionLabel="Create Knowledge Base"
+            onAction={() => setShowCreateModal(true)}
+          />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {kbs.map((kb) => {
+            let chunkCount = 0;
+            try {
+              chunkCount = JSON.parse(kb.chunks || '[]').length;
+            } catch (error) {
+              console.warn('[KnowledgeBase] Failed to parse chunks for', kb.id, error);
+            }
 
-              return (
-                <div
-                  key={kb.id}
-                  className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between space-y-4"
-                >
-                  <div className="space-y-2.5">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-purple-600/10 border border-purple-500/20 text-purple-400 flex items-center justify-center">
-                          <BookOpen className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-bold text-white">{kb.name}</h4>
-                          <span className="text-[10px] text-purple-400 font-semibold">{kb.sourceType}</span>
-                        </div>
+            return (
+              <div
+                key={kb.id}
+                className="card-base p-5 flex flex-col justify-between space-y-4"
+              >
+                <div className="space-y-2.5">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center">
+                        <BookOpen className="w-4 h-4" />
                       </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-900">{kb.name}</h4>
+                        <span className="text-[10px] text-purple-600 font-semibold">{kb.sourceType}</span>
+                      </div>
+                    </div>
 
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setViewingKb(kb)}
+                        className="text-slate-400 hover:text-purple-600 transition-colors p-1"
+                        aria-label="View knowledge base content"
+                        title="View full content"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => handleDelete(kb.id)}
-                        className="text-slate-500 hover:text-rose-400 transition-colors p-1"
+                        className="text-slate-400 hover:text-rose-600 transition-colors p-1"
+                        aria-label="Delete knowledge base"
+                        title="Delete knowledge base"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-
-                    <div className="text-xs text-slate-400 line-clamp-3 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 font-mono text-[11px]">
-                      {kb.contentMarkdown}
-                    </div>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
-                    <span className="flex items-center gap-1.5">
-                      <Layers className="w-3.5 h-3.5 text-purple-400" />
-                      {chunkCount} indexing chunks
-                    </span>
-                    <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Ready
-                    </span>
-                  </div>
+                  <button
+                    onClick={() => setViewingKb(kb)}
+                    className="w-full text-left text-xs text-slate-500 line-clamp-3 bg-slate-50 p-3 rounded-xl border border-slate-200 font-mono text-[11px] hover:border-purple-300 transition-colors"
+                  >
+                    {kb.contentMarkdown}
+                  </button>
                 </div>
-              );
-            })}
-          </div>
-        )}
 
-        {/* Generate Modal */}
-        {showCreateModal && (
-          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4">
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+                  <span className="flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-purple-600" />
+                    {chunkCount} indexing chunks
+                  </span>
+                  <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Ready
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Generate Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-purple-600/10 text-purple-400 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center">
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">AI Knowledge Base Generator</h3>
-                  <p className="text-xs text-slate-400">Paste unorganized notes and AI will build a structured FAQ</p>
+                  <h3 className="text-base font-bold text-slate-900">AI Knowledge Base Generator</h3>
+                  <p className="text-xs text-slate-500">Paste unorganized notes and AI will build a structured FAQ</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-slate-400 hover:text-slate-700"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {errorMsg && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+                {errorMsg}
+              </div>
+            )}
+
+            <form onSubmit={handleGenerateAndSave} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Knowledge Base Title</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Company Profile & Pricing"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="input-base text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Raw Business Notes, Product FAQ, or Pricing
+                </label>
+                <textarea
+                  rows={6}
+                  required
+                  placeholder="Paste website text, bullet points, refund policies, opening hours, or FAQs here..."
+                  value={rawNotes}
+                  onChange={(e) => setRawNotes(e.target.value)}
+                  className="input-base text-xs resize-none font-sans py-2.5 h-auto"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-purple-50/60 border border-purple-200">
+                <div>
+                  <label className="block text-[11px] font-semibold text-purple-700 mb-1">AI Provider</label>
+                  <select
+                    value={aiProvider}
+                    onChange={(e) => setAiProvider(e.target.value)}
+                    className="input-base text-xs"
+                  >
+                    <option value="gemini">Google Gemini</option>
+                    <option value="openai">OpenAI (GPT-4o)</option>
+                    <option value="anthropic">Anthropic (Claude 3.5)</option>
+                    <option value="openrouter">OpenRouter (Meta Llama 3.3)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-purple-700 mb-1">API Key</label>
+                  <input
+                    type="password"
+                    placeholder="Or leave empty to use server ENV"
+                    value={aiApiKey}
+                    onChange={(e) => setAiApiKey(e.target.value)}
+                    className="input-base text-xs"
+                  />
                 </div>
               </div>
 
-              {errorMsg && (
-                <div className="p-3 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-300 text-xs">
-                  {errorMsg}
-                </div>
-              )}
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="btn-secondary text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={generating || !name.trim() || !rawNotes.trim()}
+                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-xs font-bold text-white disabled:opacity-50 flex items-center gap-1.5 shadow-sm"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{generating ? 'Structuring Knowledge...' : 'Generate & Save'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
-              <form onSubmit={handleGenerateAndSave} className="space-y-3.5">
+      {/* View Content Modal */}
+      {viewingKb && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-2xl w-full shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center">
+                  <BookOpen className="w-5 h-5" />
+                </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">Knowledge Base Title</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. GCC Startup Company Profile & Pricing"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                  />
+                  <h3 className="text-base font-bold text-slate-900">{viewingKb.name}</h3>
+                  <p className="text-xs text-slate-500">{viewingKb.sourceType} &bull; used by bots that select it</p>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                    Raw Business Notes, Product FAQ, or Pricing
-                  </label>
-                  <textarea
-                    rows={6}
-                    required
-                    placeholder="Paste website text, bullet points, refund policies, opening hours, or FAQs here..."
-                    value={rawNotes}
-                    onChange={(e) => setRawNotes(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-white text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none resize-none font-sans"
-                  />
-                </div>
-
-                <div className="flex items-center justify-end gap-2.5 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateModal(false)}
-                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={generating || !name.trim() || !rawNotes.trim()}
-                    className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white disabled:opacity-50 flex items-center gap-1.5 shadow-lg shadow-purple-600/20"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>{generating ? 'Structuring Knowledge...' : 'Generate & Save'}</span>
-                  </button>
-                </div>
-              </form>
+              </div>
+              <button
+                onClick={() => setViewingKb(null)}
+                className="text-slate-400 hover:text-slate-700"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 text-xs text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-200 whitespace-pre-wrap font-mono">
+              {viewingKb.contentMarkdown}
             </div>
           </div>
-        )}
-      </main>
+        </div>
+      )}
     </div>
   );
 }

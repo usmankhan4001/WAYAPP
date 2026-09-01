@@ -75,11 +75,30 @@ model AuthConfig {
   id                 String   @id @default("default")
   metaAppId          String?
   metaAppSecret      String?
-  allowedDomains     String   @default("gccstartup.com") // Comma-separated domains e.g. gccstartup.com
+  allowedDomains     String   @default("") // Comma-separated domains e.g. example.com (empty = no restriction)
   allowedEmails      String   @default("")              // Comma-separated explicit emails
   requireAuth        Boolean  @default(true)
   allowRegistration  Boolean  @default(true)            // First user registers as SUPER_ADMIN
   updatedAt          DateTime @updatedAt
+}
+
+// -------------------------------------------------------------
+// SECURITY / ADMIN AUDIT TRAIL
+// -------------------------------------------------------------
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorId     String?  // Null for unauthenticated/system events (e.g. failed login)
+  actorEmail  String?
+  action      String   // e.g. LOGIN_SUCCESS, LOGIN_FAILED, ROLE_CHANGED, API_KEY_CREATED, API_KEY_REVOKED, MODULE_TOGGLED, SETTINGS_UPDATED, AUTH_CONFIG_UPDATED
+  targetType  String?  // e.g. 'User', 'ApiKey', 'AppModule', 'Settings'
+  targetId    String?
+  detail      String?  // JSON string with extra context
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId])
+  @@index([action])
 }
 
 // -------------------------------------------------------------
@@ -129,7 +148,6 @@ model Contact {
   chatMessages         ChatMessage[]
   conversation         Conversation?
   flowRuns             FlowRun[]
-  conversationSessions ConversationSession[]
   suppressions         ContactSuppression[]
   conversionEvents     ConversionEvent[]
 
@@ -516,41 +534,6 @@ model PushSubscription {
   createdAt DateTime @default(now())
 
   @@index([userId])
-}
-
-// -------------------------------------------------------------
-// STATEFUL CONVERSATION FLOWS (GCC LEAD QUALIFICATION)
-// -------------------------------------------------------------
-model ConversationFlow {
-  id          String                @id @default(cuid())
-  name        String
-  slug        String                @unique
-  description String?
-  definition  String                // JSON Flow Definition
-  isActive    Boolean               @default(true)
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
-
-  sessions    ConversationSession[]
-}
-
-model ConversationSession {
-  id          String            @id @default(cuid())
-  contactId   String
-  flowId      String
-  currentStep String
-  status      String            @default("ACTIVE") // ACTIVE, COMPLETED, ABANDONED, HANDED_OFF, CANCELLED
-  dataJson    String            @default("{}")
-  startedAt   DateTime          @default(now())
-  completedAt DateTime?
-  updatedAt   DateTime          @updatedAt
-
-  contact     Contact           @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  flow        ConversationFlow  @relation(fields: [flowId], references: [id], onDelete: Cascade)
-
-  @@index([contactId, status])
-  @@index([flowId, currentStep])
-  @@index([status])
 }
 
 // -------------------------------------------------------------

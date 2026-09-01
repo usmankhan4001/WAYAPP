@@ -235,8 +235,8 @@ OPENROUTER_API_KEY=""
 
 # Cloudflare R2 Backups
 S3_BACKUP_ENABLED=true
-S3_ENDPOINT="https://886591346ce7f20bba2a727a409f8045.r2.cloudflarestorage.com"
-S3_ACCESS_KEY="34b12172653df075e7567780fd326de9"
+S3_ENDPOINT="https://<your-account-id>.r2.cloudflarestorage.com"
+S3_ACCESS_KEY="your_r2_access_key"
 S3_SECRET_KEY="your_r2_secret_key"
 S3_BUCKET_NAME="wayapp-backups"
 ```

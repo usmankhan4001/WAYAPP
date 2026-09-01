@@ -467,20 +467,20 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
 
   // 1-Click Quick Actions
   const handleInsertPaymentLink = () => {
-    const paymentMsg = `💳 *Invoice for ${invoiceItem}*\nTotal Amount: $${invoiceAmount}\nPlease complete your secure checkout here: https://pay.gccstartup.com/inv-${Date.now().toString().slice(-6)}\nThank you! ✨`;
+    const paymentMsg = `💳 *Invoice for ${invoiceItem}*\nTotal Amount: $${invoiceAmount}\nPlease complete your secure checkout here: https://pay.example.com/inv-${Date.now().toString().slice(-6)}\nThank you! ✨`;
     setText(paymentMsg);
     setIsInvoiceModalOpen(false);
     textInputRef.current?.focus();
   };
 
   const handleInsertMeetingLink = () => {
-    const meetMsg = `📅 *Schedule a 1-on-1 Consultation*\nYou can pick a convenient 15-minute slot on our team calendar here: https://calendly.com/gccstartup/consultation\nLooking forward to speaking with you! 🚀`;
+    const meetMsg = `📅 *Schedule a 1-on-1 Consultation*\nYou can pick a convenient 15-minute slot on our team calendar here: https://calendly.com/your-company/consultation\nLooking forward to speaking with you! 🚀`;
     setText(meetMsg);
     textInputRef.current?.focus();
   };
 
   const handleInsertCatalogLink = () => {
-    const catalogMsg = `📄 *Official Product Catalog & Pricing*\nYou can view our complete product catalog and latest offers here: https://gccstartup.com/catalog.pdf\nLet me know if you have any questions! 😊`;
+    const catalogMsg = `📄 *Official Product Catalog & Pricing*\nYou can view our complete product catalog and latest offers here: https://example.com/catalog.pdf\nLet me know if you have any questions! 😊`;
     setText(catalogMsg);
     textInputRef.current?.focus();
   };
@@ -898,7 +898,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                 <Sparkles className="w-3.5 h-3.5 text-purple-600" />
                 <span>AI Sales Handover Summary</span>
               </div>
-              <button onClick={() => setSummaryText(null)} className="text-purple-400 hover:text-purple-700 p-1 rounded-lg">
+              <button onClick={() => setSummaryText(null)} className="text-purple-400 hover:text-purple-700 p-1 rounded-lg" aria-label="Dismiss AI summary">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -1117,6 +1117,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                             onClick={() => handleCopyMessage(m.body)}
                             className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-black/5 rounded-full transition-colors"
                             title="Copy message text"
+                            aria-label="Copy message text"
                           >
                             <Copy className="w-3.5 h-3.5" />
                           </button>
@@ -1125,6 +1126,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                           onClick={() => handleOpenForward(m)}
                           className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
                           title="Forward message"
+                          aria-label="Forward message"
                         >
                           <Forward className="w-3.5 h-3.5" />
                         </button>
@@ -1136,6 +1138,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                             }}
                             className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-full transition-colors"
                             title="Edit message (Local CRM only)"
+                            aria-label="Edit message"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
@@ -1156,7 +1159,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
               <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
               <span>{errorMessage}</span>
             </div>
-            <button onClick={() => setErrorMessage(null)} className="text-rose-500 hover:text-rose-700">
+            <button onClick={() => setErrorMessage(null)} className="text-rose-500 hover:text-rose-700" aria-label="Dismiss error message">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -1170,7 +1173,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                 <Sparkles className="w-3.5 h-3.5 text-purple-600" />
                 <span>AI Suggested Sales Replies (1-Click to Insert):</span>
               </span>
-              <button onClick={() => setAiSuggestions([])} className="text-purple-400 hover:text-purple-700">
+              <button onClick={() => setAiSuggestions([])} className="text-purple-400 hover:text-purple-700" aria-label="Dismiss AI suggestions">
                 <X className="w-3 h-3" />
               </button>
             </div>
@@ -1321,6 +1324,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                   type="button"
                   onClick={() => setStagedMedia(null)}
                   className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200"
+                  aria-label="Remove attachment"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1439,6 +1443,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                       : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
                   }`}
                   title="Attach file"
+                  aria-label="Attach file"
                 >
                   <Paperclip className="w-4 h-4" />
                 </button>
@@ -1449,6 +1454,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                   onClick={() => cameraInputRef.current?.click()}
                   className="p-2 sm:p-2.5 rounded-xl text-slate-500 hover:text-emerald-600 hover:bg-slate-100 transition-all shrink-0 active:scale-95"
                   title="Take photo from camera"
+                  aria-label="Take photo from camera"
                 >
                   <Camera className="w-4 h-4" />
                 </button>
@@ -1472,6 +1478,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                     onClick={() => setIsRecordingVoice(true)}
                     className="p-2 sm:p-2.5 rounded-xl text-slate-500 hover:text-emerald-600 hover:bg-slate-100 transition-all shrink-0 active:scale-95"
                     title="Record WhatsApp voice note"
+                    aria-label="Record WhatsApp voice note"
                   >
                     <Mic className="w-4 h-4" />
                   </button>
@@ -1481,6 +1488,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                   type="submit"
                   disabled={isSending || !text.trim()}
                   className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-all disabled:opacity-50 shrink-0"
+                  aria-label="Send message"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Send</span>
@@ -1543,7 +1551,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                 <CreditCard className="w-4 h-4 text-emerald-600" />
                 <span>1-Click Payment Link Generator</span>
               </h4>
-              <button onClick={() => setIsInvoiceModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+              <button onClick={() => setIsInvoiceModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1 rounded-lg" aria-label="Close">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -1595,7 +1603,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                 <Forward className="w-4 h-4 text-blue-600" />
                 <span>Forward Message</span>
               </h4>
-              <button onClick={() => setIsForwardModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+              <button onClick={() => setIsForwardModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1 rounded-lg" aria-label="Close">
                 <X className="w-4 h-4" />
               </button>
             </div>

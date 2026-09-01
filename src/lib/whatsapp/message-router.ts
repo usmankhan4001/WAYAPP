@@ -59,6 +59,7 @@ export class MessageRouter {
         phoneNumber,
         templateCategory,
         templateStatus,
+        checkHandoff: true,
       });
 
       if (!eligibility.allowed) {

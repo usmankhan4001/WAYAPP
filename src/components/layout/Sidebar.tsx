@@ -170,14 +170,14 @@ export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
           <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200/80">
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-7 h-7 rounded-full bg-emerald-600 text-white font-semibold text-xs flex items-center justify-center shrink-0 shadow-2xs">
-                {user.name ? user.name.substring(0, 1).toUpperCase() : 'G'}
+                {user.name ? user.name.substring(0, 1).toUpperCase() : 'U'}
               </div>
               <div className="min-w-0">
                 <span className="text-[11px] font-semibold text-slate-800 block truncate">
                   {user.name || user.email}
                 </span>
                 <span className="text-[9px] text-emerald-700 font-semibold uppercase tracking-wider block">
-                  {user.role === 'SUPER_ADMIN' ? 'GCC Admin' : 'GCC Member'}
+                  {user.role === 'SUPER_ADMIN' ? 'Super Admin' : user.role === 'ADMIN' ? 'Admin' : user.role === 'MEMBER' ? 'Team Member' : 'Viewer'}
                 </span>
               </div>
             </div>

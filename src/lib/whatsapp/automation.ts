@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { WhatsAppClient } from './client';
 import { decryptString } from '@/lib/crypto';
+import { logger } from '@/lib/logger';
 
 export interface TriggerConfig {
   matchType: 'EXACT' | 'CONTAINS' | 'STARTS_WITH' | 'REGEX' | 'ANY_INBOUND';
@@ -53,7 +54,8 @@ export async function processInboundAutomation(params: {
 
       try {
         config = JSON.parse(auto.triggerConfig);
-      } catch {
+      } catch (error) {
+        logger.warn({ error, automationId: auto.id }, 'Skipped automation with malformed triggerConfig');
         continue;
       }
 
@@ -80,7 +82,9 @@ export async function processInboundAutomation(params: {
                 isMatch = true;
                 break;
               }
-            } catch {}
+            } catch (error) {
+              logger.warn({ error, automationId: auto.id, pattern: cleanKw }, 'Invalid regex pattern in automation rule');
+            }
           }
         }
       }
@@ -91,7 +95,8 @@ export async function processInboundAutomation(params: {
       let actions: AutomationAction[] = [];
       try {
         actions = JSON.parse(auto.actionsJson);
-      } catch {
+      } catch (error) {
+        logger.warn({ error, automationId: auto.id }, 'Skipped automation with malformed actionsJson');
         continue;
       }
 
