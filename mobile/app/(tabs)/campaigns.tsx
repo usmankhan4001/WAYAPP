@@ -3,6 +3,9 @@ import { View, Text, FlatList, StyleSheet, SafeAreaView, ActivityIndicator } fro
 import { useQuery } from '@tanstack/react-query';
 import { Send, CheckCircle2, AlertCircle } from 'lucide-react-native';
 import { mobileApiFetch } from '../../lib/api';
+import { theme } from '../../lib/theme';
+
+const c = theme.dark;
 
 export default function MobileCampaignsScreen() {
   const { data: campaigns, isLoading } = useQuery({
@@ -17,7 +20,7 @@ export default function MobileCampaignsScreen() {
     <SafeAreaView style={styles.container}>
       {isLoading ? (
         <View style={styles.center}>
-          <ActivityIndicator color="#10b981" />
+          <ActivityIndicator color={c.primary} />
         </View>
       ) : (
         <FlatList
@@ -28,7 +31,7 @@ export default function MobileCampaignsScreen() {
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <View style={styles.iconBadge}>
-                  <Send color="#34d399" size={16} />
+                  <Send color={c.primary} size={16} />
                 </View>
                 <View style={styles.titleCol}>
                   <Text style={styles.title}>{item.name}</Text>
@@ -66,40 +69,40 @@ export default function MobileCampaignsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#020617' },
+  container: { flex: 1, backgroundColor: c.background },
   list: { padding: 12 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   card: {
-    backgroundColor: '#0f172a',
+    backgroundColor: c.card,
     borderRadius: 16,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: c.secondary,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   iconBadge: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#064e3b',
+    backgroundColor: c['brand-subtle'],
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
   },
   titleCol: { flex: 1 },
-  title: { color: '#ffffff', fontSize: 13, fontWeight: '700' },
-  tplName: { color: '#64748b', fontSize: 11, marginTop: 2 },
-  statusBadge: { backgroundColor: '#1e293b', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  statusText: { color: '#10b981', fontSize: 10, fontWeight: '700' },
+  title: { color: c.foreground, fontSize: 13, fontWeight: '700' },
+  tplName: { color: c['muted-foreground'], fontSize: 11, marginTop: 2 },
+  statusBadge: { backgroundColor: c.secondary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  statusText: { color: c.primary, fontSize: 10, fontWeight: '700' },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#1e293b',
+    borderTopColor: c.secondary,
   },
   statItem: { alignItems: 'center' },
-  statVal: { color: '#ffffff', fontSize: 14, fontWeight: '800' },
-  statLbl: { color: '#64748b', fontSize: 10, marginTop: 2 },
+  statVal: { color: c.foreground, fontSize: 14, fontWeight: '800' },
+  statLbl: { color: c['muted-foreground'], fontSize: 10, marginTop: 2 },
 });

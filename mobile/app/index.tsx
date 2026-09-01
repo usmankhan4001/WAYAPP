@@ -11,6 +11,9 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { setAuthToken, setCurrentUserId, mobileApiFetch, getServerUrl, setServerUrl } from '../lib/api';
+import { theme } from '../lib/theme';
+
+const c = theme.dark;
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -74,7 +77,7 @@ export default function LoginScreen() {
             <TextInput
               style={styles.input}
               placeholder="name@yourcompany.com"
-              placeholderTextColor="#64748b"
+              placeholderTextColor={c["muted-foreground"]}
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
@@ -87,7 +90,7 @@ export default function LoginScreen() {
             <TextInput
               style={styles.input}
               placeholder="••••••••••••"
-              placeholderTextColor="#64748b"
+              placeholderTextColor={c["muted-foreground"]}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -100,7 +103,7 @@ export default function LoginScreen() {
             disabled={loading || !email || !password}
           >
             {loading ? (
-              <ActivityIndicator color="#ffffff" />
+              <ActivityIndicator color={c.foreground} />
             ) : (
               <Text style={styles.buttonText}>Sign In</Text>
             )}
@@ -121,7 +124,7 @@ export default function LoginScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="https://your-instance.example.com"
-                placeholderTextColor="#64748b"
+                placeholderTextColor={c["muted-foreground"]}
                 value={serverUrl}
                 onChangeText={setServerUrlInput}
                 autoCapitalize="none"
@@ -139,7 +142,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#020617',
+    backgroundColor: c.background,
   },
   content: {
     flex: 1,
@@ -154,34 +157,34 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 18,
-    backgroundColor: '#059669',
+    backgroundColor: c.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
   logoText: {
-    color: '#ffffff',
+    color: c.foreground,
     fontSize: 28,
     fontWeight: '900',
   },
   title: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#ffffff',
+    color: c.foreground,
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: c['muted-foreground'],
     marginTop: 4,
     textAlign: 'center',
   },
   formContainer: {
-    backgroundColor: '#0f172a',
+    backgroundColor: c.card,
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: c.secondary,
   },
   inputGroup: {
     marginBottom: 16,
@@ -189,21 +192,21 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#cbd5e1',
+    color: c['muted-foreground'],
     marginBottom: 6,
   },
   input: {
-    backgroundColor: '#020617',
+    backgroundColor: c.background,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: c.border,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 13,
-    color: '#ffffff',
+    color: c.foreground,
   },
   button: {
-    backgroundColor: '#059669',
+    backgroundColor: c.primary,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
@@ -213,7 +216,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   buttonText: {
-    color: '#ffffff',
+    color: c.foreground,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -222,7 +225,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   serverToggleText: {
-    color: '#64748b',
+    color: c['muted-foreground'],
     fontSize: 11,
     fontWeight: '600',
   },

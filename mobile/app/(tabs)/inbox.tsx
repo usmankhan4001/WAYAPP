@@ -12,6 +12,9 @@ import {
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { mobileApiFetch, getCurrentUserId } from '../../lib/api';
+import { theme } from '../../lib/theme';
+
+const c = theme.dark;
 
 const FILTERS: { id: 'all' | 'mine' | 'unassigned'; label: string }[] = [
   { id: 'all', label: 'All' },
@@ -106,7 +109,7 @@ export default function MobileInboxScreen() {
 
       {isLoading ? (
         <View style={styles.center}>
-          <ActivityIndicator color="#10b981" />
+          <ActivityIndicator color={c.primary} />
         </View>
       ) : isError ? (
         <View style={styles.center}>
@@ -125,7 +128,7 @@ export default function MobileInboxScreen() {
             <RefreshControl
               refreshing={isRefetching}
               onRefresh={refetch}
-              tintColor="#10b981"
+              tintColor={c.primary}
             />
           }
           ListEmptyComponent={
@@ -142,7 +145,7 @@ export default function MobileInboxScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#020617',
+    backgroundColor: c.background,
   },
   list: {
     padding: 12,
@@ -158,21 +161,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: '#0f172a',
+    backgroundColor: c.card,
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: c.secondary,
   },
   filterChipActive: {
-    backgroundColor: '#059669',
-    borderColor: '#059669',
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   filterChipText: {
-    color: '#64748b',
+    color: c['muted-foreground'],
     fontSize: 11,
     fontWeight: '700',
   },
   filterChipTextActive: {
-    color: '#ffffff',
+    color: c.foreground,
   },
   center: {
     flex: 1,
@@ -181,44 +184,44 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   emptyText: {
-    color: '#64748b',
+    color: c['muted-foreground'],
     fontSize: 13,
   },
   retryBtn: {
     marginTop: 12,
-    backgroundColor: '#0f172a',
+    backgroundColor: c.card,
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: c.secondary,
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
   retryText: {
-    color: '#34d399',
+    color: c.primary,
     fontSize: 12,
     fontWeight: '700',
   },
   convCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
+    backgroundColor: c.card,
     borderRadius: 16,
     padding: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: c.secondary,
   },
   avatar: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#064e3b',
+    backgroundColor: c['brand-subtle'],
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   avatarText: {
-    color: '#34d399',
+    color: c.primary,
     fontSize: 16,
     fontWeight: '800',
   },
@@ -232,24 +235,24 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   name: {
-    color: '#ffffff',
+    color: c.foreground,
     fontSize: 14,
     fontWeight: '700',
     flex: 1,
   },
   unreadBadge: {
-    backgroundColor: '#059669',
+    backgroundColor: c.primary,
     borderRadius: 10,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
   unreadText: {
-    color: '#ffffff',
+    color: c.foreground,
     fontSize: 10,
     fontWeight: '800',
   },
   lastMsg: {
-    color: '#94a3b8',
+    color: c['muted-foreground'],
     fontSize: 12,
     marginBottom: 6,
   },
@@ -258,24 +261,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   assigneeChip: {
-    backgroundColor: '#1e3a8a',
+    backgroundColor: c['info-subtle'],
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
   },
   assigneeText: {
-    color: '#93c5fd',
+    color: c.info,
     fontSize: 10,
     fontWeight: '600',
   },
   unassignedChip: {
-    backgroundColor: '#1e293b',
+    backgroundColor: c.secondary,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
   },
   unassignedText: {
-    color: '#64748b',
+    color: c['muted-foreground'],
     fontSize: 10,
   },
 });

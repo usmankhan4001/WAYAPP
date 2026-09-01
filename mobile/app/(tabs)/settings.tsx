@@ -3,6 +3,9 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, Aler
 import { useRouter } from 'expo-router';
 import { LogOut, Server, Shield } from 'lucide-react-native';
 import { getServerUrl, setServerUrl, clearAuthToken } from '../../lib/api';
+import { theme } from '../../lib/theme';
+
+const c = theme.dark;
 
 export default function MobileSettingsScreen() {
   const router = useRouter();
@@ -43,7 +46,7 @@ export default function MobileSettingsScreen() {
             <TextInput
               style={styles.input}
               placeholder="https://app.wayapp.io"
-              placeholderTextColor="#64748b"
+              placeholderTextColor={c["muted-foreground"]}
               value={serverUrl}
               onChangeText={setUrl}
               autoCapitalize="none"
@@ -56,7 +59,7 @@ export default function MobileSettingsScreen() {
 
         <View style={styles.section}>
           <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-            <LogOut color="#f87171" size={16} />
+            <LogOut color={c.destructive} size={16} />
             <Text style={styles.logoutText}>Sign Out</Text>
           </TouchableOpacity>
         </View>
@@ -66,36 +69,36 @@ export default function MobileSettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#020617' },
+  container: { flex: 1, backgroundColor: c.background },
   content: { padding: 16 },
   section: {
-    backgroundColor: '#0f172a',
+    backgroundColor: c.card,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: c.secondary,
   },
-  sectionTitle: { color: '#cbd5e1', fontSize: 12, fontWeight: '700', marginBottom: 10 },
+  sectionTitle: { color: c['muted-foreground'], fontSize: 12, fontWeight: '700', marginBottom: 10 },
   inputRow: { flexDirection: 'row', gap: 8 },
   input: {
     flex: 1,
-    backgroundColor: '#020617',
+    backgroundColor: c.background,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: c.border,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    color: '#ffffff',
+    color: c.foreground,
     fontSize: 12,
   },
   saveBtn: {
-    backgroundColor: '#059669',
+    backgroundColor: c.primary,
     paddingHorizontal: 14,
     borderRadius: 10,
     justifyContent: 'center',
   },
-  saveText: { color: '#ffffff', fontSize: 12, fontWeight: '700' },
+  saveText: { color: c.foreground, fontSize: 12, fontWeight: '700' },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -103,5 +106,5 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 12,
   },
-  logoutText: { color: '#f87171', fontSize: 13, fontWeight: '700' },
+  logoutText: { color: c.destructive, fontSize: 13, fontWeight: '700' },
 });

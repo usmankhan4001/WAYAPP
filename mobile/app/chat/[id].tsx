@@ -31,6 +31,9 @@ import {
   MessageSquarePlus,
 } from 'lucide-react-native';
 import { mobileApiFetch, getServerUrl } from '../../lib/api';
+import { theme } from '../../lib/theme';
+
+const c = theme.dark;
 
 function formatDateLabel(dateStr: string) {
   const d = new Date(dateStr);
@@ -62,10 +65,10 @@ function buildListWithSeparators(messages: any[]) {
 }
 
 function StatusTick({ status }: { status: string }) {
-  if (status === 'FAILED') return <AlertCircle color="#f87171" size={12} />;
-  if (status === 'READ') return <CheckCheck color="#53bdeb" size={13} />;
-  if (status === 'DELIVERED') return <CheckCheck color="#94a3b8" size={13} />;
-  return <Check color="#94a3b8" size={13} />;
+  if (status === 'FAILED') return <AlertCircle color={c.destructive} size={12} />;
+  if (status === 'READ') return <CheckCheck color={c.info} size={13} />;
+  if (status === 'DELIVERED') return <CheckCheck color={c["muted-foreground"]} size={13} />;
+  return <Check color={c["muted-foreground"]} size={13} />;
 }
 
 export default function MobileChatScreen() {
@@ -185,7 +188,7 @@ export default function MobileChatScreen() {
             style={styles.mediaChip}
             onPress={() => absoluteMediaUrl && Linking.openURL(absoluteMediaUrl)}
           >
-            <FileText color="#ffffff" size={16} />
+            <FileText color={c.foreground} size={16} />
             <Text style={styles.mediaChipText} numberOfLines={1}>
               {item.body || 'Document'}
             </Text>
@@ -198,7 +201,7 @@ export default function MobileChatScreen() {
             style={styles.mediaChip}
             onPress={() => absoluteMediaUrl && Linking.openURL(absoluteMediaUrl)}
           >
-            <PlayCircle color="#ffffff" size={16} />
+            <PlayCircle color={c.foreground} size={16} />
             <Text style={styles.mediaChipText}>
               {item.messageType === 'audio' ? 'Voice message' : 'Video message'}
             </Text>
@@ -219,14 +222,14 @@ export default function MobileChatScreen() {
         {/* 24h Window Indicator Banner */}
         {isOutside24h ? (
           <View style={styles.windowBannerAlert}>
-            <ShieldAlert color="#fbbf24" size={14} />
+            <ShieldAlert color={c.warning} size={14} />
             <Text style={styles.windowTextAlert}>
               24-Hour WhatsApp Policy: Customer has not messaged recently. Send a template to re-engage.
             </Text>
           </View>
         ) : (
           <View style={styles.windowBannerActive}>
-            <Clock color="#34d399" size={14} />
+            <Clock color={c.primary} size={14} />
             <Text style={styles.windowTextActive}>24-Hour Active Session: Free-form messaging enabled</Text>
           </View>
         )}
@@ -234,7 +237,7 @@ export default function MobileChatScreen() {
         {/* Message Thread */}
         {isLoading ? (
           <View style={styles.center}>
-            <ActivityIndicator color="#10b981" />
+            <ActivityIndicator color={c.primary} />
           </View>
         ) : isError ? (
           <View style={styles.center}>
@@ -246,7 +249,7 @@ export default function MobileChatScreen() {
             data={listData}
             keyExtractor={(item) => item.id}
             refreshControl={
-              <RefreshControl refreshing={isRefetching} onRefresh={refetchMessages} tintColor="#10b981" />
+              <RefreshControl refreshing={isRefetching} onRefresh={refetchMessages} tintColor={c.primary} />
             }
             ListEmptyComponent={
               <View style={styles.center}>
@@ -287,12 +290,12 @@ export default function MobileChatScreen() {
             style={[styles.templateBtn, isOutside24h && styles.templateBtnHighlight]}
             onPress={() => setShowTemplatePicker(true)}
           >
-            <MessageSquarePlus color={isOutside24h ? '#020617' : '#34d399'} size={18} />
+            <MessageSquarePlus color={isOutside24h ? c.background : c.primary} size={18} />
           </TouchableOpacity>
           <TextInput
             style={styles.input}
             placeholder={isOutside24h ? 'Outside 24h window — send a template' : 'Type WhatsApp message...'}
-            placeholderTextColor="#64748b"
+            placeholderTextColor={c["muted-foreground"]}
             value={text}
             onChangeText={setText}
             editable={!isOutside24h}
@@ -303,9 +306,9 @@ export default function MobileChatScreen() {
             disabled={!text.trim() || isOutside24h || sendMutation.isPending}
           >
             {sendMutation.isPending ? (
-              <ActivityIndicator color="#ffffff" size="small" />
+              <ActivityIndicator color={c.foreground} size="small" />
             ) : (
-              <Send color="#ffffff" size={16} />
+              <Send color={c.foreground} size={16} />
             )}
           </TouchableOpacity>
         </View>
@@ -323,12 +326,12 @@ export default function MobileChatScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Send a Template</Text>
               <TouchableOpacity onPress={() => setShowTemplatePicker(false)}>
-                <X color="#94a3b8" size={18} />
+                <X color={c["muted-foreground"]} size={18} />
               </TouchableOpacity>
             </View>
 
             {templatesLoading ? (
-              <ActivityIndicator color="#10b981" style={{ marginVertical: 24 }} />
+              <ActivityIndicator color={c.primary} style={{ marginVertical: 24 }} />
             ) : !templates || templates.length === 0 ? (
               <Text style={[styles.statusText, { marginVertical: 24 }]}>
                 No approved templates available. Sync templates from the web dashboard first.
@@ -344,7 +347,7 @@ export default function MobileChatScreen() {
                     disabled={sendMutation.isPending}
                     onPress={() => sendMutation.mutate({ templateName: item.name, languageCode: item.language })}
                   >
-                    <FileText color="#34d399" size={16} />
+                    <FileText color={c.primary} size={16} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.templateName}>{item.name}</Text>
                       <Text style={styles.templateMeta}>
@@ -365,7 +368,7 @@ export default function MobileChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#020617',
+    backgroundColor: c.background,
   },
   center: {
     flex: 1,
@@ -374,12 +377,12 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   statusText: {
-    color: '#64748b',
+    color: c['muted-foreground'],
     fontSize: 12,
     textAlign: 'center',
   },
   windowBannerActive: {
-    backgroundColor: '#064e3b',
+    backgroundColor: c['brand-subtle'],
     paddingVertical: 6,
     paddingHorizontal: 12,
     flexDirection: 'row',
@@ -387,12 +390,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   windowTextActive: {
-    color: '#a7f3d0',
+    color: c.primary,
     fontSize: 11,
     fontWeight: '600',
   },
   windowBannerAlert: {
-    backgroundColor: '#451a03',
+    backgroundColor: c['warning-subtle'],
     paddingVertical: 6,
     paddingHorizontal: 12,
     flexDirection: 'row',
@@ -400,7 +403,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   windowTextAlert: {
-    color: '#fde68a',
+    color: c['warning-subtle-foreground'],
     fontSize: 11,
     fontWeight: '600',
     flex: 1,
@@ -413,13 +416,13 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   dateSeparatorPill: {
-    backgroundColor: '#1e293b',
+    backgroundColor: c.secondary,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 4,
   },
   dateSeparatorText: {
-    color: '#94a3b8',
+    color: c['muted-foreground'],
     fontSize: 10,
     fontWeight: '700',
   },
@@ -430,17 +433,17 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   msgInbound: {
-    backgroundColor: '#1e293b',
+    backgroundColor: c.secondary,
     alignSelf: 'flex-start',
     borderBottomLeftRadius: 4,
   },
   msgOutbound: {
-    backgroundColor: '#059669',
+    backgroundColor: c.primary,
     alignSelf: 'flex-end',
     borderBottomRightRadius: 4,
   },
   msgText: {
-    color: '#ffffff',
+    color: c.foreground,
     fontSize: 13,
     lineHeight: 18,
   },
@@ -459,7 +462,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 12,
-    backgroundColor: '#0f172a',
+    backgroundColor: c.card,
   },
   mediaChip: {
     flexDirection: 'row',
@@ -469,7 +472,7 @@ const styles = StyleSheet.create({
     maxWidth: 220,
   },
   mediaChipText: {
-    color: '#ffffff',
+    color: c.foreground,
     fontSize: 12,
     fontWeight: '600',
     flexShrink: 1,
@@ -478,41 +481,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 10,
-    backgroundColor: '#0f172a',
+    backgroundColor: c.card,
     borderTopWidth: 1,
-    borderTopColor: '#1e293b',
+    borderTopColor: c.secondary,
     gap: 8,
   },
   templateBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#020617',
+    backgroundColor: c.background,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: c.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   templateBtnHighlight: {
-    backgroundColor: '#34d399',
-    borderColor: '#34d399',
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   input: {
     flex: 1,
-    backgroundColor: '#020617',
+    backgroundColor: c.background,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: c.border,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    color: '#ffffff',
+    color: c.foreground,
     fontSize: 13,
   },
   sendBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#059669',
+    backgroundColor: c.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -525,13 +528,13 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalSheet: {
-    backgroundColor: '#0f172a',
+    backgroundColor: c.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 16,
     maxHeight: '70%',
     borderWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: c.secondary,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -540,7 +543,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   modalTitle: {
-    color: '#ffffff',
+    color: c.foreground,
     fontSize: 14,
     fontWeight: '800',
   },
@@ -551,15 +554,15 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: '#1e293b',
+    borderBottomColor: c.secondary,
   },
   templateName: {
-    color: '#ffffff',
+    color: c.foreground,
     fontSize: 13,
     fontWeight: '700',
   },
   templateMeta: {
-    color: '#64748b',
+    color: c['muted-foreground'],
     fontSize: 10,
     marginTop: 2,
   },
