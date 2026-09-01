@@ -35,6 +35,8 @@ export interface DataTableProps<Row> {
   loading?: boolean;
   emptyTitle?: string;
   emptyDescription?: string;
+  /** custom card body for the mobile view; falls back to a generic dl of columns */
+  renderMobileCard?: (row: Row) => React.ReactNode;
   className?: string;
 }
 
@@ -50,6 +52,7 @@ export function DataTable<Row>({
   loading = false,
   emptyTitle = "Nothing here yet",
   emptyDescription,
+  renderMobileCard,
   className,
 }: DataTableProps<Row>) {
   if (loading) {
@@ -103,27 +106,36 @@ export function DataTable<Row>({
 
       {/* Mobile */}
       <div className={cn("space-y-2 md:hidden", className)}>
-        {rows.map((row) => (
-          <button
-            key={getRowId(row)}
-            type="button"
-            onClick={onRowClick ? () => onRowClick(row) : undefined}
-            className={cn(
-              "w-full rounded-xl bg-card p-3.5 text-left text-card-foreground ring-1 ring-foreground/10",
-              onRowClick && "transition-colors hover:bg-accent"
-            )}
-          >
-            <div className="mb-1.5 font-medium">{primaryCol.cell(row)}</div>
-            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-              {mobileCols.map((col) => (
-                <React.Fragment key={col.id}>
-                  <dt className="text-muted-foreground">{col.header}</dt>
-                  <dd className="text-right">{col.cell(row)}</dd>
-                </React.Fragment>
-              ))}
-            </dl>
-          </button>
-        ))}
+        {rows.map((row) =>
+          renderMobileCard ? (
+            <div
+              key={getRowId(row)}
+              className="rounded-xl bg-card p-3.5 text-card-foreground ring-1 ring-foreground/10"
+            >
+              {renderMobileCard(row)}
+            </div>
+          ) : (
+            <button
+              key={getRowId(row)}
+              type="button"
+              onClick={onRowClick ? () => onRowClick(row) : undefined}
+              className={cn(
+                "w-full rounded-xl bg-card p-3.5 text-left text-card-foreground ring-1 ring-foreground/10",
+                onRowClick && "transition-colors hover:bg-accent"
+              )}
+            >
+              <div className="mb-1.5 font-medium">{primaryCol.cell(row)}</div>
+              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                {mobileCols.map((col) => (
+                  <React.Fragment key={col.id}>
+                    <dt className="text-muted-foreground">{col.header}</dt>
+                    <dd className="text-right">{col.cell(row)}</dd>
+                  </React.Fragment>
+                ))}
+              </dl>
+            </button>
+          )
+        )}
       </div>
     </>
   );
