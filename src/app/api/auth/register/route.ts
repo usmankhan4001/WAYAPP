@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { signSessionToken, SESSION_COOKIE_NAME } from '@/lib/auth/jwt';
 import { isAllowedUser } from '@/lib/auth/session';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 const RegisterSchema = z.object({
   email: z.string().email('Valid email address is required').trim().toLowerCase(),
@@ -50,6 +51,19 @@ export async function POST(request: NextRequest) {
     // Check total user count to determine if this is the first bootstrap user
     const totalUsers = await prisma.user.count();
     const isFirstUser = totalUsers === 0;
+
+    // Registration kill switch: only the very first bootstrap user may register
+    // freely. Afterwards, AuthConfig.allowRegistration must be explicitly true.
+    // Previously the flag was never checked, so every deployment with open network
+    // access grew active MEMBER accounts at will.
+    const authConfig = await prisma.authConfig.findUnique({ where: { id: 'default' } });
+    if (!isFirstUser && authConfig?.allowRegistration === false) {
+      logger.warn({ email }, 'Registration rejected: allowRegistration is disabled');
+      return NextResponse.json(
+        { error: 'Registration is disabled on this instance.' },
+        { status: 403 }
+      );
+    }
 
     // If not first user, check domain / authorization whitelist
     if (!isFirstUser) {

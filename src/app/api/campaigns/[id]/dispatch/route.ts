@@ -28,27 +28,20 @@ export async function POST(
     }
 
     if (action === 'START' || action === 'RESUME') {
-      const lock = await prisma.campaign.updateMany({
-        where: {
-          id,
-          status: { in: ['DRAFT', 'PAUSED', 'QUEUED', 'SCHEDULED', 'RUNNING'] },
+      // 2026-09 containment: campaign dispatch is disabled platform-wide. The
+      // dispatcher resolves audiences using only singular groupId/tagId while the
+      // wizard and preview use includeGroups/includeTags, so a campaign previewed
+      // for selected groups/tags would actually be broadcast to EVERY active
+      // contact. START/RESUME return 409 until audience resolution is unified and
+      // regression-tested. PAUSE and CANCEL stay available so already-queued
+      // campaigns can still be stopped.
+      return NextResponse.json(
+        {
+          error:
+            'Campaign dispatch is temporarily disabled: a known audience-resolution defect would send to every active contact instead of the previewed groups/tags. Fix is in progress.',
         },
-        data: { status: 'QUEUED' },
-      });
-
-      if (lock.count === 0) {
-        return NextResponse.json(
-          { error: `Cannot start campaign with status: ${campaign.status}` },
-          { status: 400 }
-        );
-      }
-
-      // Asynchronously trigger dispatcher
-      dispatchCampaign(id).catch((err) => {
-        logger.error({ campaignId: id, err }, 'Campaign dispatch error');
-      });
-
-      return NextResponse.json({ success: true, status: 'QUEUED' });
+        { status: 409 }
+      );
     }
 
     if (action === 'PAUSE') {

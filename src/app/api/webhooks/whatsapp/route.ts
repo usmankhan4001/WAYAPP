@@ -69,9 +69,16 @@ export async function POST(request: NextRequest) {
     const isMock = settings?.isMockMode === true;
     const appSecret = decryptString(settings?.appSecret);
 
-    // Verify Meta HMAC signature if appSecret is configured.
-    // If appSecret is not yet configured, log a warning and proceed so incoming messages are never dropped.
-    if (!isMock && appSecret && appSecret.trim() !== '') {
+    // 2026-09 containment: fail closed. Previously, when no appSecret was configured
+    // the handler processed the payload anyway, so a forged request could create
+    // contacts, insert inbound messages, flip opt-out state and trigger flows, bots
+    // and automations. Meta signs every delivery; if we cannot verify the signature
+    // (and mock mode is not explicitly on), the payload is rejected.
+    if (!isMock) {
+      if (!appSecret || appSecret.trim() === '') {
+        logger.warn('Meta Webhook rejected: no appSecret configured and mock mode is off (fail-closed)');
+        return NextResponse.json({ error: 'Webhook not configured' }, { status: 401 });
+      }
       if (!verifyMetaSignature(rawBody, signature, appSecret)) {
         logger.warn('Meta Webhook signature validation failed');
         return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
