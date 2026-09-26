@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { signSessionToken, SESSION_COOKIE_NAME } from '@/lib/auth/jwt';
 import { isAllowedUser } from '@/lib/auth/session';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 const RegisterSchema = z.object({
   email: z.string().email('Valid email address is required').trim().toLowerCase(),
@@ -51,6 +52,19 @@ export async function POST(request: NextRequest) {
     const totalUsers = await prisma.user.count();
     const isFirstUser = totalUsers === 0;
 
+    // Registration kill switch: only the very first bootstrap user may register
+    // freely. Afterwards, AuthConfig.allowRegistration must be explicitly true.
+    // Previously the flag was never checked, so every deployment with open network
+    // access grew active MEMBER accounts at will.
+    const authConfig = await prisma.authConfig.findUnique({ where: { id: 'default' } });
+    if (!isFirstUser && authConfig?.allowRegistration === false) {
+      logger.warn({ email }, 'Registration rejected: allowRegistration is disabled');
+      return NextResponse.json(
+        { error: 'Registration is disabled on this instance.' },
+        { status: 403 }
+      );
+    }
+
     // If not first user, check domain / authorization whitelist
     if (!isFirstUser) {
       const isAllowed = await isAllowedUser(email);
@@ -80,9 +94,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Create session
+    // Create session (7 days)
     const sessionId = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     await prisma.session.create({
       data: {
@@ -95,14 +109,17 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const sessionToken = await signSessionToken({
-      userId: newUser.id,
-      email: newUser.email,
-      name: newUser.name || newUser.email.split('@')[0],
-      avatarUrl: newUser.avatarUrl,
-      role: newUser.role,
-      jti: sessionId,
-    });
+    const sessionToken = await signSessionToken(
+      {
+        userId: newUser.id,
+        email: newUser.email,
+        name: newUser.name || newUser.email.split('@')[0],
+        avatarUrl: newUser.avatarUrl,
+        role: newUser.role,
+        jti: sessionId,
+      },
+      7 * 24 * 60 * 60
+    );
 
     const response = NextResponse.json({
       success: true,
@@ -118,7 +135,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 24 * 60 * 60,
+      maxAge: 7 * 24 * 60 * 60,
       path: '/',
     });
 

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { dispatchCampaign, getTargetContacts } from '@/worker/dispatcher';
-import { requireAuth } from '@/lib/auth/rbac';
+import { getTargetContacts } from '@/worker/dispatcher';
+import { requireAuth, requireRole } from '@/lib/auth/rbac';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request);
@@ -22,7 +23,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const authResult = await requireAuth(request);
+  // Campaign creation/launch is ADMIN-only: bare requireAuth let any MEMBER (or
+  // VIEWER) create and immediately start real WhatsApp broadcasts.
+  const authResult = await requireRole(request, ['SUPER_ADMIN', 'ADMIN']);
   if ('response' in authResult) return authResult.response;
 
   try {
@@ -59,23 +62,27 @@ export async function POST(request: NextRequest) {
         headerMediaUrl: headerMediaUrl?.trim() || null,
         scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
         totalContacts: targetContacts.length,
-        status: startImmediately ? 'QUEUED' : 'DRAFT',
+        // 2026-09 containment: campaigns can be created and scheduled, but never
+        // auto-dispatched. The dispatcher resolves audiences using only singular
+        // groupId/tagId while the wizard/preview use includeGroups/includeTags, so a
+        // startImmediately campaign would broadcast to EVERY active contact instead
+        // of the previewed audience. Dispatch goes through /api/campaigns/[id]/dispatch,
+        // which currently returns 409 until audience resolution is unified.
+        status: scheduledAt ? 'SCHEDULED' : 'DRAFT',
       },
       include: {
         template: true,
       },
     });
 
-    if (startImmediately && targetContacts.length > 0) {
-      // Trigger dispatcher in background (idempotent — the exclusive lock
-      // guarantees a campaign is only ever dispatched by one runner)
-      dispatchCampaign(campaign.id).catch((err) => {
-        console.error('Error starting campaign dispatcher:', err);
-      });
-    }
-
-    return NextResponse.json({ success: true, campaign });
+    return NextResponse.json({
+      success: true,
+      campaign,
+      note:
+        'Dispatch is temporarily disabled pending an audience-resolution fix; the campaign was saved as ' + campaign.status + '.',
+    });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    logger.error({ error }, 'Error creating campaign');
+    return NextResponse.json({ error: 'Failed to create campaign' }, { status: 500 });
   }
 }

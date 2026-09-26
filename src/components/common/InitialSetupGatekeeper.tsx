@@ -24,7 +24,7 @@ interface InitialSetupGatekeeperProps {
 
 export function InitialSetupGatekeeper({ onActivationSuccess }: InitialSetupGatekeeperProps) {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState<'sandbox' | 'guided' | 'facebook' | 'manual'>('sandbox');
+  const [activeTab, setActiveTab] = useState<'guided' | 'facebook' | 'manual'>('guided');
   const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   // Form State
@@ -40,38 +40,6 @@ export function InitialSetupGatekeeper({ onActivationSuccess }: InitialSetupGate
   const [isActivating, setIsActivating] = useState(false);
   const [testResult, setTestResult] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const handleLaunchSandbox = async () => {
-    setIsActivating(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'ACTIVATE_CONNECTION',
-          phoneNumberId: 'sandbox_phone_1001',
-          wabaId: 'sandbox_waba_2001',
-          accessToken: 'sandbox_token_mock_mode',
-          businessName: 'WAYAPP Demo Store',
-          businessPhone: '+971 50 123 4567',
-          defaultCountryCode: '+971',
-          webhookVerifyToken: 'whatsapp_sandbox_token',
-          isMockMode: true,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to activate demo mode');
-      }
-
-      onActivationSuccess(data.settings);
-    } catch (err: any) {
-      setError(err.message);
-      setIsActivating(false);
-    }
-  };
 
   const handleTestHandshake = async () => {
     if (!phoneNumberId.trim() || !wabaId.trim() || !accessToken.trim()) {
@@ -163,19 +131,7 @@ export function InitialSetupGatekeeper({ onActivationSuccess }: InitialSetupGate
       {/* Main Setup Card */}
       <div className="card-base max-w-xl w-full bg-card shadow-xl overflow-hidden border border-border">
         {/* Mode Selector Tabs */}
-        <div className="grid grid-cols-3 border-b border-border bg-muted/80 p-1.5 gap-1 text-xs">
-          <button
-            type="button"
-            onClick={() => setActiveTab('sandbox')}
-            className={`py-2 px-2 rounded-xl font-semibold transition-all text-center flex items-center justify-center gap-1.5 ${
-              activeTab === 'sandbox'
-                ? 'bg-card text-foreground shadow-2xs'
-                : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-primary" />
-            <span>Instant Demo</span>
-          </button>
+        <div className="grid grid-cols-2 border-b border-border bg-muted/80 p-1.5 gap-1 text-xs">
           <button
             type="button"
             onClick={() => setActiveTab('guided')}
@@ -186,7 +142,7 @@ export function InitialSetupGatekeeper({ onActivationSuccess }: InitialSetupGate
             }`}
           >
             <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-            <span>Layman Setup</span>
+            <span>Guided Setup</span>
           </button>
           <button
             type="button"
@@ -203,54 +159,6 @@ export function InitialSetupGatekeeper({ onActivationSuccess }: InitialSetupGate
         </div>
 
         <div className="p-6 sm:p-8 space-y-6">
-          {/* TAB 1: Instant Sandbox Demo */}
-          {activeTab === 'sandbox' && (
-            <div className="space-y-5 animate-in fade-in duration-150">
-              <div className="text-center space-y-1.5">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-brand-subtle text-primary border border-transparent">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Recommended for First-Time Users
-                </span>
-                <h2 className="text-lg font-bold text-foreground">Try Instant Interactive Sandbox</h2>
-                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                  Explore the full WhatsApp 2-way inbox, test broadcasts, create flows, and try the CRM right now with realistic demo chats.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-muted-foreground">
-                <div className="p-3 rounded-xl bg-muted border border-border flex items-start gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span>No Meta Developer account or credit card needed</span>
-                </div>
-                <div className="p-3 rounded-xl bg-muted border border-border flex items-start gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span>Simulate incoming and outgoing WhatsApp customer messages</span>
-                </div>
-                <div className="p-3 rounded-xl bg-muted border border-border flex items-start gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span>Pre-loaded with sample contacts, templates, and stages</span>
-                </div>
-                <div className="p-3 rounded-xl bg-muted border border-border flex items-start gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span>Switch to real WhatsApp Cloud API anytime in Settings</span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleLaunchSandbox}
-                disabled={isActivating}
-                className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 active:scale-[0.98] text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-md transition-all disabled:opacity-50"
-              >
-                {isActivating ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Sparkles className="w-4 h-4" />
-                )}
-                <span>{isActivating ? 'Launching Sandbox...' : 'Launch Instant Demo Sandbox'}</span>
-              </button>
-            </div>
-          )}
 
           {/* TAB 2: Layman Guided Setup */}
           {activeTab === 'guided' && (

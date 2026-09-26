@@ -25,19 +25,30 @@ export async function GET(request: NextRequest) {
       // Send initial connection established message
       controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'connected' })}\n\n`));
 
-      let lastChecked = new Date();
+      let lastChecked = new Date(Date.now() - 5000);
+      let loopCount = 0;
 
       while (!isClosed) {
         try {
-          // Poll the database efficiently for new messages for this specific user or conversation
+          loopCount++;
+
+          // Send heartbeat ping every ~14 seconds (7 * 2s) to prevent proxy socket timeout
+          if (loopCount % 7 === 0) {
+            controller.enqueue(new TextEncoder().encode(`: keepalive\n\n`));
+          }
+
+          // Poll the database efficiently for new messages received since lastChecked
           const whereClause: any = { timestamp: { gt: lastChecked } };
           
           if (contactId) {
             whereClause.contactId = contactId;
           } else {
-            // Global inbox stream: only fetch messages for conversations assigned to me
+            // Global inbox stream: for MEMBER role, include assigned to me OR unassigned conversations
             if (session.role === 'MEMBER') {
-              whereClause.conversation = { assignedToId: session.userId };
+              whereClause.OR = [
+                { conversation: { assignedToId: session.userId } },
+                { conversation: { assignedToId: null } },
+              ];
             }
           }
 
@@ -72,9 +83,10 @@ export async function GET(request: NextRequest) {
 
   return new Response(stream, {
     headers: {
-      'Content-Type': 'text/event-stream',
+      'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache, no-transform',
-      Connection: 'keep-alive',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
     },
   });
 }

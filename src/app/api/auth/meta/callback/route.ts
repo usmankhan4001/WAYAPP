@@ -105,9 +105,9 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // 5. Create DB Session
+    // 5. Create DB Session (7 days)
     const sessionId = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     await prisma.session.create({
       data: {
@@ -119,15 +119,18 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // 6. Sign JWT
-    const sessionToken = await signSessionToken({
-      userId: user.id,
-      email: user.email,
-      name: user.name || user.email.split('@')[0],
-      avatarUrl: user.avatarUrl,
-      role: user.role,
-      jti: sessionId,
-    });
+    // 6. Sign JWT (7 days)
+    const sessionToken = await signSessionToken(
+      {
+        userId: user.id,
+        email: user.email,
+        name: user.name || user.email.split('@')[0],
+        avatarUrl: user.avatarUrl,
+        role: user.role,
+        jti: sessionId,
+      },
+      7 * 24 * 60 * 60
+    );
 
     const response = NextResponse.redirect(new URL('/', request.url));
     response.cookies.delete('meta_oauth_state');
@@ -135,7 +138,7 @@ export async function GET(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 24 * 60 * 60,
+      maxAge: 7 * 24 * 60 * 60,
       path: '/',
     });
 

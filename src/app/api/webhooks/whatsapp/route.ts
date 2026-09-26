@@ -32,16 +32,22 @@ export async function GET(request: NextRequest) {
     where: { id: 'default' },
   });
 
-  const configuredToken = settings?.webhookVerifyToken;
+  const configuredToken =
+    settings?.webhookVerifyToken?.trim() ||
+    process.env.META_WEBHOOK_VERIFY_TOKEN?.trim() ||
+    process.env.WEBHOOK_VERIFY_TOKEN?.trim();
 
   if (
     mode === 'subscribe' &&
     token &&
     configuredToken &&
-    timingSafeCompare(token, configuredToken)
+    timingSafeCompare(token.trim(), configuredToken)
   ) {
     logger.info('Meta Webhook verified successfully');
-    return new NextResponse(challenge, { status: 200 });
+    return new NextResponse(challenge, {
+      status: 200,
+      headers: { 'Content-Type': 'text/plain' },
+    });
   }
 
   return NextResponse.json({ error: 'Webhook verification failed' }, { status: 403 });
@@ -67,11 +73,19 @@ export async function POST(request: NextRequest) {
     });
 
     const isMock = settings?.isMockMode === true;
-    const appSecret = decryptString(settings?.appSecret);
+    const decryptedSecret = decryptString(settings?.appSecret);
+    const appSecret =
+      decryptedSecret?.trim() ||
+      process.env.META_APP_SECRET?.trim() ||
+      process.env.APP_SECRET?.trim();
 
-    // Verify Meta HMAC signature if appSecret is configured.
-    // If appSecret is not yet configured, log a warning and proceed so incoming messages are never dropped.
-    if (!isMock && appSecret && appSecret.trim() !== '') {
+    // In production fail-closed: Meta signs every delivery; if we cannot verify the signature
+    // (and mock mode is not explicitly on), the payload is rejected.
+    if (!isMock) {
+      if (!appSecret || appSecret === '') {
+        logger.warn('Meta Webhook rejected: no appSecret configured and mock mode is off (fail-closed)');
+        return NextResponse.json({ error: 'Webhook not configured' }, { status: 401 });
+      }
       if (!verifyMetaSignature(rawBody, signature, appSecret)) {
         logger.warn('Meta Webhook signature validation failed');
         return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
@@ -217,13 +231,20 @@ export async function POST(request: NextRequest) {
 
         // 3. Incoming Customer Messages & 2-Way Inbox
         if (value.messages && Array.isArray(value.messages)) {
-          const contactInfo = value.contacts?.[0];
-          const profileName = contactInfo?.profile?.name || 'Customer';
+          const contactMap = new Map<string, string>();
+          if (value.contacts && Array.isArray(value.contacts)) {
+            for (const c of value.contacts) {
+              if (c?.wa_id && c?.profile?.name) {
+                contactMap.set(c.wa_id, c.profile.name);
+              }
+            }
+          }
 
           for (const incoming of value.messages) {
             const rawSenderPhone = incoming.from;
             const messageWamid = incoming.id;
             const normalizedPhone = sanitizePhoneNumber(rawSenderPhone).e164 || `+${rawSenderPhone}`;
+            const profileName = contactMap.get(rawSenderPhone) || value.contacts?.[0]?.profile?.name || 'Customer';
 
             // Check if STOP keyword sent for opt-out
             let isOptOut = false;
@@ -248,6 +269,11 @@ export async function POST(request: NextRequest) {
             } else if (incoming.type === 'voice') {
               mediaUrl = incoming.voice?.id ? `/api/media/${incoming.voice.id}` : null;
               bodyText = 'Voice note';
+            } else if (incoming.type === 'sticker') {
+              mediaUrl = incoming.sticker?.id ? `/api/media/${incoming.sticker.id}` : null;
+              bodyText = 'Sticker';
+            } else if (incoming.type === 'reaction') {
+              bodyText = incoming.reaction?.emoji || 'Reacted';
             } else if (incoming.type === 'document') {
               mediaUrl = incoming.document?.id ? `/api/media/${incoming.document.id}` : null;
               bodyText = incoming.document?.filename || incoming.document?.caption || 'Document';
@@ -301,15 +327,26 @@ export async function POST(request: NextRequest) {
                 },
               });
             } else {
-              contact = await prisma.contact.create({
-                data: {
-                  phoneNumber: normalizedPhone,
-                  firstName: profileName,
-                  status: isOptOut ? 'UNSUBSCRIBED' : 'ACTIVE',
-                  optedOutAt: isOptOut ? new Date() : null,
-                  lastInteractionAt: new Date(),
-                },
-              });
+              try {
+                contact = await prisma.contact.create({
+                  data: {
+                    phoneNumber: normalizedPhone,
+                    firstName: profileName,
+                    status: isOptOut ? 'UNSUBSCRIBED' : 'ACTIVE',
+                    optedOutAt: isOptOut ? new Date() : null,
+                    lastInteractionAt: new Date(),
+                  },
+                });
+              } catch (createErr) {
+                // Concurrency retry: if contact was created in parallel, find it
+                contact = await prisma.contact.findFirst({
+                  where: { OR: phoneConditions },
+                });
+                if (!contact) {
+                  logger.error({ error: createErr }, 'Failed to create or retrieve contact during webhook');
+                  continue;
+                }
+              }
             }
 
             // If contact opted out, record suppression and cancel active sessions

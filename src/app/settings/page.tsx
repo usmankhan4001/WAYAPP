@@ -56,7 +56,7 @@ const MODULE_ICONS: Record<string, any> = {
 
 export default function SettingsPage() {
   const confirm = useConfirm();
-  const [activeTab, setActiveTab] = useState<'gateway' | 'marketplace' | 'snippets' | 'billing' | 'api-keys' | 'audit-log'>('gateway');
+  const [activeTab, setActiveTab] = useState<'gateway' | 'snippets' | 'billing' | 'api-keys' | 'audit-log'>('gateway');
 
   // Gateway Settings
   const [settings, setSettings] = useState<any>({
@@ -460,21 +460,6 @@ export default function SettingsPage() {
         </button>
 
         <button
-          onClick={() => setActiveTab('marketplace')}
-          className={`px-4 py-2 rounded-xl text-xs font-normal transition-all flex items-center gap-1.5 shrink-0 ${
-            activeTab === 'marketplace'
-              ? 'bg-foreground text-white '
-              : 'text-muted-foreground hover:bg-accent'
-          }`}
-        >
-          <Layers className="w-3.5 h-3.5 text-primary" />
-          <span>App Marketplace & Modules</span>
-          <span className="px-1.5 py-0.2 rounded-full bg-black/10 text-foreground text-2xs font-normal">
-            {modules.filter((m) => m.isEnabled).length}/{modules.length} ON
-          </span>
-        </button>
-
-        <button
           onClick={() => setActiveTab('snippets')}
           className={`px-4 py-2 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 shrink-0 ${
             activeTab === 'snippets'
@@ -530,30 +515,24 @@ export default function SettingsPage() {
           <div className="p-4 rounded-2xl bg-foreground text-background flex flex-col sm:flex-row sm:items-center justify-between gap-3 ">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                <span className={`w-2 h-2 rounded-full ${settings.isConnected ? 'bg-primary animate-pulse' : 'bg-amber-400'}`} />
                 <span className="text-2xs font-normal text-muted-foreground uppercase tracking-wider">
                   Direct Gateway Connection Status
                 </span>
               </div>
               <h3 className="text-xs font-normal text-white">
-                {settings.isMockMode ? 'Virtual Simulator Active' : 'Meta Cloud API v21.0 Live & Activated'}
+                {settings.isConnected ? 'Meta Cloud API Live & Connected' : 'Meta Cloud API Gateway'}
               </h3>
               <p className="text-2xs text-muted-foreground">
-                {settings.isMockMode
-                  ? 'Local virtual simulator mode is active.'
-                  : 'Direct first-party connection to Meta Graph API v21.0 with 0% markup and zero proxy hops.'}
+                Direct first-party connection to Meta Graph API v21.0 with 0% markup and zero proxy hops.
               </p>
             </div>
 
-            <label className="flex items-center gap-2 bg-foreground/90 px-3 py-1.5 rounded-xl border border-border cursor-pointer self-start sm:self-auto">
-              <input
-                type="checkbox"
-                checked={settings.isMockMode}
-                onChange={(e) => setSettings({ ...settings, isMockMode: e.target.checked })}
-                className="w-3.5 h-3.5 text-primary rounded"
-              />
-              <span className="text-xs font-medium text-foreground">Mock Mode</span>
-            </label>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <span className={`px-2.5 py-1 rounded-full text-2xs font-semibold ${settings.isConnected ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-amber-950 text-amber-300 border border-amber-800'}`}>
+                {settings.isConnected ? 'CONNECTED' : 'STANDBY'}
+              </span>
+            </div>
           </div>
 
           <form onSubmit={handleSave} className="space-y-4">
@@ -799,114 +778,7 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* TAB 2: APP MARKETPLACE & MODULAR SWITCHBOARD */}
-      {activeTab === 'marketplace' && (
-        <div className="space-y-4">
-          <div className="p-4 rounded-2xl bg-linear-to-br from-foreground to-foreground text-white space-y-1 ">
-            <h3 className="font-normal text-sm text-white flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-primary" />
-              <span>Plug-and-Play Module Switchboard</span>
-            </h3>
-            <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
-              Enable only what your sales & operations team needs. When a module is toggled OFF, its navigation links, chat toolbars, and background workers are cleanly deactivated to keep your team's workflow fast, simple, and clutter-free.
-            </p>
-          </div>
-
-          {/* Category Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-            {[
-              { id: 'ALL', label: 'All Modules' },
-              { id: 'SALES_AI', label: 'Sales & AI Co-Pilot' },
-              { id: 'SALES_TOOLS', label: 'Sales Tools & CRM' },
-              { id: 'ENGAGEMENT', label: 'Engagement & Campaigns' },
-              { id: 'AUTOMATION', label: 'Flows & Bots' },
-              { id: 'CHANNELS', label: 'Social Channels' },
-              { id: 'INTEGRATIONS', label: 'E-Commerce & Apps' },
-              { id: 'DEVELOPER', label: 'Developer & Webhooks' },
-            ].map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setModuleCategoryFilter(cat.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-normal transition-all shrink-0 ${
-                  moduleCategoryFilter === cat.id
-                    ? 'bg-foreground text-white shadow-xs'
-                    : 'bg-card text-muted-foreground border border-border hover:bg-accent'
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Modules Card Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            {filteredModules.map((mod) => {
-              const IconComp = MODULE_ICONS[mod.icon] || Zap;
-              const isToggling = togglingModule === mod.id;
-
-              return (
-                <div
-                  key={mod.id}
-                  className={`p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between gap-3 ${
-                    mod.isEnabled
-                      ? 'bg-card border-border shadow-xs'
-                      : 'bg-black/5 border-border opacity-75'
-                  }`}
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${
-                            mod.isEnabled
-                              ? 'bg-wa-bubble-out text-foreground'
-                              : 'bg-muted text-muted-foreground'
-                          }`}
-                        >
-                          <IconComp className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <h4 className="font-normal text-xs text-foreground">{mod.name}</h4>
-                          <span className="text-2xs font-normal text-muted-foreground uppercase tracking-wider">
-                            {mod.category}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* 1-Click Toggle Switch */}
-                      <button
-                        type="button"
-                        disabled={isToggling}
-                        onClick={() => handleToggleModule(mod.id, mod.isEnabled)}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                          mod.isEnabled ? 'bg-whatsapp-green' : 'bg-input'
-                        } ${isToggling ? 'opacity-50' : ''}`}
-                      >
-                        <span
-                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-card shadow-lg ring-0 transition duration-200 ease-in-out ${
-                            mod.isEnabled ? 'translate-x-5' : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
-                    </div>
-
-                    <p className="text-xs text-muted-foreground leading-relaxed font-normal">{mod.description}</p>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-border text-2xs">
-                    <span className="font-medium text-muted-foreground">
-                      Status: <strong className={mod.isEnabled ? 'text-foreground' : 'text-muted-foreground'}>{mod.isEnabled ? 'Active' : 'Disabled'}</strong>
-                    </span>
-                    <span className="text-2xs text-muted-foreground font-mono">ID: {mod.id}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 3: CANNED SNIPPETS MANAGER */}
+      {/* TAB 2: CANNED SNIPPETS MANAGER */}
       {activeTab === 'snippets' && (
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

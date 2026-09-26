@@ -14,7 +14,7 @@ export async function processInboundBot(params: {
   phoneNumber: string;
   bodyText: string;
 }): Promise<boolean> {
-  const { contactId, phoneNumber, bodyText } = params;
+  const { contactId, conversationId, phoneNumber, bodyText } = params;
   if (!bodyText || !bodyText.trim()) return false;
 
   const normalizedInput = bodyText.trim().toLowerCase();
@@ -130,10 +130,17 @@ export async function processInboundBot(params: {
           if (aiReply && aiReply.trim()) {
             await client.sendTextMessage(phoneNumber, aiReply.trim());
 
+            let activeConvId = conversationId;
+            if (!activeConvId) {
+              const conv = await prisma.conversation.findUnique({ where: { contactId } });
+              activeConvId = conv?.id;
+            }
+
             // Store outbound ChatMessage
             await prisma.chatMessage.create({
               data: {
                 contactId,
+                conversationId: activeConvId || null,
                 phoneNumber,
                 direction: 'OUTBOUND',
                 messageType: 'text',
@@ -141,6 +148,13 @@ export async function processInboundBot(params: {
                 status: 'SENT',
               },
             });
+
+            if (activeConvId) {
+              await prisma.conversation.update({
+                where: { id: activeConvId },
+                data: { lastMessageAt: new Date() },
+              }).catch(() => {});
+            }
           }
         } catch (aiErr: any) {
           logger.error({ err: aiErr.message }, '[BotEngine] AI generation failed');

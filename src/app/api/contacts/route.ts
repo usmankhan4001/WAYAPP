@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { normalizePhoneNumber } from '@/lib/utils';
-import { requireAuth } from '@/lib/auth/rbac';
+import { requireAuth, requireRole } from '@/lib/auth/rbac';
 
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request);
@@ -259,7 +259,9 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const authResult = await requireAuth(request);
+  // Contact deletion is destructive and irreversible; it is ADMIN-only. Bare
+  // requireAuth previously allowed any MEMBER/VIEWER to wipe CRM contacts.
+  const authResult = await requireRole(request, ['SUPER_ADMIN', 'ADMIN']);
   if ('response' in authResult) return authResult.response;
 
   try {

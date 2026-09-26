@@ -4,8 +4,16 @@ import { generateAiResponse, AiProviderName } from '@/lib/ai/provider';
 import { isModuleEnabled } from '@/lib/modules';
 import { decryptString } from '@/lib/crypto';
 import { logger } from '@/lib/logger';
+import { requireRole } from '@/lib/auth/rbac';
 
 export async function POST(request: NextRequest) {
+  // 2026-09 containment: this route previously had NO authentication. Anyone who
+  // could reach it could read recent chat messages for an arbitrary contactId and
+  // spend the configured AI provider's credits. Auth is now mandatory and
+  // fail-closed; the module check below is defence in depth, not the gate.
+  const authResult = await requireRole(request, ['SUPER_ADMIN', 'ADMIN', 'MEMBER']);
+  if ('response' in authResult) return authResult.response;
+
   try {
     const enabled = await isModuleEnabled('ai_copilot');
     if (!enabled) {
@@ -40,7 +48,9 @@ export async function POST(request: NextRequest) {
           apiKey = conf.apiKey;
         }
         if (conf.model) model = conf.model;
-      } catch {}
+      } catch (err) {
+        logger.warn({ err }, 'Failed to parse AI bot config; using defaults');
+      }
     }
 
     // 1. ACTION: SUGGEST REPLY

@@ -40,6 +40,7 @@ export interface FlowEdge {
  */
 export async function processInboundFlow(params: {
   contactId: string;
+  conversationId?: string;
   phoneNumber: string;
   bodyText: string;
 }): Promise<boolean> {
@@ -173,9 +174,12 @@ export async function advanceFlowRun(runId: string, userInput?: string): Promise
       if (text.trim()) {
         await client.sendTextMessage(run.contact.phoneNumber, text);
 
+        const conv = await prisma.conversation.findUnique({ where: { contactId: run.contactId } });
+
         await prisma.chatMessage.create({
           data: {
             contactId: run.contactId,
+            conversationId: conv?.id || null,
             phoneNumber: run.contact.phoneNumber,
             direction: 'OUTBOUND',
             messageType: 'text',
@@ -183,6 +187,13 @@ export async function advanceFlowRun(runId: string, userInput?: string): Promise
             status: 'SENT',
           },
         });
+
+        if (conv?.id) {
+          await prisma.conversation.update({
+            where: { id: conv.id },
+            data: { lastMessageAt: new Date() },
+          }).catch(() => {});
+        }
       }
 
       // Move to next connected edge
@@ -198,10 +209,32 @@ export async function advanceFlowRun(runId: string, userInput?: string): Promise
 
       // If this is the first time reaching this node, send the prompt
       if (!userInput || run.currentNodeId !== node.id) {
+        const promptBody = `${text}\n\n${buttons.map((b: any, i: number) => `${i + 1}. ${b.title}`).join('\n')}`;
         await client.sendTextMessage(
           run.contact.phoneNumber,
-          `${text}\n\n${buttons.map((b: any, i: number) => `${i + 1}. ${b.title}`).join('\n')}`
+          promptBody
         );
+
+        const conv = await prisma.conversation.findUnique({ where: { contactId: run.contactId } });
+
+        await prisma.chatMessage.create({
+          data: {
+            contactId: run.contactId,
+            conversationId: conv?.id || null,
+            phoneNumber: run.contact.phoneNumber,
+            direction: 'OUTBOUND',
+            messageType: 'text',
+            body: promptBody,
+            status: 'SENT',
+          },
+        });
+
+        if (conv?.id) {
+          await prisma.conversation.update({
+            where: { id: conv.id },
+            data: { lastMessageAt: new Date() },
+          }).catch(() => {});
+        }
 
         // Pause flow run waiting for contact reply
         await prisma.flowRun.update({

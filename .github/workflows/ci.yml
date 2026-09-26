@@ -18,6 +18,31 @@ jobs:
       matrix:
         node-version: [ 20.x, 22.x ]
 
+    # 2026-09: the Prisma schema is PostgreSQL-only, so the old `file:./dev.db`
+    # DATABASE_URL could not even open a datasource — every DB-touching Vitest test
+    # (modules, message-router, webhooks, e-commerce) failed in CI while passing
+    # locally against real Postgres. CI now runs a real Postgres service and applies
+    # the schema before the suite.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: wayapp_ci
+          POSTGRES_USER: wayapp
+          POSTGRES_PASSWORD: wayapp_ci_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U wayapp -d wayapp_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://wayapp:wayapp_ci_password@localhost:5432/wayapp_ci
+      AUTH_SECRET: "ci-test-secret-min32chars-0123456789abcdef"
+      NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -31,28 +56,20 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Generate Prisma Client (SQLite & Postgres)
-        run: |
-          npx prisma generate
-        env:
-          DATABASE_URL: "file:./dev.db"
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Apply Prisma Schema to Test Database
+        run: npx prisma db push --skip-generate
 
       - name: TypeScript Typecheck
         run: npx tsc --noEmit
 
       - name: Run Vitest Unit & Integration Tests
         run: npx vitest run --coverage
-        env:
-          DATABASE_URL: "file:./dev.db"
-          AUTH_SECRET: "ci-test-secret-min32chars-0123456789abcdef"
-          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
 
       - name: Next.js Production Build
         run: npm run build
-        env:
-          DATABASE_URL: "file:./dev.db"
-          AUTH_SECRET: "ci-test-secret-min32chars-0123456789abcdef"
-          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
 
       - name: Upload Build Artifacts
         if: matrix.node-version == '20.x'

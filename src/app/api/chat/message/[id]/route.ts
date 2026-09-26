@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAuth } from '@/lib/auth/rbac';
+import { requireRole } from '@/lib/auth/rbac';
 import { logger } from '@/lib/logger';
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authResult = await requireAuth(request);
+  // Editing message history is ADMIN-only: bare requireAuth previously allowed any
+  // MEMBER/VIEWER to alter the permanent chat record.
+  const authResult = await requireRole(request, ['SUPER_ADMIN', 'ADMIN']);
   if ('response' in authResult) {
     return authResult.response;
   }

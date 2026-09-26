@@ -42,6 +42,10 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
+# 2026-09 incident: the worker container runs `npx tsx src/worker/index.ts`, but the
+# runtime image never copied src/, so the worker crashed on boot while healthchecks
+# still passed. Copy the full src tree so the worker (and its imports) resolve.
+COPY --from=builder /app/src ./src
 
 RUN chmod +x ./docker-entrypoint.sh
 

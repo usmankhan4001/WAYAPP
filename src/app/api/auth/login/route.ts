@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     // 5. Create Session in DB (Revocable Session Table)
     const sessionId = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
     await prisma.session.create({
       data: {
@@ -107,15 +107,18 @@ export async function POST(request: NextRequest) {
 
     writeAuditLog({ action: 'LOGIN_SUCCESS', actorId: user.id, actorEmail: user.email, ipAddress: clientIp });
 
-    // 7. Sign JWT with jti
-    const sessionToken = await signSessionToken({
-      userId: user.id,
-      email: user.email,
-      name: user.name || user.email.split('@')[0],
-      avatarUrl: user.avatarUrl,
-      role: user.role,
-      jti: sessionId,
-    });
+    // 7. Sign JWT with jti (7 days)
+    const sessionToken = await signSessionToken(
+      {
+        userId: user.id,
+        email: user.email,
+        name: user.name || user.email.split('@')[0],
+        avatarUrl: user.avatarUrl,
+        role: user.role,
+        jti: sessionId,
+      },
+      7 * 24 * 60 * 60
+    );
 
     const response = NextResponse.json({
       success: true,
@@ -132,7 +135,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 24 * 60 * 60,
+      maxAge: 7 * 24 * 60 * 60,
       path: '/',
     });
 

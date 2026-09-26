@@ -20,6 +20,7 @@ export async function processInboundEvent(event: InboundConversationEvent): Prom
   // 2. Try Visual Flow Builder Engine
   const handledByFlow = await processInboundFlow({
     contactId,
+    conversationId,
     phoneNumber,
     bodyText,
   });
@@ -46,6 +47,7 @@ export async function processInboundEvent(event: InboundConversationEvent): Prom
   try {
     await processInboundAutomation({
       contactId,
+      conversationId,
       phoneNumber,
       bodyText,
     });

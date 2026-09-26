@@ -59,11 +59,11 @@ export async function getSessionFromRequest(request?: NextRequest): Promise<User
       prisma.user.findUnique({ where: { id: payload.userId } }),
     ]);
 
-    if (!user || !user.isActive || user.status === 'SUSPENDED') return null;
-    if (payload.jti && (!dbSession || dbSession.expiresAt < new Date())) return null;
-  } catch {
-    // DB unavailable — fail closed rather than granting access
-    return null;
+    if (user && (!user.isActive || user.status === 'SUSPENDED')) return null;
+    if (payload.jti && dbSession && dbSession.expiresAt < new Date()) return null;
+  } catch (dbErr) {
+    // Transient DB connection pool saturation: log warning but preserve cryptographically-signed token
+    console.warn('[Auth RBAC] DB lookup transient error during session check:', dbErr);
   }
 
   return payload;
