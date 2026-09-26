@@ -87,8 +87,6 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
     caption?: string;
   } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [isMockMode, setIsMockMode] = useState(false);
-  const [isSimulatingInbound, setIsSimulatingInbound] = useState(false);
 
   // Message Actions State
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
@@ -154,16 +152,9 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
   const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
   const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
   const isWindowActive = msRemaining > 0;
-  const effectiveWindowActive = isMockMode || isWindowActive;
+  const effectiveWindowActive = isWindowActive;
 
-  const fetchSettings = () => {
-    fetch('/api/settings')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.isMockMode) setIsMockMode(true);
-      })
-      .catch(() => {});
-  };
+  const fetchSettings = () => {};
 
   // Load modules
   useEffect(() => {
@@ -729,39 +720,6 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
     }
   };
 
-  const handleSimulateInbound = async () => {
-    if (!contact?.id) return;
-    setIsSimulatingInbound(true);
-    try {
-      const promptText = window.prompt(
-        `Simulate Incoming WhatsApp Message from ${contactName}:`,
-        'Hi, I received your message! How can I proceed?'
-      );
-      if (!promptText || !promptText.trim()) {
-        setIsSimulatingInbound(false);
-        return;
-      }
-      const res = await fetch('/api/chat/simulate-inbound', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contactId: contact.id,
-          text: promptText.trim(),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        throw new Error(data.error || 'Failed to simulate inbound message');
-      }
-      fetchMessages();
-      onRefreshList();
-    } catch (err: any) {
-      setErrorMessage(err.message);
-    } finally {
-      setIsSimulatingInbound(false);
-    }
-  };
-
   const contactName = `${contact?.firstName || ''} ${contact?.lastName || ''}`.trim() || contact?.phoneNumber || 'Customer';
   const currentStage = getLeadStage(leadStage);
 
@@ -837,7 +795,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                 {effectiveWindowActive ? (
                   <span className="inline-flex items-center gap-1 text-2xs font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/80">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    {isMockMode ? 'Mock Simulation Active' : `24h Active • ${hoursRemaining}h ${minutesRemaining}m`}
+                    24h Active • {hoursRemaining}h {minutesRemaining}m
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-2xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/80">
@@ -851,17 +809,6 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
 
           {/* Header Action Tools */}
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleSimulateInbound}
-              disabled={isSimulatingInbound}
-              className="px-3 py-1.5 rounded-xl border border-dashed border-emerald-300 bg-emerald-50/60 hover:bg-emerald-100/80 text-emerald-800 text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-all disabled:opacity-50 active:scale-95"
-              title="Simulate incoming customer message to test two-way communication"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-primary" />
-              <span className="hidden sm:inline">{isSimulatingInbound ? 'Simulating...' : 'Simulate Reply'}</span>
-            </button>
-
             <button
               type="button"
               onClick={() => setIsTemplatePickerOpen(!isTemplatePickerOpen)}

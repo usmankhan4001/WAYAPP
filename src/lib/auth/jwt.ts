@@ -1,5 +1,4 @@
 import { SignJWT, jwtVerify } from 'jose';
-import crypto from 'crypto';
 
 export const SESSION_COOKIE_NAME = 'wayapp_session';
 
@@ -37,10 +36,10 @@ export interface UserSessionPayload {
  */
 export async function signSessionToken(
   payload: Omit<UserSessionPayload, 'exp'>,
-  expiresInSeconds: number = 24 * 60 * 60 // 24 hours standard
+  expiresInSeconds: number = 7 * 24 * 60 * 60 // 7 days standard
 ): Promise<string> {
   const secret = getJwtSecret();
-  const jti = payload.jti || crypto.randomUUID();
+  const jti = payload.jti || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2));
 
   return await new SignJWT({
     userId: payload.userId,
@@ -57,7 +56,7 @@ export async function signSessionToken(
 }
 
 /**
- * Verifies a JWT session token with jose (HS256) - fail-closed
+ * Verifies a JWT session token with jose (HS256) - fail-closed with clockTolerance
  */
 export async function verifySessionToken(token: string | undefined | null): Promise<UserSessionPayload | null> {
   if (!token) return null;
@@ -66,6 +65,7 @@ export async function verifySessionToken(token: string | undefined | null): Prom
     const secret = getJwtSecret();
     const { payload } = await jwtVerify(token, secret, {
       algorithms: ['HS256'],
+      clockTolerance: 30, // 30 seconds clock drift tolerance
     });
 
     if (!payload.userId || !payload.email) {

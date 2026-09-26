@@ -72,10 +72,14 @@ export class WhatsAppClient {
     const decryptedToken = decryptString(settings?.accessToken);
     const isMock = settings?.isMockMode === true;
 
+    const wabaId = settings?.wabaId?.trim() || process.env.META_WABA_ID?.trim() || null;
+    const phoneNumberId = settings?.phoneNumberId?.trim() || process.env.META_PHONE_NUMBER_ID?.trim() || null;
+    const accessToken = decryptedToken?.trim() || process.env.META_ACCESS_TOKEN?.trim() || null;
+
     return new WhatsAppClient({
-      wabaId: settings?.wabaId?.trim() || null,
-      phoneNumberId: settings?.phoneNumberId?.trim() || null,
-      accessToken: decryptedToken?.trim() || null,
+      wabaId,
+      phoneNumberId,
+      accessToken,
       isMockMode: isMock,
     });
   }

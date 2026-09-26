@@ -94,9 +94,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Create session
+    // Create session (7 days)
     const sessionId = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     await prisma.session.create({
       data: {
@@ -109,14 +109,17 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const sessionToken = await signSessionToken({
-      userId: newUser.id,
-      email: newUser.email,
-      name: newUser.name || newUser.email.split('@')[0],
-      avatarUrl: newUser.avatarUrl,
-      role: newUser.role,
-      jti: sessionId,
-    });
+    const sessionToken = await signSessionToken(
+      {
+        userId: newUser.id,
+        email: newUser.email,
+        name: newUser.name || newUser.email.split('@')[0],
+        avatarUrl: newUser.avatarUrl,
+        role: newUser.role,
+        jti: sessionId,
+      },
+      7 * 24 * 60 * 60
+    );
 
     const response = NextResponse.json({
       success: true,
@@ -132,7 +135,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 24 * 60 * 60,
+      maxAge: 7 * 24 * 60 * 60,
       path: '/',
     });
 

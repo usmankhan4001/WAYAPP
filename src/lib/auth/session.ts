@@ -54,15 +54,19 @@ export async function getAuthSession(): Promise<UserSessionPayload | null> {
     if (!payload) return null;
 
     // Revocation check
-    const [dbSession, user] = await Promise.all([
-      payload.jti
-        ? prisma.session.findUnique({ where: { id: payload.jti } })
-        : Promise.resolve(null),
-      prisma.user.findUnique({ where: { id: payload.userId } }),
-    ]);
+    try {
+      const [dbSession, user] = await Promise.all([
+        payload.jti
+          ? prisma.session.findUnique({ where: { id: payload.jti } })
+          : Promise.resolve(null),
+        prisma.user.findUnique({ where: { id: payload.userId } }),
+      ]);
 
-    if (!user || !user.isActive || user.status === 'SUSPENDED') return null;
-    if (payload.jti && (!dbSession || dbSession.expiresAt < new Date())) return null;
+      if (user && (!user.isActive || user.status === 'SUSPENDED')) return null;
+      if (payload.jti && dbSession && dbSession.expiresAt < new Date()) return null;
+    } catch (dbErr) {
+      logger.warn({ error: dbErr }, '[Auth Session] DB lookup transient error during session verification');
+    }
 
     return payload;
   } catch (error) {

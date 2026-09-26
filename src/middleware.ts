@@ -33,7 +33,10 @@ export async function middleware(request: NextRequest) {
   if (token) {
     try {
       const secret = getJwtSecret();
-      const { payload } = await jwtVerify(token, secret, { algorithms: ['HS256'] });
+      const { payload } = await jwtVerify(token, secret, {
+        algorithms: ['HS256'],
+        clockTolerance: 30,
+      });
       valid = Boolean(payload.userId && payload.email);
     } catch (error) {
       // Edge runtime: pino isn't available here, so use console directly.

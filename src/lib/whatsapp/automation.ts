@@ -24,10 +24,12 @@ export interface AutomationAction {
  */
 export async function processInboundAutomation(params: {
   contactId: string;
+  conversationId?: string;
   phoneNumber: string;
   bodyText: string;
 }) {
   const { contactId, phoneNumber, bodyText } = params;
+  let convId = params.conversationId;
   const cleanInput = bodyText.trim().toLowerCase();
 
   try {
@@ -37,16 +39,12 @@ export async function processInboundAutomation(params: {
 
     if (activeAutomations.length === 0) return;
 
-    const settings = await prisma.settings.findUnique({
-      where: { id: 'default' },
-    });
+    if (!convId) {
+      const existingConv = await prisma.conversation.findUnique({ where: { contactId } });
+      convId = existingConv?.id;
+    }
 
-    const client = new WhatsAppClient({
-      wabaId: settings?.wabaId || undefined,
-      phoneNumberId: settings?.phoneNumberId || undefined,
-      accessToken: decryptString(settings?.accessToken) || undefined,
-      isMockMode: settings?.isMockMode ?? false,
-    });
+    const client = await WhatsAppClient.createFromSettings();
 
     for (const auto of activeAutomations) {
       let isMatch = false;
@@ -110,6 +108,7 @@ export async function processInboundAutomation(params: {
             await prisma.chatMessage.create({
               data: {
                 contactId,
+                conversationId: convId || null,
                 phoneNumber,
                 direction: 'OUTBOUND',
                 wamid,
@@ -118,6 +117,13 @@ export async function processInboundAutomation(params: {
                 status: 'DELIVERED',
               },
             });
+
+            if (convId) {
+              await prisma.conversation.update({
+                where: { id: convId },
+                data: { lastMessageAt: new Date() },
+              }).catch(() => {});
+            }
 
             await prisma.automationLog.create({
               data: {
@@ -140,6 +146,7 @@ export async function processInboundAutomation(params: {
             await prisma.chatMessage.create({
               data: {
                 contactId,
+                conversationId: convId || null,
                 phoneNumber,
                 direction: 'OUTBOUND',
                 wamid: templateWamid,
@@ -148,6 +155,13 @@ export async function processInboundAutomation(params: {
                 status: 'DELIVERED',
               },
             });
+
+            if (convId) {
+              await prisma.conversation.update({
+                where: { id: convId },
+                data: { lastMessageAt: new Date() },
+              }).catch(() => {});
+            }
 
             await prisma.automationLog.create({
               data: {
