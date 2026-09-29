@@ -41,6 +41,10 @@ services:
       - AUTH_SECRET=${AUTH_SECRET:?set AUTH_SECRET (32+ bytes) in the environment}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
       - PORT=3000
+      # The separate `worker` service below owns background jobs; don't start a second
+      # one inside web, and probe the real one from /api/health.
+      - WORKER_EMBEDDED=off
+      - WORKER_HEALTH_URL=http://worker:3001/health
     depends_on:
       postgres:
         condition: service_healthy

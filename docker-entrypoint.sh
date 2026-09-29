@@ -39,6 +39,21 @@ node ./node_modules/tsx/dist/cli.mjs prisma/seed.ts --force || npx tsx prisma/se
 if [ "$#" -gt 0 ]; then
   exec "$@"
 else
+  # The background worker (outbound-webhook forwards, scheduled campaigns, the stuck-
+  # campaign sweeper, counter reconciliation) must run somewhere. docker-compose runs
+  # it as its own service and sets WORKER_EMBEDDED=off on web; a single-container
+  # deployment such as Dokploy has no such service, so by default it runs here beside
+  # the web server, restarted if it crashes. Without it every queued webhook stayed
+  # PENDING forever while /api/health still reported the worker as running.
+  if [ "${WORKER_EMBEDDED:-on}" != "off" ]; then
+    echo "Starting embedded background worker..."
+    ( while true; do
+        node ./node_modules/tsx/dist/cli.mjs src/worker/index.ts
+        echo "[worker] exited with code $? - restarting in 5s"
+        sleep 5
+      done ) &
+  fi
+
   echo "Starting WAYAPP application server on port ${PORT:-3000}..."
   exec node server.js
 fi

@@ -46,6 +46,9 @@ COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
 # runtime image never copied src/, so the worker crashed on boot while healthchecks
 # still passed. Copy the full src tree so the worker (and its imports) resolve.
 COPY --from=builder /app/src ./src
+# tsx resolves the worker's `@/` imports through tsconfig paths; without this file the
+# worker (embedded or its own compose service) cannot start.
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
 RUN chmod +x ./docker-entrypoint.sh
 

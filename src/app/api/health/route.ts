@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getWorkerStatus } from '@/lib/worker-health';
 
 export async function GET() {
   const startTime = Date.now();
@@ -15,6 +16,8 @@ export async function GET() {
   }
 
   const isHealthy = dbStatus === 'healthy';
+  // Reported, not gating: a down worker must not take the web container out of rotation.
+  const workerStatus = await getWorkerStatus();
   
   const memoryUsage = process.memoryUsage();
   
@@ -35,7 +38,7 @@ export async function GET() {
           error: dbError,
         },
         worker: {
-          status: 'running',
+          status: workerStatus,
         },
       },
     },
