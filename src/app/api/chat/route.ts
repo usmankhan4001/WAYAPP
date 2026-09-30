@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { renderTemplateBody } from '@/lib/whatsapp/template-render';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth/rbac';
 import { WhatsAppClient } from '@/lib/whatsapp/client';
@@ -308,7 +309,7 @@ export async function POST(request: NextRequest) {
 
       wamid = sendRes.messages?.[0]?.id || null;
       savedMessageType = 'template';
-      messageBody = `[Template: ${templateName}]`;
+      messageBody = renderTemplateBody(tpl?.components, bodyVariables || [], templateName);
     } else {
       if (!text?.trim()) {
         return NextResponse.json({ error: 'Message text or attachment is required' }, { status: 400 });

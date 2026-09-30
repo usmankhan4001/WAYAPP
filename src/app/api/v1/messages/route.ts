@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { authenticateApiRequest } from '@/lib/api/auth';
 import { WhatsAppClient } from '@/lib/whatsapp/client';
 import { sanitizePhoneNumber } from '@/lib/whatsapp/phone';
+import { renderTemplateBody } from '@/lib/whatsapp/template-render';
 import { interpretMetaError } from '@/lib/whatsapp/errors';
 import { logger } from '@/lib/logger';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
       });
 
       wamid = sendRes.messages?.[0]?.id || null;
-      savedBody = `[Template: ${templateName}]`;
+      savedBody = renderTemplateBody(template?.components, bodyVariables || [], templateName);
     } else if (mediaUrl) {
       const sendRes = await client.sendMediaMessage({
         to: phoneResult.e164,
