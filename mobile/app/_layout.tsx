@@ -3,65 +3,29 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Notifications from 'expo-notifications';
-import { mobileApiFetch } from '../lib/api';
+import { useRouter } from 'expo-router';
+import { configureNotifications, registerForPush } from '../lib/push';
 import { theme } from '../lib/theme';
 
 const c = theme.dark;
 
 const queryClient = new QueryClient();
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
-
 export default function RootLayout() {
+  const router = useRouter();
+
   useEffect(() => {
-    async function registerPush() {
-      try {
-        const { status } = await Notifications.requestPermissionsAsync();
-        if (status === 'granted') {
-          const tokenData = await Notifications.getExpoPushTokenAsync();
-          if (tokenData?.data) {
-            await mobileApiFetch('/api/push/subscribe', {
-              method: 'POST',
-              body: JSON.stringify({
-                expoToken: tokenData.data,
-                platform: 'mobile',
-              }),
-            }).catch(() => {});
-          }
-        }
-      } catch (err) {
-        console.warn('Notification registration skipped:', err);
-      }
-    }
-    registerPush();
+    configureNotifications().then(() => registerForPush());
+
+    const openChat = (response: Notifications.NotificationResponse | null) => {
+      const contactId = response?.notification.request.content.data?.contactId;
+      if (typeof contactId === 'string' && contactId) setTimeout(() => router.push(`/chat/${contactId}`), 300); // let the navigator mount on cold start
+    };
+    // Cold start: app was launched by tapping a notification.
+    Notifications.getLastNotificationResponseAsync().then(openChat).catch(() => {});
+    // Warm: app is running or backgrounded.
+    const sub = Notifications.addNotificationResponseReceivedListener(openChat);
+    return () => sub.remove();
   }, []);
 
-  return (
-    <QueryClientProvider client={queryClient}>
-      <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerStyle: { backgroundColor: c.background },
-          headerTintColor: c.foreground,
-          contentStyle: { backgroundColor: c.background },
-        }}
-      >
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="chat/[id]"
-          options={{
-            title: 'Chat',
-            headerBackTitle: 'Inbox',
-          }}
-        />
-      </Stack>
-    </QueryClientProvider>
-  );
-}
+

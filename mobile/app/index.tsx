@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { registerForPush } from '../lib/push';
 import { setAuthToken, setCurrentUserId, mobileApiFetch, getServerUrl, setServerUrl } from '../lib/api';
 import { theme } from '../lib/theme';
 
@@ -51,6 +52,7 @@ export default function LoginScreen() {
         if (data.user?.id) {
           await setCurrentUserId(data.user.id);
         }
+        registerForPush();
         router.replace('/(tabs)/inbox');
       }
     } catch (err: any) {

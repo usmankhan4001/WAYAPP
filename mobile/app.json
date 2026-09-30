@@ -33,6 +33,11 @@
         }
       ]
     ],
-    "scheme": "wayapp"
+    "scheme": "wayapp",
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
   }
 }

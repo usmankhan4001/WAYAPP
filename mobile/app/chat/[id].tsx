@@ -32,6 +32,7 @@ import {
 } from 'lucide-react-native';
 import { mobileApiFetch, getServerUrl } from '../../lib/api';
 import { theme } from '../../lib/theme';
+import { clearBadge } from '../../lib/push';
 
 const c = theme.dark;
 
@@ -79,6 +80,10 @@ export default function MobileChatScreen() {
   const [serverUrl, setServerUrl] = useState('');
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const listRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    clearBadge();
+  }, [contactId]);
 
   useEffect(() => {
     getServerUrl().then(setServerUrl);

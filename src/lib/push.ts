@@ -83,6 +83,89 @@ export interface PushNotificationPayload {
   data?: Record<string, any>;
 }
 
+const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
+const EXPO_BATCH_SIZE = 100;
+
+/** Current hour (0-23) in the business timezone. */
+export function currentHourInTz(now: Date = new Date(), tz?: string): number {
+  const zone = tz || process.env.BUSINESS_TZ || 'Asia/Dubai';
+  try {
+    const h = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', hour12: false, timeZone: zone }).format(now);
+    return parseInt(h, 10) % 24;
+  } catch {
+    return now.getUTCHours();
+  }
+}
+
+/**
+ * True when `hour` falls inside [start, end). Handles overnight windows (22 -> 7).
+ * Equal or missing bounds mean quiet hours are off.
+ */
+export function isInQuietHours(hour: number, start?: number | null, end?: number | null): boolean {
+  if (start == null || end == null || start === end) return false;
+  return start < end ? hour >= start && hour < end : hour >= start || hour < end;
+}
+
+export function chunk<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
+async function sendExpoPushes(
+  subs: Array<{ id: string; expoToken: string | null }>,
+  payload: PushNotificationPayload
+): Promise<void> {
+  const contactId: string | undefined =
+    payload.data?.contactId ?? payload.url?.match(/[?&]contactId=([^&]+)/)?.[1];
+  let conversationId: string | undefined = payload.data?.conversationId;
+  let badge: number | undefined;
+  try {
+    if (contactId && !conversationId) {
+      const conv = await prisma.conversation.findUnique({ where: { contactId }, select: { id: true } });
+      conversationId = conv?.id;
+    }
+    const agg = await prisma.conversation.aggregate({ _sum: { unreadCount: true } });
+    badge = agg?._sum?.unreadCount ?? undefined;
+  } catch (err) {
+    logger.warn({ err }, 'Could not compute push badge/conversation');
+  }
+
+  for (const batch of chunk(subs, EXPO_BATCH_SIZE)) {
+    const messages = batch.map((sub) => ({
+      to: sub.expoToken,
+      title: payload.title,
+      body: payload.body,
+      sound: 'default',
+      channelId: 'messages',
+      // One thread per contact so notifications stack instead of piling up (iOS).
+      ...(contactId ? { threadId: contactId } : {}),
+      ...(badge !== undefined ? { badge } : {}),
+      data: { ...payload.data, url: payload.url, contactId, conversationId },
+    }));
+    try {
+      const res = await fetch(EXPO_PUSH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(messages),
+      });
+      const json: any = await res.json().catch(() => null);
+      const tickets: any[] = Array.isArray(json?.data) ? json.data : [];
+      const dead: string[] = [];
+      tickets.forEach((t, i) => {
+        if (t?.status === 'error' && t?.details?.error === 'DeviceNotRegistered' && batch[i]) {
+          dead.push(batch[i].id);
+        }
+      });
+      if (dead.length > 0) {
+        await prisma.pushSubscription.deleteMany({ where: { id: { in: dead } } });
+      }
+    } catch (expoErr) {
+      logger.error({ expoErr }, 'Failed to deliver Expo push batch');
+    }
+  }
+}
+
 /**
  * Sends native OS background push notification to all subscribed mobile/desktop devices
  * (Even if browser / app is completely closed)
@@ -93,31 +176,19 @@ export async function sendPushNotification(
 ): Promise<void> {
   try {
     const keys = await getVapidKeys();
-    const subscriptions = await prisma.pushSubscription.findMany({
+    const all = await prisma.pushSubscription.findMany({
       where: userId ? { userId } : {},
     });
 
+    const hour = currentHourInTz();
+    const subscriptions = all.filter((s) => !s.muted && !isInQuietHours(hour, s.quietStart, s.quietEnd));
     if (subscriptions.length === 0) return;
 
-    for (const sub of subscriptions) {
-      // 1. Mobile Expo Push Token
-      if (sub.expoToken) {
-        try {
-          await fetch('https://exp.host/--/api/v2/push/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              to: sub.expoToken,
-              title: payload.title,
-              body: payload.body,
-              data: { ...payload.data, url: payload.url },
-            }),
-          });
-        } catch (expoErr) {
-          logger.error({ expoErr }, 'Failed to deliver Expo push');
-        }
-      }
+    // 1. Mobile Expo push, batched
+    const expoSubs = subscriptions.filter((s) => s.expoToken);
+    if (expoSubs.length > 0) await sendExpoPushes(expoSubs, payload);
 
+    for (const sub of subscriptions) {
       // 2. Web Browser & PWA Push (Works when app is closed on Android, iOS, Windows, Mac)
       if (sub.p256dh && sub.auth && keys.publicKey && keys.privateKey) {
         try {
