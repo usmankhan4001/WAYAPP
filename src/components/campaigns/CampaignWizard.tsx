@@ -16,6 +16,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { WhatsAppMockupPreview } from '../templates/WhatsAppMockupPreview';
+import { renderTemplateBody } from '@/lib/whatsapp/template-render';
 import { VariableMapper } from './VariableMapper';
 import { InfoTooltip, Tooltip } from '@/components/ui/Tooltip';
 
@@ -23,6 +24,15 @@ interface CampaignWizardProps {
   templates: any[];
   groups: any[];
   tags: any[];
+}
+
+const BIG_AUDIENCE = 50;
+
+/** Shows just enough of a number to recognise it: +971 •••• 567 */
+function maskPhone(phone: string): string {
+  const p = String(phone || '');
+  if (p.length <= 7) return '•••••';
+  return `${p.slice(0, 4)} ${'•'.repeat(4)} ${p.slice(-3)}`;
 }
 
 export function CampaignWizard({ templates = [], groups = [], tags = [] }: CampaignWizardProps) {
@@ -56,6 +66,8 @@ export function CampaignWizard({ templates = [], groups = [], tags = [] }: Campa
   // Audience Live Calculator State
   const [audienceCount, setAudienceCount] = useState<number | null>(null);
   const [sampleContacts, setSampleContacts] = useState<any[]>([]);
+  const [noConsentCount, setNoConsentCount] = useState(0);
+  const [sendConfirm, setSendConfirm] = useState('');
   const [isCalculating, setIsCalculating] = useState(false);
 
   // Submission State
@@ -84,16 +96,17 @@ export function CampaignWizard({ templates = [], groups = [], tags = [] }: Campa
     fetch('/api/campaigns/calculate-audience', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ audienceFilter }),
+      body: JSON.stringify({ audienceFilter, templateId: selectedTemplateId || undefined }),
     })
       .then((res) => res.json())
       .then((data) => {
         setAudienceCount(data.count ?? 0);
         setSampleContacts(data.sampleContacts || []);
+        setNoConsentCount(data.noConsentCount ?? 0);
       })
       .catch(() => {})
       .finally(() => setIsCalculating(false));
-  }, [sendToAll, includeGroupIds, includeTagIds, excludeGroupIds, excludeTagIds]);
+  }, [sendToAll, includeGroupIds, includeTagIds, excludeGroupIds, excludeTagIds, selectedTemplateId]);
 
   const handleLaunchCampaign = async () => {
     if (!campaignName.trim()) {
@@ -661,6 +674,44 @@ export function CampaignWizard({ templates = [], groups = [], tags = [] }: Campa
             </p>
           </div>
 
+          <div className="p-3.5 rounded-xl bg-muted border border-border space-y-2">
+            <p className="text-xs font-bold text-foreground">Exactly {audienceCount ?? 0} {audienceCount === 1 ? 'person' : 'people'} will receive this message</p>
+            {sampleContacts.length > 0 && (
+              <ul className="text-2xs text-muted-foreground space-y-0.5">
+                {sampleContacts.slice(0, 5).map((c) => (
+                  <li key={c.id}>{c.name} - <span className="font-mono">{maskPhone(c.phone)}</span></li>
+                ))}
+              </ul>
+            )}
+            <p className="text-2xs font-bold text-muted-foreground uppercase tracking-wider pt-1">The message they will see</p>
+            <p className="text-xs text-foreground whitespace-pre-wrap rounded-lg bg-card border border-border p-2.5">
+              {renderTemplateBody(selectedTemplate?.components, [], selectedTemplate?.name)}
+            </p>
+            <p className="text-2xs text-muted-foreground">Anything shown as {'{{1}}'} is replaced with each person&apos;s own details.</p>
+          </div>
+
+          {noConsentCount > 0 && (
+            <div role="alert" className="rounded-xl border border-border bg-muted p-3 text-xs text-foreground">
+              <strong>{noConsentCount} of these {noConsentCount === 1 ? 'person has' : 'people have'} no record of agreeing to receive WhatsApp messages.</strong>{' '}
+              Only send to people who have said yes. Sending to people who did not can get your number restricted.
+            </div>
+          )}
+
+          {(audienceCount ?? 0) > BIG_AUDIENCE && (
+            <div className="space-y-1">
+              <label htmlFor="send-confirm" className="text-xs font-semibold text-foreground">
+                This is a large audience. Type SEND to confirm.
+              </label>
+              <input
+                id="send-confirm"
+                value={sendConfirm}
+                onChange={(e) => setSendConfirm(e.target.value)}
+                autoComplete="off"
+                className="w-full max-w-xs px-3 py-2 rounded-xl border border-input bg-card text-sm text-foreground"
+              />
+            </div>
+          )}
+
           {dispatchOn === false && (
             <div role="alert" className="rounded-xl border border-border bg-muted p-3 text-xs text-foreground">
               Sending is switched off on this account right now. This will save your broadcast as a draft and
@@ -677,7 +728,7 @@ export function CampaignWizard({ templates = [], groups = [], tags = [] }: Campa
             </button>
             <button
               onClick={handleLaunchCampaign}
-              disabled={isSubmitting || (audienceCount ?? 0) === 0}
+              disabled={isSubmitting || (audienceCount ?? 0) === 0 || ((audienceCount ?? 0) > BIG_AUDIENCE && sendConfirm.trim() !== 'SEND')}
               className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold shadow-sm flex items-center gap-2 transition-all disabled:opacity-50"
             >
               <Send className="w-4 h-4" />

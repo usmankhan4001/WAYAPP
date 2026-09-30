@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { WhatsAppClient } from './client';
 import { decryptString } from '@/lib/crypto';
 import { logger } from '@/lib/logger';
+import { renderTemplateBody } from '@/lib/whatsapp/template-render';
 
 export interface TriggerConfig {
   matchType: 'EXACT' | 'CONTAINS' | 'STARTS_WITH' | 'REGEX' | 'ANY_INBOUND';
@@ -142,6 +143,7 @@ export async function processInboundAutomation(params: {
               languageCode: act.payload.templateLanguage || 'en_US',
             });
 
+            const tplRow = await prisma.template.findFirst({ where: { name: act.payload.templateName }, select: { components: true } }).catch(() => null);
             const templateWamid = sendResult.messages?.[0]?.id || `auto_tpl_${Date.now()}`;
             await prisma.chatMessage.create({
               data: {
@@ -151,7 +153,7 @@ export async function processInboundAutomation(params: {
                 direction: 'OUTBOUND',
                 wamid: templateWamid,
                 messageType: 'template',
-                body: `[Template: ${act.payload.templateName}]`,
+                body: renderTemplateBody(tplRow?.components, [], act.payload.templateName),
                 status: 'DELIVERED',
               },
             });

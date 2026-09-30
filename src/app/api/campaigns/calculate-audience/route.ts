@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTargetContacts } from '@/worker/dispatcher';
+import { getTargetContacts, consentRequiredForMarketing } from '@/worker/dispatcher';
+import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth/rbac';
 
 export async function POST(request: NextRequest) {
@@ -8,10 +9,17 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { audienceFilter } = body;
+    const { audienceFilter, templateId } = body;
 
     const filterString = typeof audienceFilter === 'string' ? audienceFilter : JSON.stringify(audienceFilter || {});
-    const matchingContacts = await getTargetContacts(filterString);
+    // Mirror the dispatcher exactly: same resolver, same consent rule.
+    let requireConsent = false;
+    if (templateId && consentRequiredForMarketing()) {
+      const tpl = await prisma.template.findUnique({ where: { id: templateId }, select: { category: true } });
+      requireConsent = tpl?.category === 'MARKETING';
+    }
+    const matchingContacts = await getTargetContacts(filterString, { requireConsent });
+    const noConsentCount = matchingContacts.filter((c) => !c.consentSource).length;
 
     // Return count and first 5 sample recipients for preview
     const sampleContacts = matchingContacts.slice(0, 5).map((c) => ({
@@ -23,6 +31,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       count: matchingContacts.length,
+      noConsentCount,
       sampleContacts,
     });
   } catch (error: any) {

@@ -9,11 +9,20 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { rows = [], columnMapping = {}, targetGroupId, targetTagId } = body;
+    const { rows = [], columnMapping = {}, targetGroupId, targetTagId, consentConfirmed, consentSource } = body;
 
     if (!Array.isArray(rows) || rows.length === 0) {
       return NextResponse.json({ error: 'No data rows provided for import' }, { status: 400 });
     }
+
+    // Consent is recorded only when the uploader confirmed it AND said where it was given.
+    const consentWhere = typeof consentSource === 'string' ? consentSource.trim() : '';
+    const recordConsent = consentConfirmed === true && consentWhere.length > 0;
+    if (consentConfirmed === true && !recordConsent) {
+      return NextResponse.json({ error: 'Tell us where these people agreed to receive messages.' }, { status: 400 });
+    }
+    const consentLabel = `CSV import: ${consentWhere}`.slice(0, 200);
+    const seenNumbers = new Set<string>();
 
     const settings = await prisma.settings.findUnique({ where: { id: 'default' } });
     const defaultCountry = settings?.defaultCountryCode || '+971';
@@ -38,6 +47,13 @@ export async function POST(request: NextRequest) {
         errors.push(`Row ${index + 1}: Invalid phone number (${rawPhone})`);
         continue;
       }
+
+      // Same number twice in one file: keep the first row only.
+      if (seenNumbers.has(normalized)) {
+        skippedCount++;
+        continue;
+      }
+      seenNumbers.add(normalized);
 
       const firstName = columnMapping.firstName ? String(row[columnMapping.firstName] || '').trim() : undefined;
       const lastName = columnMapping.lastName ? String(row[columnMapping.lastName] || '').trim() : undefined;
@@ -72,8 +88,17 @@ export async function POST(request: NextRequest) {
             email: email || null,
             customAttributes: JSON.stringify(customAttributes),
             status: 'ACTIVE',
+            ...(recordConsent ? { consentSource: consentLabel, consentAt: new Date() } : {}),
           },
         });
+
+        // Existing contacts: fill consent only if none is recorded; never overwrite.
+        if (recordConsent) {
+          await prisma.contact.updateMany({
+            where: { id: contact.id, consentSource: null },
+            data: { consentSource: consentLabel, consentAt: new Date() },
+          });
+        }
 
         // Assign Group if requested
         if (targetGroupId) {

@@ -45,6 +45,8 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
   const [selectedTagId, setSelectedTagId] = useState('');
   const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [consentConfirmed, setConsentConfirmed] = useState(false);
+  const [consentSource, setConsentSource] = useState('');
 
   const downloadSampleCsv = () => {
     const csvContent =
@@ -99,6 +101,10 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
       setError('Please select which column contains the phone number.');
       return;
     }
+    if (consentConfirmed && !consentSource.trim()) {
+      setError('Please tell us where these people agreed to receive messages.');
+      return;
+    }
     setStep('IMPORTING');
     setError(null);
     try {
@@ -110,6 +116,8 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
           columnMapping,
           targetGroupId: selectedGroupId || undefined,
           targetTagId: selectedTagId || undefined,
+          consentConfirmed,
+          consentSource: consentConfirmed ? consentSource.trim() : undefined,
         }),
       });
       const data = await res.json();
@@ -128,6 +136,8 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
     setParsedRows([]);
     setHeaders([]);
     setImportResult(null);
+    setConsentConfirmed(false);
+    setConsentSource('');
     setError(null);
     onClose();
   };
@@ -308,6 +318,34 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
                   </tbody>
                 </table>
               </div>
+            </div>
+
+            <div className="space-y-2 rounded-lg border border-border bg-muted p-3">
+              <label className="flex items-start gap-2 text-xs font-semibold text-foreground">
+                <input
+                  type="checkbox"
+                  checked={consentConfirmed}
+                  onChange={(e) => setConsentConfirmed(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>These people agreed to receive WhatsApp messages from us</span>
+              </label>
+              {consentConfirmed ? (
+                <div>
+                  <label htmlFor="consent-source" className={fieldLabel}>Where did they agree?</label>
+                  <input
+                    id="consent-source"
+                    value={consentSource}
+                    onChange={(e) => setConsentSource(e.target.value)}
+                    placeholder="For example: sign-up form on our website, March event"
+                    className={selectClass}
+                  />
+                </div>
+              ) : (
+                <p className="text-2xs text-muted-foreground">
+                  If you leave this unticked, these contacts are saved with no record of consent.
+                </p>
+              )}
             </div>
           </div>
         )}
