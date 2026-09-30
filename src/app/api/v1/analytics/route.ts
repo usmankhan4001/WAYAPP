@@ -68,6 +68,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     logger.error({ error }, 'Error in v1 analytics summary');
-    return NextResponse.json({ error: 'Failed to retrieve analytics' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to retrieve analytics', code: 'internal_error' }, { status: 500 });
   }
 }

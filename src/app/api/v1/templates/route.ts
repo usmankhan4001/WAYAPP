@@ -15,6 +15,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(templates);
   } catch (error: any) {
     logger.error({ error }, 'Error in v1 templates list');
-    return NextResponse.json({ error: 'Failed to retrieve templates' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to retrieve templates', code: 'internal_error' }, { status: 500 });
   }
 }

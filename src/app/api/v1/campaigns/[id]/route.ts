@@ -21,7 +21,7 @@ export async function GET(
     });
 
     if (!campaign) {
-      return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Campaign not found', code: 'not_found' }, { status: 404 });
     }
 
     const deliveryRate = campaign.sentCount > 0
@@ -44,6 +44,6 @@ export async function GET(
     });
   } catch (error: any) {
     logger.error({ error }, 'Error in v1 campaign get');
-    return NextResponse.json({ error: 'Failed to fetch campaign' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch campaign', code: 'internal_error' }, { status: 500 });
   }
 }

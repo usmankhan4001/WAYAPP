@@ -1,6 +1,8 @@
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import { WEBHOOK_EVENT_NAMES, isWebhookEvent, type WebhookEventName } from '@/lib/webhook-events';
+import { checkWebhookUrl } from '@/lib/api/ssrf';
 
 const RETRY_DELAYS_MS = [
   1 * 60 * 1000,      // Attempt 1: 1 min
@@ -44,6 +46,24 @@ export async function enqueueOutboundWebhook(event: string, payload: Record<stri
 }
 
 /**
+ * The way application code announces something happened. The event name must come from the
+ * catalog in webhook-events.ts (the compiler rejects anything else, and a name that slips
+ * through at runtime is dropped and logged). It never throws: a webhook problem must not
+ * break sending a message or saving a contact.
+ */
+export async function emitWebhook<E extends WebhookEventName>(event: E, data: Record<string, unknown>): Promise<void> {
+  try {
+    if (!isWebhookEvent(event)) {
+      logger.warn({ event, known: WEBHOOK_EVENT_NAMES }, '[Webhooks] Unknown event name dropped');
+      return;
+    }
+    await enqueueOutboundWebhook(event, data);
+  } catch (error) {
+    logger.error({ error, event }, '[Webhooks] emitWebhook failed');
+  }
+}
+
+/**
  * Worker cycle: Delivers pending outbound webhooks with exponential backoff
  */
 export async function processOutboundWebhooks(): Promise<void> {
@@ -73,6 +93,10 @@ export async function processOutboundWebhooks(): Promise<void> {
         .digest('hex');
 
       try {
+        // Re-check at send time: DNS may have changed since the endpoint was saved.
+        const safe = await checkWebhookUrl(endpoint.url);
+        if (!safe.ok) throw new Error(safe.reason);
+
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
 
@@ -86,6 +110,7 @@ export async function processOutboundWebhooks(): Promise<void> {
           },
           body: payload,
           signal: controller.signal,
+          redirect: 'manual', // a redirect could point at a private address
         });
 
         clearTimeout(timeoutId);

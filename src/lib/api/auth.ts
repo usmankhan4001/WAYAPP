@@ -50,7 +50,7 @@ export async function authenticateApiRequest(
     if (!apiKey || apiKey.revokedAt || (apiKey.expiresAt && apiKey.expiresAt < new Date())) {
       return {
         response: NextResponse.json(
-          { error: 'Unauthorized: Invalid or revoked API key' },
+          { error: 'Unauthorized: Invalid or revoked API key', code: 'unauthorized' },
           { status: 401 }
         ),
       };
@@ -60,7 +60,7 @@ export async function authenticateApiRequest(
     if (requiredScope && !scopes.includes('*') && !scopes.includes(requiredScope)) {
       return {
         response: NextResponse.json(
-          { error: `Forbidden: API key lacks required scope: ${requiredScope}` },
+          { error: `Forbidden: API key lacks required scope: ${requiredScope}`, code: 'forbidden' },
           { status: 403 }
         ),
       };
@@ -108,7 +108,7 @@ export async function authenticateApiRequest(
 
   return {
     response: NextResponse.json(
-      { error: 'Unauthorized: Missing or invalid API Key / Bearer token' },
+      { error: 'Unauthorized: Missing or invalid API Key / Bearer token', code: 'unauthorized' },
       { status: 401 }
     ),
   };

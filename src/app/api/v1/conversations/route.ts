@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { authenticateApiRequest } from '@/lib/api/auth';
+import { apiError } from '@/lib/api/errors';
 import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
@@ -31,6 +32,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(conversations);
   } catch (error: any) {
     logger.error({ error }, 'Error in v1 conversations list');
-    return NextResponse.json({ error: 'Failed to retrieve conversations' }, { status: 500 });
+    return apiError('Failed to retrieve conversations', 'internal_error', 500);
   }
 }

@@ -14,14 +14,14 @@ export async function POST(request: NextRequest) {
   const clientIp = getClientIp(request);
   const rateLimit = checkRateLimit(`api_token:${clientIp}`, { limit: 10, windowSeconds: 60 });
   if (!rateLimit.success) {
-    return NextResponse.json({ error: 'Too many authentication requests' }, { status: 429 });
+    return NextResponse.json({ error: 'Too many authentication requests', code: 'rate_limited' }, { status: 429 });
   }
 
   try {
     const body = await request.json().catch(() => ({}));
     const parseResult = TokenRequestSchema.safeParse(body);
     if (!parseResult.success) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+      return NextResponse.json({ error: 'Email and password are required', code: 'invalid_request' }, { status: 400 });
     }
 
     const { email, password } = parseResult.data;
@@ -30,12 +30,12 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user || !user.passwordHash || !user.isActive) {
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid credentials', code: 'unauthorized' }, { status: 401 });
     }
 
     const isValid = await bcrypt.compare(password, user.passwordHash);
     if (!isValid) {
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid credentials', code: 'unauthorized' }, { status: 401 });
     }
 
     // Sign JWT Bearer Token (expires in 30 days)
@@ -62,6 +62,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    return NextResponse.json({ error: 'Token generation failed' }, { status: 500 });
+    return NextResponse.json({ error: 'Token generation failed', code: 'internal_error' }, { status: 500 });
   }
 }

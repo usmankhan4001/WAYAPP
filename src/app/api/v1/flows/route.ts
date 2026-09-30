@@ -25,6 +25,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(flows);
   } catch (error: any) {
     logger.error({ error }, 'Error in v1 flows list');
-    return NextResponse.json({ error: 'Failed to retrieve flows' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to retrieve flows', code: 'internal_error' }, { status: 500 });
   }
 }

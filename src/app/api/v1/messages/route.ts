@@ -8,6 +8,7 @@ import { renderTemplateBody } from '@/lib/whatsapp/template-render';
 import { interpretMetaError } from '@/lib/whatsapp/errors';
 import { logger } from '@/lib/logger';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { emitWebhook } from '@/worker/outbound-webhooks';
 
 const MessageSendSchema = z.object({
   to: z.string().min(6),
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
   const rateLimitKey = authResult.auth.type === 'API_KEY' ? `v1:${authResult.auth.keyId}` : `v1:${getClientIp(request)}`;
   const rateLimit = checkRateLimit(rateLimitKey, { limit: 120, windowSeconds: 60 });
   if (!rateLimit.success) {
-    return NextResponse.json({ error: 'Too many message requests' }, { status: 429 });
+    return NextResponse.json({ error: 'Too many message requests', code: 'rate_limited' }, { status: 429 });
   }
 
   try {
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
     const parseResult = MessageSendSchema.safeParse(body);
     if (!parseResult.success) {
       return NextResponse.json(
-        { error: parseResult.error.issues[0]?.message || 'Invalid message payload' },
+        { error: parseResult.error.issues[0]?.message || 'Invalid message payload', code: 'invalid_request' },
         { status: 400 }
       );
     }
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     const phoneResult = sanitizePhoneNumber(to);
     if (!phoneResult.isValid) {
-      return NextResponse.json({ error: 'Recipient phone number is invalid E.164' }, { status: 400 });
+      return NextResponse.json({ error: 'Recipient phone number is invalid E.164', code: 'invalid_request' }, { status: 400 });
     }
 
     // Lookup contact & check suppression
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     if (contact.status === 'UNSUBSCRIBED' || contact.status === 'BLOCKED') {
       return NextResponse.json(
-        { error: 'Cannot send message: Recipient is unsubscribed or blocked.' },
+        { error: 'Cannot send message: Recipient is unsubscribed or blocked.', code: 'policy_violation' },
         { status: 400 }
       );
     }
@@ -74,6 +75,7 @@ export async function POST(request: NextRequest) {
             error:
               '24-Hour WhatsApp Policy: Free-text messages cannot be sent outside the 24-hour customer care window. Please use a template.',
             requiresTemplate: true,
+            code: 'policy_violation',
           },
           { status: 403 }
         );
@@ -112,7 +114,7 @@ export async function POST(request: NextRequest) {
       savedBody = caption || text || `[${type.toUpperCase()}]`;
     } else {
       if (!text?.trim()) {
-        return NextResponse.json({ error: 'Message text is required' }, { status: 400 });
+        return NextResponse.json({ error: 'Message text is required', code: 'invalid_request' }, { status: 400 });
       }
 
       const sendRes = await client.sendTextMessage(phoneResult.e164, text.trim());
@@ -151,6 +153,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    void emitWebhook('message.sent', {
+      contactId: contact.id,
+      conversationId: conversation.id,
+      phoneNumber: phoneResult.e164,
+      messageType: type,
+      body: savedBody,
+      wamid,
+      source: 'api',
+    });
+
     return NextResponse.json({
       success: true,
       messageId: message.id,
@@ -164,6 +176,7 @@ export async function POST(request: NextRequest) {
       {
         error: `${errInfo.title}: ${errInfo.userMessage}`,
         metaCode: error.code,
+        code: 'send_failed',
       },
       { status: 400 }
     );

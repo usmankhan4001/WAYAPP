@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(campaigns);
   } catch (error: any) {
     logger.error({ error }, 'Error in v1 campaigns list');
-    return NextResponse.json({ error: 'Failed to retrieve campaigns' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to retrieve campaigns', code: 'internal_error' }, { status: 500 });
   }
 }
 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     const parseResult = CampaignCreateSchema.safeParse(body);
     if (!parseResult.success) {
       return NextResponse.json(
-        { error: parseResult.error.issues[0]?.message || 'Invalid campaign payload' },
+        { error: parseResult.error.issues[0]?.message || 'Invalid campaign payload', code: 'invalid_request' },
         { status: 400 }
       );
     }
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     const template = await prisma.template.findUnique({ where: { id: templateId } });
     if (!template) {
-      return NextResponse.json({ error: 'Template not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Template not found', code: 'not_found' }, { status: 404 });
     }
 
     const status = scheduledAt ? 'SCHEDULED' : startImmediately ? 'QUEUED' : 'DRAFT';
@@ -86,6 +86,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, campaign }, { status: 201 });
   } catch (error: any) {
     logger.error({ error }, 'Error creating v1 campaign');
-    return NextResponse.json({ error: 'Failed to create campaign' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to create campaign', code: 'internal_error' }, { status: 500 });
   }
 }
