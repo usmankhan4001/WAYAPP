@@ -3,6 +3,7 @@ import { WhatsAppClient } from '@/lib/whatsapp/client';
 import { sanitizePhoneNumber } from '@/lib/whatsapp/phone';
 import { logger } from '@/lib/logger';
 import { campaignDispatchEnabled } from '@/lib/feature-gates';
+import { enqueueOutboundWebhook } from './outbound-webhooks';
 
 // In-memory token bucket for campaign pacing
 class TokenBucket {
@@ -36,67 +37,86 @@ class TokenBucket {
   }
 }
 
+export interface AudienceFilter {
+  sendToAll?: boolean;
+  includeGroups?: string[];
+  includeTags?: string[];
+  excludeGroups?: string[];
+  excludeTags?: string[];
+}
+
+/** True when marketing templates may only go to contacts with a recorded consent source. */
+export function consentRequiredForMarketing(): boolean {
+  return process.env.REQUIRE_CONSENT_FOR_MARKETING?.trim().toLowerCase() === 'on';
+}
+
 /**
- * Resolves target contacts for a campaign based on inclusion/exclusion filter.
- * Supports sendToAll, include/exclude groups & tags.
+ * Parses the stored audience filter. Never falls back to "everyone": unparsable
+ * JSON is reported as invalid so the caller can stop.
  */
-export async function getTargetContacts(audienceFilterJson: string) {
-  let filter: {
-    sendToAll?: boolean;
-    includeGroups?: string[];
-    includeTags?: string[];
-    excludeGroups?: string[];
-    excludeTags?: string[];
-  } = {};
-
+export function parseAudienceFilter(
+  json: string | null | undefined
+): { valid: true; filter: AudienceFilter } | { valid: false } {
   try {
-    filter = JSON.parse(audienceFilterJson || '{}');
+    const parsed = JSON.parse(json || '{}');
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { valid: false };
+    return { valid: true, filter: parsed as AudienceFilter };
   } catch {
-    filter = { sendToAll: true };
+    return { valid: false };
+  }
+}
+
+const ids = (v: unknown): string[] =>
+  Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.length > 0) : [];
+
+/**
+ * Builds the database condition for an audience. Returns null when the filter selects
+ * nobody (empty filter, or invalid JSON) so the result fails closed.
+ * Only ACTIVE contacts are ever included and exclusions always apply.
+ */
+export function buildAudienceWhere(
+  audienceFilterJson: string,
+  opts: { requireConsent?: boolean } = {}
+): Record<string, any> | null {
+  const parsed = parseAudienceFilter(audienceFilterJson);
+  if (!parsed.valid) return null;
+  const f = parsed.filter;
+  const includeGroups = ids(f.includeGroups);
+  const includeTags = ids(f.includeTags);
+  const excludeGroups = ids(f.excludeGroups);
+  const excludeTags = ids(f.excludeTags);
+
+  const and: Record<string, any>[] = [{ status: 'ACTIVE' }];
+
+  if (f.sendToAll !== true) {
+    const anyOf: Record<string, any>[] = [];
+    if (includeGroups.length) anyOf.push({ groups: { some: { groupId: { in: includeGroups } } } });
+    if (includeTags.length) anyOf.push({ tags: { some: { tagId: { in: includeTags } } } });
+    if (anyOf.length === 0) return null; // empty filter: nobody
+    and.push({ OR: anyOf });
   }
 
-  const allActiveContacts = await prisma.contact.findMany({
-    where: { status: 'ACTIVE' },
-    include: {
-      groups: true,
-      tags: true,
-    },
-  });
+  const not: Record<string, any>[] = [];
+  if (excludeGroups.length) not.push({ groups: { some: { groupId: { in: excludeGroups } } } });
+  if (excludeTags.length) not.push({ tags: { some: { tagId: { in: excludeTags } } } });
+  if (not.length) and.push({ NOT: not });
 
-  if (filter.sendToAll) {
-    return allActiveContacts.filter((c) => {
-      const cGroupIds = c.groups.map((g) => g.groupId);
-      const cTagIds = c.tags.map((t) => t.tagId);
+  if (opts.requireConsent) and.push({ consentSource: { not: null } }, { NOT: { consentSource: '' } });
 
-      const isExcludedByGroup =
-        filter.excludeGroups && filter.excludeGroups.some((gId) => cGroupIds.includes(gId));
-      const isExcludedByTag =
-        filter.excludeTags && filter.excludeTags.some((tId) => cTagIds.includes(tId));
+  return { AND: and };
+}
 
-      return !isExcludedByGroup && !isExcludedByTag;
-    });
-  }
-
-  const includeGroupSet = new Set(filter.includeGroups || []);
-  const includeTagSet = new Set(filter.includeTags || []);
-  const excludeGroupSet = new Set(filter.excludeGroups || []);
-  const excludeTagSet = new Set(filter.excludeTags || []);
-
-  return allActiveContacts.filter((c) => {
-    const cGroupIds = c.groups.map((g) => g.groupId);
-    const cTagIds = c.tags.map((t) => t.tagId);
-
-    const matchesGroup = cGroupIds.some((gId) => includeGroupSet.has(gId));
-    const matchesTag = cTagIds.some((tId) => includeTagSet.has(tId));
-    const isIncluded = (includeGroupSet.size === 0 && includeTagSet.size === 0) || matchesGroup || matchesTag;
-
-    if (!isIncluded) return false;
-
-    const isExcluded =
-      cGroupIds.some((gId) => excludeGroupSet.has(gId)) ||
-      cTagIds.some((tId) => excludeTagSet.has(tId));
-
-    return !isExcluded;
+/**
+ * The single audience resolver, used by both the preview and the dispatcher, so what
+ * is previewed is exactly what is sent. Fails closed: empty or invalid filters give [].
+ */
+export async function getTargetContacts(audienceFilterJson: string, opts: { requireConsent?: boolean } = {}) {
+  const where = buildAudienceWhere(audienceFilterJson, opts);
+  if (!where) return [];
+  return prisma.contact.findMany({
+    where,
+    select: { id: true, firstName: true, lastName: true, phoneNumber: true, email: true, consentSource: true },
+    orderBy: { id: 'asc' },
   });
 }
 
@@ -149,11 +169,8 @@ export async function dispatchCampaign(campaignId: string): Promise<{ success: b
     const client = await WhatsAppClient.createFromSettings();
 
     // 4. Resolve Target Audience Contacts
-    let audienceFilter: any = {};
-    try {
-      audienceFilter = JSON.parse(campaign.audienceFilter || '{}');
-    } catch (parseErr) {
-      logger.error({ campaignId, audienceFilter: campaign.audienceFilter }, '[Dispatcher] Invalid audienceFilter JSON — aborting to prevent accidental broadcast to all contacts');
+    if (!parseAudienceFilter(campaign.audienceFilter).valid) {
+      logger.error({ campaignId, audienceFilter: campaign.audienceFilter }, '[Dispatcher] Invalid audienceFilter JSON - aborting to prevent accidental broadcast');
       await prisma.campaign.update({
         where: { id: campaignId },
         data: { status: 'FAILED' },
@@ -161,20 +178,10 @@ export async function dispatchCampaign(campaignId: string): Promise<{ success: b
       return { success: false, error: 'Invalid audience filter configuration' };
     }
 
-    const contactWhere: any = {
-      status: 'ACTIVE', // Enforce suppression
-    };
-
-    if (audienceFilter.groupId) {
-      contactWhere.groups = { some: { groupId: audienceFilter.groupId } };
-    }
-    if (audienceFilter.tagId) {
-      contactWhere.tags = { some: { tagId: audienceFilter.tagId } };
-    }
-
-    const targetContacts = await prisma.contact.findMany({
-      where: contactWhere,
-    });
+    // Same resolver as the preview. Marketing templates skip contacts with no recorded
+    // consent when REQUIRE_CONSENT_FOR_MARKETING=on (default off).
+    const requireConsent = consentRequiredForMarketing() && campaign.template?.category === 'MARKETING';
+    const targetContacts = await getTargetContacts(campaign.audienceFilter || '{}', { requireConsent });
 
     // 5. Populate CampaignMessage records idempotently (skip duplicates)
     if (targetContacts.length > 0) {
@@ -393,6 +400,19 @@ export async function dispatchCampaign(campaignId: string): Promise<{ success: b
         },
       });
       logger.info({ campaignId }, '[Dispatcher] Campaign completed successfully');
+      const final = await prisma.campaign.findUnique({
+        where: { id: campaign.id },
+        select: { name: true, sentCount: true, deliveredCount: true, readCount: true, failedCount: true },
+      });
+      await enqueueOutboundWebhook('campaign.completed', {
+        campaignId: campaign.id,
+        name: final?.name ?? campaign.name,
+        sent: final?.sentCount ?? 0,
+        delivered: final?.deliveredCount ?? 0,
+        read: final?.readCount ?? 0,
+        failed: final?.failedCount ?? 0,
+      }).catch((err) => logger.warn({ campaignId, error: err?.message }, '[Dispatcher] campaign.completed webhook enqueue failed'));
+
     }
 
     return { success: true };
