@@ -14,11 +14,13 @@ import { fileURLToPath } from "node:url";
 import {
   semantic,
   radius,
+  radii,
   dimensions,
   shadows,
   motion,
   zIndex,
   nativeScale,
+  fontFamily,
   primitives,
 } from "./tokens.ts";
 
@@ -35,6 +37,7 @@ function cssVars(map: Record<string, string>, indent = "  "): string {
 
 const componentVars: Record<string, string> = {
   radius,
+  ...radii,
   ...dimensions,
   ...shadows,
   ...motion,
@@ -43,7 +46,8 @@ const componentVars: Record<string, string> = {
 
 const tokensCss = `${BANNER}
 
-:root {
+:root,
+.light {
 ${cssVars(semantic.light)}
 
   /* component tokens (theme-independent) */
@@ -82,6 +86,8 @@ ${tsObject(semantic.dark)}
   },
   scale: ${JSON.stringify(nativeScale, null, 2).replace(/\n/g, "\n  ")},
 } as const;
+
+export const fontFamily = ${JSON.stringify(fontFamily)};
 
 export type ThemeMode = keyof typeof theme;
 export type ThemeColors = typeof theme.light;

@@ -37,8 +37,8 @@ export interface NavItem {
 export const NAV_ITEMS: readonly NavItem[] = [
   { id: "dashboard", label: "Dashboard", shortLabel: "Home", href: "/", icon: LayoutDashboard, primary: true },
   { id: "inbox", label: "Chats", shortLabel: "Chats", href: "/inbox", icon: MessageSquare, primary: true, badge: "unread" },
-  { id: "campaigns", label: "Campaigns", shortLabel: "Broadcasts", href: "/campaigns", icon: Send, primary: true },
   { id: "contacts", label: "Contacts", shortLabel: "Contacts", href: "/contacts", icon: Users, primary: true },
+  { id: "campaigns", label: "Broadcasts", shortLabel: "Broadcasts", href: "/campaigns", icon: Send, primary: true },
   { id: "automations", label: "Automations", shortLabel: "Automations", href: "/automations", icon: Zap },
   { id: "templates", label: "Templates", shortLabel: "Templates", href: "/templates", icon: FileText },
   { id: "analytics", label: "Analytics", shortLabel: "Analytics", href: "/analytics", icon: BarChart3 },
@@ -61,9 +61,14 @@ export function getVisibleNav(enabledModules: Record<string, boolean>, developer
   return NAV_ITEMS.filter((item) => isNavItemVisible(item, enabledModules, developerMode));
 }
 
-/** Primary items for the mobile tab bar (capped at 5; last slot is "More"). */
+/** Primary items for the mobile tab bar (capped at 4; the 5th slot is "More"). */
 export function getPrimaryNav(enabledModules: Record<string, boolean>, developerMode = false): NavItem[] {
-  return getVisibleNav(enabledModules, developerMode).filter((i) => i.primary).slice(0, 5);
+  return getVisibleNav(enabledModules, developerMode).filter((i) => i.primary).slice(0, 4);
+}
+
+/** Items that do not fit in the tab bar; shown in the More sheet. */
+export function getOverflowNav(enabledModules: Record<string, boolean>, developerMode = false): NavItem[] {
+  return getVisibleNav(enabledModules, developerMode).filter((i) => !i.primary);
 }
 
 export function isActiveHref(pathname: string, href: string): boolean {

@@ -7,7 +7,7 @@
  */
 
 import React, { useState } from 'react';
-import { Send, Search, Trash2, Plus, Sparkles } from 'lucide-react';
+import { Send, Search, Trash2, Plus, Sparkles, MessageSquare } from 'lucide-react';
 
 import { useTheme, ThemeToggle } from '@/components/providers/ThemeProvider';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,13 @@ import { Tooltip, InfoTooltip } from '@/components/ui/Tooltip';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton, SkeletonCard } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
+import { IconButton } from '@/components/ui/icon-button';
+import { Chip } from '@/components/ui/chip';
+import { UserAvatar } from '@/components/ui/avatar';
+import { ListRow } from '@/components/ui/list-row';
+import { SearchField } from '@/components/ui/search-field';
+import { StatPill } from '@/components/ui/stat-pill';
+import { BottomSheet } from '@/components/ui/bottom-sheet';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -37,7 +44,68 @@ const SWATCHES = [
   'background', 'foreground', 'card', 'popover', 'primary', 'secondary', 'muted', 'accent',
   'destructive', 'border', 'input', 'ring', 'brand', 'brand-subtle', 'wa', 'wa-bubble-out',
   'chat-canvas', 'success', 'warning', 'info', 'chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5',
+  'raised', 'lime', 'link', 'read-tick', 'danger', 'chart-highlight', 'wa-bubble-in',
 ];
+
+/** Every shared component on one surface. Rendered once per theme (see below). */
+function Showcase() {
+  const [chip, setChip] = useState('all');
+  const [seg, setSeg] = useState('a');
+  const [q, setQ] = useState('');
+  const [sheet, setSheet] = useState(false);
+  return (
+    <div className="space-y-5 rounded-3xl bg-background p-5 text-foreground ring-1 ring-border">
+      <div className="grid grid-cols-6 gap-2 sm:grid-cols-12">
+        {['background', 'card', 'raised', 'border', 'foreground', 'muted-foreground', 'primary', 'lime', 'link', 'chart-1', 'chart-2', 'chart-highlight'].map((n) => (
+          <div key={n} title={n} className="h-8 rounded-lg ring-1 ring-border" style={{ background: `var(--${n})` }} />
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button>Primary</Button>
+        <Button variant="lime">Lime</Button>
+        <Button variant="secondary">Secondary</Button>
+        <Button variant="outline">Outline</Button>
+        <Button variant="destructive">Delete</Button>
+        <IconButton label="New chat" variant="lime"><Plus /></IconButton>
+        <IconButton label="Search"><Search /></IconButton>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {['all', 'unread', 'groups'].map((c) => (
+          <Chip key={c} selected={chip === c} count={c === 'unread' ? 3 : undefined} onClick={() => setChip(c)}>{c}</Chip>
+        ))}
+        <Badge variant="count">4</Badge>
+        <Badge variant="success">Delivered</Badge>
+        <Badge variant="warning">Pending</Badge>
+        <Badge variant="danger">Failed</Badge>
+        <UserAvatar name="Sara Khan" size="lg" />
+        <UserAvatar name="Ali" />
+      </div>
+      <SearchField value={q} onValueChange={setQ} placeholder="Search chats" />
+      <SegmentedControl options={[{ value: 'a', label: 'Table' }, { value: 'b', label: 'Kanban' }]} value={seg} onValueChange={setSeg} />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Card>
+          <CardContent className="flex items-center justify-between">
+            <StatPill label="Messages sent" value="1,284" change={12} />
+            <StatPill label="Failed" value="9" change={-4} invert />
+          </CardContent>
+        </Card>
+        <Card className="gap-0 py-0">
+          <ListRow leading={<UserAvatar name="Sara Khan" />} title="Sara Khan" subtitle="Thanks, see you at 5" meta="10:42" trailing={<Badge variant="count">2</Badge>} onClick={() => {}} />
+          <ListRow leading={<UserAvatar name="Ahmed Raza" />} title="Ahmed Raza" subtitle="Order confirmed" meta="Mon" onClick={() => {}} />
+        </Card>
+      </div>
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="max-w-[70%] rounded-[var(--radius-bubble)] rounded-tl-md bg-wa-bubble-in px-3.5 py-2 text-wa-bubble-in-foreground">Hello, is this in stock?</div>
+        <div className="max-w-[70%] rounded-[var(--radius-bubble)] rounded-br-md bg-wa-bubble-out px-3.5 py-2 text-wa-bubble-out-foreground">Yes, shipping today.</div>
+      </div>
+      <EmptyState icon={MessageSquare} title="No chats yet" description="Send your first message." actionLabel="New chat" onAction={() => setSheet(true)} variant="compact" />
+      <Skeleton lines={2} />
+      <BottomSheet open={sheet} onOpenChange={setSheet} title="Bottom sheet" size="sm">
+        <p className="text-sm text-muted-foreground">Bottom sheet on phones, dialog on desktop.</p>
+      </BottomSheet>
+    </div>
+  );
+}
 
 export default function DesignSystemPage() {
   const { resolvedTheme } = useTheme();
@@ -68,6 +136,14 @@ export default function DesignSystemPage() {
           <ThemeToggle />
         </div>
 
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Ink and Lime, both themes</h2>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="light"><Showcase /></div>
+            <div className="dark"><Showcase /></div>
+          </div>
+        </section>
+
         <Section title="Tokens">
           <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-5">
             {SWATCHES.map((name) => (
@@ -83,7 +159,7 @@ export default function DesignSystemPage() {
         </Section>
 
         <Section title="Buttons">
-          {(['default', 'wa', 'secondary', 'outline', 'ghost', 'destructive', 'link'] as const).map((v) => (
+          {(['default', 'lime', 'wa', 'secondary', 'outline', 'ghost', 'destructive', 'link'] as const).map((v) => (
             <Button key={v} variant={v}>
               {v}
             </Button>

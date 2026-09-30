@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Manrope } from 'next/font/google';
 import './globals.css';
 import { AppShell } from '@/components/layout/AppShell';
 import { ToastProvider } from '@/components/ui/Toast';
@@ -8,14 +8,14 @@ import { SessionProvider } from '@/components/providers/SessionProvider';
 import { ConfirmProvider } from '@/lib/hooks/use-confirm';
 import { TooltipProvider } from '@/components/ui/Tooltip';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
+const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope', display: 'swap' });
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
   viewportFit: 'cover',
-  themeColor: '#059669',
+  themeColor: '#141414',
 };
 
 export const metadata: Metadata = {
@@ -57,7 +57,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
-      <body className={`${inter.variable} font-sans antialiased min-h-full min-h-dvh w-full bg-background text-foreground selection:bg-brand-subtle selection:text-brand-subtle-foreground`}>
+      <body className={`${manrope.variable} font-sans antialiased min-h-full min-h-dvh w-full bg-background text-foreground selection:bg-brand-subtle selection:text-brand-subtle-foreground`}>
         <ThemeProvider>
           <SessionProvider>
             <TooltipProvider>
