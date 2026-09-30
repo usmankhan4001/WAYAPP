@@ -87,8 +87,10 @@ export async function POST(request: NextRequest) {
     const hash = crypto.randomBytes(12).toString('hex');
     const safeName = `${Date.now()}_${hash}${allowedExt}`;
 
-    // Ensure uploads directory exists
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+    // Ensure uploads directory exists. This MUST be <cwd>/uploads: that is the path the
+    // persistent volume is mounted on (compose and Dokploy). It used to be public/uploads,
+    // which lives on the container's own disk, so every redeploy deleted every upload.
+    const uploadsDir = path.join(process.cwd(), 'uploads');
     await mkdir(uploadsDir, { recursive: true });
 
     const filePath = path.join(uploadsDir, safeName);

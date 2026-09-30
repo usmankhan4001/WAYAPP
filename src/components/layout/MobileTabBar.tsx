@@ -33,7 +33,7 @@ function MobileTabBarInner({ onOpenMore }: { onOpenMore?: () => void }) {
             href={item.href}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'relative flex flex-col items-center justify-center rounded-lg px-3 py-1 transition-colors active:scale-95',
+              'relative flex min-w-0 flex-1 flex-col items-center justify-center rounded-lg px-1 py-1 transition-colors active:scale-95',
               active ? 'text-primary' : 'text-muted-foreground'
             )}
           >
@@ -45,7 +45,7 @@ function MobileTabBarInner({ onOpenMore }: { onOpenMore?: () => void }) {
                 </span>
               )}
             </span>
-            <span className="mt-1 text-2xs font-medium">{item.shortLabel ?? item.label}</span>
+            <span className="mt-1 max-w-full truncate text-2xs font-medium">{item.shortLabel ?? item.label}</span>
             {active && <span className="absolute bottom-0 h-0.5 w-5 rounded-full bg-primary" />}
           </Link>
         );
@@ -54,7 +54,7 @@ function MobileTabBarInner({ onOpenMore }: { onOpenMore?: () => void }) {
       <button
         type="button"
         onClick={onOpenMore}
-        className="relative flex flex-col items-center justify-center rounded-lg px-3 py-1 text-muted-foreground transition-colors active:scale-95"
+        className="relative flex min-w-0 flex-1 flex-col items-center justify-center rounded-lg px-1 py-1 text-muted-foreground transition-colors active:scale-95"
       >
         <MoreHorizontal className="size-5" />
         <span className="mt-1 text-2xs font-medium">More</span>

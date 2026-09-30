@@ -28,6 +28,15 @@ interface CampaignWizardProps {
 export function CampaignWizard({ templates = [], groups = [], tags = [] }: CampaignWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  // null until known. When false, sending is switched off for this account and a "launch"
+  // only saves a draft, so the screen has to say that instead of promising a broadcast.
+  const [dispatchOn, setDispatchOn] = useState<boolean | null>(null);
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((res) => res.json())
+      .then((s) => setDispatchOn(s?.campaignDispatchEnabled === true))
+      .catch(() => setDispatchOn(null));
+  }, []);
 
   // Form State
   const [campaignName, setCampaignName] = useState('');
@@ -652,6 +661,12 @@ export function CampaignWizard({ templates = [], groups = [], tags = [] }: Campa
             </p>
           </div>
 
+          {dispatchOn === false && (
+            <div role="alert" className="rounded-xl border border-border bg-muted p-3 text-xs text-foreground">
+              Sending is switched off on this account right now. This will save your broadcast as a draft and
+              <strong> nothing will be sent</strong>. Ask your administrator when sending will be turned back on.
+            </div>
+          )}
           <div className="flex items-center justify-between pt-3 border-t border-border">
             <button
               onClick={() => setStep(3)}
@@ -666,7 +681,11 @@ export function CampaignWizard({ templates = [], groups = [], tags = [] }: Campa
               className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold shadow-sm flex items-center gap-2 transition-all disabled:opacity-50"
             >
               <Send className="w-4 h-4" />
-              <span>{isSubmitting ? 'Starting Dispatch Engine...' : 'Launch WhatsApp Broadcast'}</span>
+              <span>
+                {dispatchOn === false
+                  ? isSubmitting ? 'Saving...' : 'Save as draft (not sent)'
+                  : isSubmitting ? 'Starting...' : 'Launch WhatsApp Broadcast'}
+              </span>
             </button>
           </div>
         </div>

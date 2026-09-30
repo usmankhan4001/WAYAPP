@@ -134,10 +134,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    await prisma.contact.update({
-      where: { id: contact.id },
-      data: { lastInteractionAt: new Date() },
-    });
+    // Deliberately no lastInteractionAt update: that clock is the customer's last message,
+    // and our own outbound send must not reopen their 24-hour reply window.
 
     const message = await prisma.chatMessage.create({
       data: {

@@ -72,7 +72,9 @@ function InboxContent() {
 
   useEffect(() => {
     const cancel = fetchConversations();
-    const interval = setInterval(fetchConversations, 2500);
+    const interval = setInterval(() => {
+      if (!document.hidden) fetchConversations();
+    }, 2500);
     return () => {
       cancel?.();
       clearInterval(interval);

@@ -33,16 +33,23 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  const [actionError, setActionError] = useState<string | null>(null);
+
   const handleAction = async (action: 'START' | 'PAUSE' | 'RESUME' | 'CANCEL') => {
+    setActionError(null);
     try {
-      await fetch(`/api/campaigns/${id}/dispatch`, {
+      const res = await fetch(`/api/campaigns/${id}/dispatch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setActionError(data?.error || 'That action could not be completed.');
+      }
       fetchCampaign();
     } catch {
-      /* noop */
+      setActionError('Could not reach the server. Check your connection and try again.');
     }
   };
 
@@ -92,6 +99,16 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
         </Button>
       </div>
 
+      {campaign.status === 'DRAFT' && (
+        <div role="status" className="rounded-xl border border-border bg-muted p-3 text-xs text-foreground">
+          This broadcast is saved as a draft and has <strong>not been sent</strong>.
+        </div>
+      )}
+      {actionError && (
+        <div role="alert" className="rounded-xl border border-destructive/40 bg-card p-3 text-xs text-destructive">
+          {actionError}
+        </div>
+      )}
       <LiveProgressCard campaign={campaign} stats={stats} onAction={handleAction} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">

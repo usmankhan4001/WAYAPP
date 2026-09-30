@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { campaignDispatchEnabled } from '@/lib/feature-gates';
 import { requireRole } from '@/lib/auth/rbac';
 import { WhatsAppClient } from '@/lib/whatsapp/client';
 import { encryptString, decryptString, maskSecret } from '@/lib/crypto';
@@ -84,6 +85,7 @@ export async function GET(request: NextRequest) {
     allowedDomains: authConfig?.allowedDomains || '',
     allowedEmails: authConfig?.allowedEmails || '',
     requireAuth: authConfig?.requireAuth ?? true,
+    campaignDispatchEnabled: campaignDispatchEnabled(),
     updatedAt: settings.updatedAt,
   };
 

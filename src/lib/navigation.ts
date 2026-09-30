@@ -33,13 +33,13 @@ export interface NavItem {
  */
 export const NAV_ITEMS: readonly NavItem[] = [
   { id: "dashboard", label: "Dashboard", shortLabel: "Home", href: "/", icon: LayoutDashboard, primary: true },
-  { id: "inbox", label: "Live Inbox", shortLabel: "Chats", href: "/inbox", icon: MessageSquare, primary: true, badge: "unread" },
+  { id: "inbox", label: "Chats", shortLabel: "Chats", href: "/inbox", icon: MessageSquare, primary: true, badge: "unread" },
   { id: "campaigns", label: "Campaigns", shortLabel: "Broadcasts", href: "/campaigns", icon: Send, primary: true },
-  { id: "contacts", label: "Contacts & CRM", shortLabel: "Contacts", href: "/contacts", icon: Users, primary: true },
+  { id: "contacts", label: "Contacts", shortLabel: "Contacts", href: "/contacts", icon: Users, primary: true },
   { id: "automations", label: "Automations", shortLabel: "Automations", href: "/automations", icon: Zap },
   { id: "templates", label: "Templates", shortLabel: "Templates", href: "/templates", icon: FileText },
-  { id: "analytics", label: "Analytics & Funnel", shortLabel: "Analytics", href: "/analytics", icon: BarChart3 },
-  { id: "settings", label: "Settings & API", shortLabel: "Settings", href: "/settings", icon: Settings, primary: true },
+  { id: "analytics", label: "Analytics", shortLabel: "Analytics", href: "/analytics", icon: BarChart3 },
+  { id: "settings", label: "Settings", shortLabel: "Settings", href: "/settings", icon: Settings },
 ] as const;
 
 /** True if a nav item should be visible given the enabled-modules map. */

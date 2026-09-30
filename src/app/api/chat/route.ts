@@ -229,7 +229,8 @@ export async function POST(request: NextRequest) {
             phoneNumber: normalized,
             firstName: 'Customer',
             status: 'ACTIVE',
-            lastInteractionAt: new Date(),
+            // No lastInteractionAt: the customer has not written to us. Setting it here made a
+            // brand-new outbound chat look like it had an open 24-hour window.
           },
         });
       }
@@ -258,8 +259,20 @@ export async function POST(request: NextRequest) {
       // If the media is stored locally in /uploads/, read bytes and upload directly to Meta Graph API
       if (mediaUrl.startsWith('/uploads/')) {
         try {
-          const localPath = path.join(process.cwd(), 'public', mediaUrl.replace(/^\//, ''));
-          const fileBuffer = await readFile(localPath);
+          // New uploads live on the persistent volume at <cwd>/uploads; files uploaded before
+          // that fix are under public/uploads. Try both, and never leave the uploads folder.
+          const relName = mediaUrl.replace(/^\/uploads\//, '');
+          if (relName.includes('..') || relName.includes('\0')) throw new Error('Invalid media path');
+          let fileBuffer: Buffer | null = null;
+          for (const dir of [path.join(process.cwd(), 'uploads'), path.join(process.cwd(), 'public', 'uploads')]) {
+            try {
+              fileBuffer = await readFile(path.join(dir, relName));
+              break;
+            } catch {
+              /* try the next location */
+            }
+          }
+          if (!fileBuffer) throw new Error('Media file not found on disk');
 
           const mimeMap: Record<string, string> = {
             image: 'image/jpeg',

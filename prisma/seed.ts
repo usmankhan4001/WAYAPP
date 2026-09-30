@@ -55,12 +55,9 @@ async function main() {
   const adminPasswordHash = await bcrypt.hash(adminPassword, 12);
   await prisma.user.upsert({
     where: { email: adminEmail },
-    update: {
-      passwordHash: adminPasswordHash,
-      role: 'SUPER_ADMIN',
-      isActive: true,
-      status: 'ACTIVE',
-    },
+    // Empty on purpose. This runs on every container boot; overwriting an existing user
+    // silently reverted any password changed in the app to ADMIN_PASSWORD at the next deploy.
+    update: {},
     create: {
       email: adminEmail,
       name: 'GCC Super Admin',

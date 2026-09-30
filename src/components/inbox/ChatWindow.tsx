@@ -337,7 +337,9 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
     setAiSuggestions([]);
     setSummaryText(null);
 
-    const interval = setInterval(fetchMessages, 2500);
+    const interval = setInterval(() => {
+      if (!document.hidden) fetchMessages();
+    }, 2500);
     return () => clearInterval(interval);
   }, [contact?.id]);
 
