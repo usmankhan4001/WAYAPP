@@ -99,14 +99,14 @@ function LoginForm() {
       <div className="w-full max-w-md relative z-10 space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary text-white font-black text-xl shadow-lg  mb-2">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary text-white font-bold text-xl shadow-lg  mb-2">
             W
           </div>
-          <h1 className="text-2xl font-black text-white tracking-tight">
-            WAYAPP <span className="text-primary">Enterprise</span>
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            WayApp
           </h1>
-          <p className="text-xs text-slate-400">
-            WhatsApp Cloud Marketing & Communication Gateway
+          <p className="text-sm text-slate-400">
+            Sign in to manage your WhatsApp messages
           </p>
         </div>
 
@@ -115,13 +115,13 @@ function LoginForm() {
           {/* Security Badge */}
           <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center gap-2.5">
             <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
-            <p className="text-2xs text-slate-300">
+            <p className="text-xs text-slate-300">
               Encrypted enterprise authentication with role-based access control.
             </p>
           </div>
 
           {errorMsg && (
-            <div className="p-3.5 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-300 text-xs flex items-start gap-2.5">
+            <div className="p-3.5 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-300 text-sm flex items-start gap-2.5">
               <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
               <div className="flex-1">
                 {errorMsg}
@@ -129,9 +129,9 @@ function LoginForm() {
                   <div className="mt-2">
                     <Link
                       href="/register"
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary underline"
+                      className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:text-primary underline"
                     >
-                      <UserPlus className="w-3.5 h-3.5" /> Create Super Admin Account
+                      <UserPlus className="w-3.5 h-3.5" /> Create your account
                     </Link>
                   </div>
                 )}
@@ -142,7 +142,7 @@ function LoginForm() {
           {/* Email + Password Form */}
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-sm font-semibold text-slate-300 mb-1.5">
                 Business Email Address
               </label>
               <div className="relative">
@@ -153,13 +153,13 @@ function LoginForm() {
                   placeholder="name@yourcompany.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950/70 text-white placeholder-slate-500 text-xs focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-transparent font-sans"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-950/70 text-white placeholder-slate-500 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-transparent font-sans"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-sm font-semibold text-slate-300 mb-1.5">
                 Password
               </label>
               <div className="relative">
@@ -170,7 +170,7 @@ function LoginForm() {
                   placeholder="••••••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-700 bg-slate-950/70 text-white placeholder-slate-500 text-xs focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-transparent font-sans"
+                  className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-700 bg-slate-950/70 text-white placeholder-slate-500 text-sm focus:outline-hidden focus:ring-2 focus:ring-primary focus:border-transparent font-sans"
                 />
                 <button
                   type="button"
@@ -185,9 +185,9 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading || !email.trim() || !password}
-              className="w-full py-3 px-4 rounded-xl bg-primary hover:bg-primary/85 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg  disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 px-4 rounded-xl bg-primary hover:bg-primary/85 text-white font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg  disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span>{loading ? 'Verifying credentials...' : 'Sign In'}</span>
+              <span>{loading ? 'Signing in...' : 'Sign in'}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </form>
@@ -196,7 +196,7 @@ function LoginForm() {
           <div className="text-center pt-2">
             <Link
               href="/register"
-              className="text-xs text-slate-400 hover:text-primary transition-colors"
+              className="text-sm text-slate-400 hover:text-primary transition-colors"
             >
               Need to create an account? <span className="font-semibold text-primary">Register</span>
             </Link>
@@ -205,8 +205,8 @@ function LoginForm() {
           {/* Divider */}
           <div className="flex items-center gap-3">
             <div className="h-px bg-slate-800 flex-1" />
-            <span className="text-2xs uppercase tracking-wider font-semibold text-slate-500">
-              Or Social Single Sign-On
+            <span className="text-xs  font-semibold text-slate-500">
+              Or
             </span>
             <div className="h-px bg-slate-800 flex-1" />
           </div>
@@ -216,7 +216,7 @@ function LoginForm() {
             type="button"
             onClick={handleMetaLogin}
             disabled={loading}
-            className="w-full py-2.5 px-4 rounded-xl bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold text-xs flex items-center justify-center gap-3 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
+            className="w-full py-2.5 px-4 rounded-xl bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold text-sm flex items-center justify-center gap-3 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
           >
             <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
               <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
@@ -226,8 +226,8 @@ function LoginForm() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-2xs text-slate-500">
-          WAYAPP v1.0 &bull; Secure Enterprise Gateway
+        <p className="text-center text-xs text-slate-500">
+          WayApp
         </p>
       </div>
     </div>

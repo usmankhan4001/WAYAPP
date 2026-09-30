@@ -1,118 +1,103 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { CheckCircle2, Circle, X, Sparkles } from 'lucide-react';
+import { CheckCircle2, Circle, X } from 'lucide-react';
+import { useSettings } from '@/components/providers/SessionProvider';
 
 interface SetupWalkthroughProps {
-  hasCredentials?: boolean;
-  hasTemplates?: boolean;
   hasContacts?: boolean;
   hasCampaigns?: boolean;
 }
 
-export function SetupWalkthrough({
-  hasCredentials = false,
-  hasTemplates = false,
-  hasContacts = false,
-  hasCampaigns = false,
-}: SetupWalkthroughProps) {
-  const [isDismissed, setIsDismissed] = useState(false);
+const DISMISS_KEY = 'wayapp.firstRunChecklist.dismissed';
+
+/** Three plain steps for a brand-new account. Step 1 is done once WhatsApp is connected. */
+export function SetupWalkthrough({ hasContacts = false, hasCampaigns = false }: SetupWalkthroughProps) {
+  const { settings } = useSettings();
+  const [isDismissed, setIsDismissed] = useState(true); // hidden until we know, avoids a flash
+
+  useEffect(() => {
+    try {
+      setIsDismissed(localStorage.getItem(DISMISS_KEY) === '1');
+    } catch {
+      setIsDismissed(false);
+    }
+  }, []);
 
   const steps = [
     {
       id: 1,
-      title: 'Meta API Credentials',
-      desc: 'Add Phone Number ID, WABA ID & Permanent Token',
+      title: 'Connect your WhatsApp number',
+      desc: 'Link the number you want to send messages from.',
       href: '/settings',
-      done: hasCredentials,
+      done: Boolean(settings?.isConnected),
     },
     {
       id: 2,
-      title: 'Webhook Verification',
-      desc: 'Connect callback URL for live delivery status',
-      href: '/settings',
-      done: hasCredentials,
-    },
-    {
-      id: 3,
-      title: 'Message Templates',
-      desc: 'Sync or create approved WhatsApp templates',
-      href: '/templates',
-      done: hasTemplates,
-    },
-    {
-      id: 4,
-      title: 'Audience & Groups',
-      desc: 'Upload customer list and assign tags',
+      title: 'Add your contacts',
+      desc: 'Upload a list or add people one by one.',
       href: '/contacts',
       done: hasContacts,
     },
     {
-      id: 5,
-      title: 'First Broadcast',
-      desc: 'Send personalized template campaign',
+      id: 3,
+      title: 'Send your first message',
+      desc: 'Pick a message and send it to your contacts.',
       href: '/campaigns/new',
       done: hasCampaigns,
     },
   ];
 
-  const completedCount = steps.filter((s) => s.done).length;
+  const completed = steps.filter((s) => s.done).length;
+  if (isDismissed || completed === steps.length) return null;
 
-  if (isDismissed || completedCount === steps.length) return null;
+  const dismiss = () => {
+    setIsDismissed(true);
+    try {
+      localStorage.setItem(DISMISS_KEY, '1');
+    } catch {}
+  };
 
   return (
-    <div className="overflow-hidden rounded-xl bg-card p-4 text-card-foreground ring-1 ring-foreground/10">
-      <div className="flex items-center justify-between border-b border-border pb-3">
-        <div className="flex items-center gap-2">
-          <div className="flex size-6 items-center justify-center rounded-full bg-brand-subtle text-brand-subtle-foreground">
-            <Sparkles className="size-3.5" />
-          </div>
-          <div>
-            <h3 className="text-xs font-semibold text-foreground">Getting started checklist</h3>
-            <p className="text-2xs text-muted-foreground">
-              {completedCount} of {steps.length} setup steps completed
-            </p>
-          </div>
+    <div className="rounded-xl bg-card p-5 ring-1 ring-foreground/10">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-foreground">Get started in 3 steps</h2>
+          <p className="text-sm text-muted-foreground">{completed} of {steps.length} done</p>
         </div>
-
         <button
-          onClick={() => setIsDismissed(true)}
-          className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          title="Dismiss"
+          type="button"
+          onClick={dismiss}
+          aria-label="Hide this checklist"
+          className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent"
         >
           <X className="size-4" />
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-2.5 pt-3 sm:grid-cols-3 lg:grid-cols-5">
+      <ol className="mt-4 grid gap-3 md:grid-cols-3">
         {steps.map((step) => (
-          <Link
-            key={step.id}
-            href={step.href}
-            className={`flex flex-col justify-between rounded-lg border p-3 transition-all active:scale-[0.98] ${
-              step.done
-                ? 'border-border bg-muted/40 text-muted-foreground'
-                : 'border-border bg-muted/70 text-foreground hover:border-primary/50'
-            }`}
-          >
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-2xs text-muted-foreground">Step 0{step.id}</span>
-                {step.done ? (
-                  <CheckCircle2 className="size-3.5 text-primary" />
-                ) : (
-                  <Circle className="size-3.5 text-muted-foreground" />
-                )}
-              </div>
-              <h4 className={`text-xs font-semibold ${step.done ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
-                {step.title}
-              </h4>
-            </div>
-            <span className="mt-2 line-clamp-1 block text-2xs text-muted-foreground">{step.desc}</span>
-          </Link>
+          <li key={step.id}>
+            <Link
+              href={step.href}
+              className="flex h-full items-start gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-accent"
+            >
+              {step.done ? (
+                <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-primary" />
+              ) : (
+                <Circle className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
+              )}
+              <span>
+                <span className={`block text-sm font-medium ${step.done ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                  {step.id}. {step.title}
+                </span>
+                <span className="block text-sm text-muted-foreground">{step.desc}</span>
+              </span>
+            </Link>
+          </li>
         ))}
-      </div>
+      </ol>
     </div>
   );
 }

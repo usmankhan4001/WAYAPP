@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Send,
+  BarChart3,
   Users,
   FileText,
   CheckCheck,
@@ -18,7 +19,6 @@ import { ConversionFunnelChart } from '@/components/analytics/ConversionFunnelCh
 import { VolumeTrendsChart } from '@/components/analytics/VolumeTrendsChart';
 import { SetupWalkthrough } from '@/components/common/SetupWalkthrough';
 import { formatDateTime } from '@/lib/utils';
-import { useSettings } from '@/components/providers/SessionProvider';
 import { SkeletonCard, SkeletonChart } from '@/components/ui/Skeleton';
 import { PageHeader } from '@/components/ui/page-header';
 import { Stat, StatGrid } from '@/components/ui/stat';
@@ -35,7 +35,6 @@ const CAMPAIGN_TONE: Record<string, string> = {
 };
 
 export default function DashboardPage() {
-  const { settings } = useSettings();
   const [data, setData] = useState<AnyRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,10 +79,10 @@ export default function DashboardPage() {
   }
 
   const summary: AnyRecord = data?.summary || {};
-  const hasCredentials = Boolean(settings?.phoneNumberId && settings?.accessTokenMasked);
-  const hasTemplates = (summary.totalTemplates || 0) > 0;
   const hasContacts = (summary.totalContacts || 0) > 0;
   const hasCampaigns = (summary.totalCampaigns || 0) > 0;
+
+  const noActivity = !summary.totalMessages && !summary.totalCampaigns;
 
   const num = (v: unknown): string => (typeof v === 'number' ? v.toLocaleString() : String(v ?? 0));
 
@@ -91,27 +90,34 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <PageHeader
         title="Dashboard"
-        description="Delivery, read and reply performance across your WhatsApp broadcasts."
+        description="How your WhatsApp messages are doing."
         actions={
           <Button variant="wa" render={<Link href="/campaigns/new" />}>
             <Send />
-            New Broadcast
+            Send a message
           </Button>
         }
       />
 
-      <SetupWalkthrough
-        hasCredentials={hasCredentials}
-        hasTemplates={hasTemplates}
-        hasContacts={hasContacts}
-        hasCampaigns={hasCampaigns}
-      />
+      <SetupWalkthrough hasContacts={hasContacts} hasCampaigns={hasCampaigns} />
 
+      {noActivity ? (
+        <div className="rounded-xl bg-card p-4 ring-1 ring-foreground/10">
+          <EmptyState
+            icon={BarChart3}
+            title="Your numbers will appear here"
+            description="Once you send your first message, you will see how many were delivered, read and replied to."
+            actionLabel="Send your first message"
+            actionHref="/campaigns/new"
+          />
+        </div>
+      ) : (
+        <>
       <StatGrid className="lg:grid-cols-5">
         <Stat
-          label="Targeted"
+          label="Messages sent"
           value={num(summary.totalMessages)}
-          hint={`${summary.totalCampaigns || 0} campaigns`}
+          hint={`${summary.totalCampaigns || 0} sends`}
           icon={<Send />}
         />
         <Stat
@@ -133,9 +139,9 @@ export default function DashboardPage() {
           icon={<MessageSquare />}
         />
         <Stat
-          label="Failed / bounces"
+          label="Not delivered"
           value={`${summary.failureRate ?? 0}%`}
-          hint={`${num(summary.totalFailed)} errors`}
+          hint={`${num(summary.totalFailed)} failed`}
           icon={<AlertCircle />}
           deltaTone="down"
         />
@@ -150,16 +156,19 @@ export default function DashboardPage() {
         </div>
       </div>
 
+        </>
+      )}
+
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         {/* Recent campaigns */}
         <div className="space-y-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10 lg:col-span-8">
           <div className="flex items-center justify-between border-b border-border pb-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground">
-              Recent broadcast campaigns
+            <h3 className="text-base font-semibold text-foreground">
+              Recent messages sent
             </h3>
             <Link
               href="/campaigns"
-              className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
             >
               <span>View all</span>
               <ArrowRight className="size-3" />
@@ -170,9 +179,9 @@ export default function DashboardPage() {
             <EmptyState
               icon={Send}
               variant="compact"
-              title="No campaigns launched yet"
-              description="Choose an approved template and launch your first broadcast."
-              actionLabel="Create first campaign"
+              title="You have not sent any messages yet"
+              description="Pick a message and send it to your contacts. It shows up here afterwards."
+              actionLabel="Send your first message"
               actionHref="/campaigns/new"
             />
           ) : (
@@ -185,19 +194,19 @@ export default function DashboardPage() {
                   <div className="min-w-0 space-y-0.5">
                     <Link
                       href={`/campaigns/${c.id}`}
-                      className="text-xs font-medium text-foreground hover:text-primary"
+                      className="text-sm font-medium text-foreground hover:text-primary"
                     >
                       {c.name}
                     </Link>
-                    <p className="text-2xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       Template: <span className="font-mono text-foreground">{c.template?.name}</span> ·{' '}
                       {formatDateTime(c.createdAt)}
                     </p>
                   </div>
-                  <div className="flex items-center gap-4 text-xs">
+                  <div className="flex items-center gap-4 text-sm">
                     <div className="text-right">
                       <span className="font-semibold text-foreground">{c.totalContacts}</span>
-                      <span className="block text-2xs text-muted-foreground">contacts</span>
+                      <span className="block text-xs text-muted-foreground">contacts</span>
                     </div>
                     <StatusBadge tone={CAMPAIGN_TONE[c.status] ?? 'neutral'}>{c.status}</StatusBadge>
                   </div>
@@ -209,14 +218,14 @@ export default function DashboardPage() {
 
         {/* Shortcuts */}
         <div className="space-y-2.5 rounded-xl bg-card p-4 ring-1 ring-foreground/10 lg:col-span-4">
-          <h3 className="border-b border-border pb-1 text-xs font-semibold uppercase tracking-wider text-foreground">
-            Quick shortcuts
+          <h3 className="border-b border-border pb-1 text-base font-semibold text-foreground">
+            Quick links
           </h3>
           <div className="space-y-2 pt-1">
             {[
               { href: '/contacts', icon: Users, title: 'Contacts & groups', sub: `${summary.totalContacts || 0} contacts · ${summary.totalGroups || 0} groups` },
-              { href: '/templates', icon: FileText, title: 'Meta templates', sub: `${summary.totalTemplates || 0} approved templates` },
-              { href: '/inbox', icon: MessageSquare, title: 'Live 2-way inbox', sub: 'Customer response threads' },
+              { href: '/templates', icon: FileText, title: 'Message templates', sub: `${summary.totalTemplates || 0} approved templates` },
+              { href: '/inbox', icon: MessageSquare, title: 'Chats', sub: 'Replies from your customers' },
             ].map(({ href, icon: Icon, title, sub }) => (
               <Link
                 key={href}
@@ -228,8 +237,8 @@ export default function DashboardPage() {
                     <Icon className="size-3.5" />
                   </span>
                   <div>
-                    <h4 className="text-xs font-medium text-foreground">{title}</h4>
-                    <p className="text-2xs text-muted-foreground">{sub}</p>
+                    <h4 className="text-sm font-medium text-foreground">{title}</h4>
+                    <p className="text-xs text-muted-foreground">{sub}</p>
                   </div>
                 </div>
                 <ArrowRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
