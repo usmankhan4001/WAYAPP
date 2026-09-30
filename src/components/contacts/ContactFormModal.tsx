@@ -1,12 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { UserPlus, AlertCircle } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
-import { cn } from '@/lib/utils';
-import { Modal } from '@/components/ui/modal';
+import { LEAD_STAGES } from '@/lib/constants/lead-stages';
+import { consentSentence, contactName, stageWord } from '@/lib/contacts/present';
+import { Alert } from '@/components/ui/alert';
+import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/button';
+import { ColorDot } from '@/components/contacts/ColorDot';
+import { Chip } from '@/components/ui/chip';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyRecord = Record<string, any>;
@@ -18,13 +24,20 @@ interface ContactFormModalProps {
   tags: AnyRecord[];
   onSaved: () => void;
   contactToEdit?: AnyRecord | null;
+  /** shown only when editing; the page asks for confirmation */
+  onDelete?: (id: string) => void | Promise<void>;
 }
 
-const fieldLabel = 'mb-1 block text-xs font-semibold text-foreground';
+const fieldLabel = 'mb-1 block text-sm font-medium text-foreground';
 const selectClass =
-  'h-9 w-full rounded-lg border border-input bg-transparent px-3 text-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
+  'h-11 w-full rounded-xl border border-input bg-transparent px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
 
-export function ContactFormModal({ isOpen, onClose, groups, tags, onSaved, contactToEdit }: ContactFormModalProps) {
+/**
+ * Add a contact, or open one to see and change everything about them. A bottom sheet on
+ * phones, a dialog on desktop (BottomSheet decides). Field names sent to the API are unchanged.
+ */
+export function ContactFormModal({ isOpen, onClose, groups, tags, onSaved, contactToEdit, onDelete }: ContactFormModalProps) {
+  const router = useRouter();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -33,11 +46,17 @@ export function ContactFormModal({ isOpen, onClose, groups, tags, onSaved, conta
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [customCompany, setCustomCompany] = useState('');
   const [customCity, setCustomCity] = useState('');
+  const [notes, setNotes] = useState('');
+  const [existingAttrs, setExistingAttrs] = useState<AnyRecord>({});
+  const [stage, setStage] = useState('NEW_LEAD');
   const [status, setStatus] = useState('ACTIVE');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   useEffect(() => {
+    setError(null);
+    setPhoneError(null);
     if (contactToEdit) {
       setPhoneNumber(contactToEdit.phoneNumber || '');
       setFirstName(contactToEdit.firstName || '');
@@ -46,14 +65,17 @@ export function ContactFormModal({ isOpen, onClose, groups, tags, onSaved, conta
       setSelectedGroupIds(contactToEdit.groups?.map((g: AnyRecord) => g.groupId) || []);
       setSelectedTagIds(contactToEdit.tags?.map((t: AnyRecord) => t.tagId) || []);
       setStatus(contactToEdit.status || 'ACTIVE');
+      setStage(contactToEdit.leadStage || 'NEW_LEAD');
       let custom: AnyRecord = {};
       try {
         custom = contactToEdit.customAttributes ? JSON.parse(contactToEdit.customAttributes) : {};
       } catch {
         /* noop */
       }
+      setExistingAttrs(custom);
       setCustomCompany(custom.company || '');
       setCustomCity(custom.city || '');
+      setNotes(custom.notes || '');
     } else {
       setPhoneNumber('');
       setFirstName('');
@@ -63,6 +85,9 @@ export function ContactFormModal({ isOpen, onClose, groups, tags, onSaved, conta
       setSelectedTagIds([]);
       setCustomCompany('');
       setCustomCity('');
+      setNotes('');
+      setExistingAttrs({});
+      setStage('NEW_LEAD');
       setStatus('ACTIVE');
     }
   }, [contactToEdit, isOpen]);
@@ -70,14 +95,43 @@ export function ContactFormModal({ isOpen, onClose, groups, tags, onSaved, conta
   const toggle = (arr: string[], set: (v: string[]) => void, id: string) =>
     set(arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id]);
 
+  // A stage change saves straight away: a menu, no dragging needed on a phone.
+  const changeStage = async (next: string) => {
+    setStage(next);
+    if (!contactToEdit?.id) return;
+    try {
+      const res = await fetch('/api/chat/contact-crm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contactId: contactToEdit.id, leadStage: next }),
+      });
+      if (!res.ok) throw new Error('stage');
+      onSaved();
+    } catch {
+      setError('We could not change the stage. Check your connection and try again.');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (!phoneNumber.trim()) {
+      setPhoneError('Enter a WhatsApp number, for example +971 50 123 4567.');
+      return;
+    }
+    setPhoneError(null);
     setLoading(true);
     try {
-      const customAttributes: AnyRecord = {};
-      if (customCompany) customAttributes.company = customCompany;
-      if (customCity) customAttributes.city = customCity;
+      const customAttributes: AnyRecord = { ...existingAttrs };
+      const fields: Array<[string, string]> = [
+        ['company', customCompany],
+        ['city', customCity],
+        ['notes', notes],
+      ];
+      for (const [key, value] of fields) {
+        if (value) customAttributes[key] = value;
+        else delete customAttributes[key];
+      }
       const res = await fetch('/api/contacts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -94,142 +148,154 @@ export function ContactFormModal({ isOpen, onClose, groups, tags, onSaved, conta
         }),
       });
       const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || 'Failed to save contact');
+      if (!res.ok || data.error) throw new Error(data.error || 'We could not save this contact. Try again.');
       onSaved();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save contact');
+      setError(err instanceof Error ? err.message : 'We could not save this contact. Try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  const consent = contactToEdit ? consentSentence({ ...contactToEdit, status }) : null;
+
   return (
-    <Modal
+    <BottomSheet
       open={isOpen}
       onOpenChange={(o) => !o && onClose()}
-      title={
-        <span className="inline-flex items-center gap-2">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-brand-subtle text-brand-subtle-foreground">
-            <UserPlus className="size-4" />
-          </span>
-          {contactToEdit ? 'Edit contact' : 'Add new contact'}
-        </span>
-      }
-      description="Contact information &amp; audience tags"
+      title={contactToEdit ? contactName(contactToEdit) : 'Add contact'}
+      description={contactToEdit ? 'Contact details' : 'Save someone you want to message'}
       footer={
         <>
+          {contactToEdit?.id && onDelete && (
+            <Button type="button" variant="ghost" className="text-danger sm:mr-auto" onClick={() => onDelete(contactToEdit.id)}>
+              Delete contact
+            </Button>
+          )}
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
           <Button type="submit" form="contact-form" disabled={loading}>
-            {loading ? 'Saving…' : 'Save contact'}
+            {loading ? 'Saving...' : 'Save contact'}
           </Button>
         </>
       }
     >
-      <form id="contact-form" onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
-            <AlertCircle className="size-4 shrink-0" />
-            <span>{error}</span>
+      <form id="contact-form" onSubmit={handleSubmit} className="space-y-4" noValidate>
+        {error && <Alert tone="danger">{error}</Alert>}
+
+        <div>
+          <label htmlFor="cf-phone" className={fieldLabel}>
+            WhatsApp number
+          </label>
+          <Input
+            id="cf-phone"
+            inputMode="tel"
+            placeholder="e.g. +971501234567"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            aria-invalid={phoneError ? true : undefined}
+          />
+          {phoneError && <p className="mt-1 text-sm text-danger">{phoneError}</p>}
+          {contactToEdit?.id && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={() => router.push(`/inbox?contactId=${contactToEdit.id}`)}
+            >
+              <MessageSquare />
+              Open chat
+            </Button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="cf-first" className={fieldLabel}>First name</label>
+            <Input id="cf-first" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Sara" />
+          </div>
+          <div>
+            <label htmlFor="cf-last" className={fieldLabel}>Last name</label>
+            <Input id="cf-last" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Khan" />
+          </div>
+        </div>
+
+        {contactToEdit?.id && (
+          <div>
+            <label htmlFor="cf-stage" className={fieldLabel}>Stage</label>
+            <select id="cf-stage" value={stage} onChange={(e) => changeStage(e.target.value)} className={selectClass}>
+              {LEAD_STAGES.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {stageWord(s.id)}
+                </option>
+              ))}
+            </select>
           </div>
         )}
 
         <div>
-          <label className={fieldLabel}>
-            WhatsApp phone number <span className="text-destructive">*</span>
-          </label>
-          <Input
-            required
-            placeholder="e.g. +971501234567"
-            value={phoneNumber}
-            onChange={(e) => setPhoneNumber(e.target.value)}
-            className="font-mono"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={fieldLabel}>First name</label>
-            <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="John" />
-          </div>
-          <div>
-            <label className={fieldLabel}>Last name</label>
-            <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Doe" />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={fieldLabel}>Email (optional)</label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="john@example.com" />
-          </div>
-          <div>
-            <label className={fieldLabel}>Status</label>
-            <select value={status} onChange={(e) => setStatus(e.target.value)} className={selectClass}>
-              <option value="ACTIVE">Active (can receive broadcasts)</option>
-              <option value="UNSUBSCRIBED">Unsubscribed (opted out)</option>
-              <option value="BOUNCED">Bounced / invalid</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-muted p-3">
-          <div>
-            <label className={fieldLabel}>Company</label>
-            <Input value={customCompany} onChange={(e) => setCustomCompany(e.target.value)} placeholder="Company name" />
-          </div>
-          <div>
-            <label className={fieldLabel}>City / region</label>
-            <Input value={customCity} onChange={(e) => setCustomCity(e.target.value)} placeholder="Dubai, UAE" />
-          </div>
-        </div>
-
-        <div>
-          <label className={cn(fieldLabel, 'mb-1.5')}>Assign groups</label>
+          <span className={fieldLabel}>Labels</span>
           <div className="flex flex-wrap gap-2">
-            {groups.map((g) => {
-              const sel = selectedGroupIds.includes(g.id);
-              return (
-                <button
-                  key={g.id}
-                  type="button"
-                  onClick={() => toggle(selectedGroupIds, setSelectedGroupIds, g.id)}
-                  className={cn(
-                    'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
-                    sel ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-muted text-foreground hover:bg-accent'
-                  )}
-                >
+            {tags.length === 0 && <p className="text-sm text-muted-foreground">No labels yet. Create some from Labels and groups.</p>}
+            {tags.map((t) => (
+              <Chip key={t.id} selected={selectedTagIds.includes(t.id)} onClick={() => toggle(selectedTagIds, setSelectedTagIds, t.id)}>
+                <ColorDot color={t.color} className="size-2" />
+                {t.name}
+              </Chip>
+            ))}
+          </div>
+        </div>
+
+        {groups.length > 0 && (
+          <div>
+            <span className={fieldLabel}>Groups</span>
+            <div className="flex flex-wrap gap-2">
+              {groups.map((g) => (
+                <Chip key={g.id} selected={selectedGroupIds.includes(g.id)} onClick={() => toggle(selectedGroupIds, setSelectedGroupIds, g.id)}>
                   {g.name}
-                </button>
-              );
-            })}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="cf-company" className={fieldLabel}>Company</label>
+            <Input id="cf-company" value={customCompany} onChange={(e) => setCustomCompany(e.target.value)} placeholder="Company name" />
+          </div>
+          <div>
+            <label htmlFor="cf-city" className={fieldLabel}>City</label>
+            <Input id="cf-city" value={customCity} onChange={(e) => setCustomCity(e.target.value)} placeholder="Dubai" />
           </div>
         </div>
 
         <div>
-          <label className={cn(fieldLabel, 'mb-1.5')}>Assign tags</label>
-          <div className="flex flex-wrap gap-2">
-            {tags.map((t) => {
-              const sel = selectedTagIds.includes(t.id);
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => toggle(selectedTagIds, setSelectedTagIds, t.id)}
-                  className={cn(
-                    'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
-                    sel ? 'border-info bg-info text-info-foreground' : 'border-border bg-muted text-foreground hover:bg-accent'
-                  )}
-                >
-                  {t.name}
-                </button>
-              );
-            })}
-          </div>
+          <label htmlFor="cf-email" className={fieldLabel}>Email (optional)</label>
+          <Input id="cf-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="sara@example.com" />
+        </div>
+
+        <div>
+          <label htmlFor="cf-notes" className={fieldLabel}>Notes</label>
+          <Textarea id="cf-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Anything worth remembering" rows={3} />
+        </div>
+
+        <div className="space-y-2">
+          <span className={fieldLabel}>Permission to message</span>
+          {consent && !consent.recorded && <Alert tone="warning">{consent.sentence}</Alert>}
+          {consent?.recorded && <p className="text-sm text-muted-foreground">{consent.sentence}</p>}
+          <label htmlFor="cf-status" className="sr-only">Can we message this person?</label>
+          <select id="cf-status" value={status} onChange={(e) => setStatus(e.target.value)} className={selectClass}>
+            <option value="ACTIVE">Can receive messages</option>
+            <option value="UNSUBSCRIBED">Opted out, do not message</option>
+            <option value="BOUNCED">Number does not work</option>
+          </select>
+          {consent?.optedOut && <Alert tone="info">This person opted out. They will not get broadcasts.</Alert>}
         </div>
       </form>
-    </Modal>
+    </BottomSheet>
   );
 }

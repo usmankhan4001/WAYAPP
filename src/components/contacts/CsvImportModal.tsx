@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import Papa from 'papaparse';
-import { Upload, CheckCircle2, AlertCircle, FileSpreadsheet, ArrowRight, Download, Check } from 'lucide-react';
+import { Upload, CheckCircle2, FileSpreadsheet, ArrowRight, Download, Check } from 'lucide-react';
 
-import { Modal } from '@/components/ui/modal';
+import { BottomSheet } from '@/components/ui/bottom-sheet';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -73,7 +74,7 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
       skipEmptyLines: true,
       complete: (results) => {
         if (results.data.length === 0) {
-          setError('The uploaded CSV file contains no data rows.');
+          setError('That file has no rows. Pick a file with at least one contact.');
           return;
         }
         const cols = Object.keys(results.data[0] as object);
@@ -92,13 +93,13 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
         setColumnMapping(mapping);
         setStep('MAP');
       },
-      error: (err) => setError(`Failed to parse CSV file: ${err.message}`),
+      error: (err) => setError(`We could not read that file. Save it as a CSV and try again.`),
     });
   };
 
   const handleExecuteImport = async () => {
     if (!columnMapping.phoneNumber) {
-      setError('Please select which column contains the phone number.');
+      setError('Choose which column has the phone number.');
       return;
     }
     if (consentConfirmed && !consentSource.trim()) {
@@ -121,12 +122,12 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
         }),
       });
       const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || 'Import failed');
+      if (!res.ok || data.error) throw new Error(data.error || 'The import did not work. Try again.');
       setImportResult({ imported: data.importedCount, skipped: data.skippedCount, errors: data.errors || [] });
       setStep('DONE');
       onImported();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Import failed');
+      setError(err instanceof Error ? err.message : 'The import did not work. Try again.');
       setStep('MAP');
     }
   };
@@ -182,7 +183,7 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
     ) : null;
 
   return (
-    <Modal
+    <BottomSheet
       open={isOpen}
       onOpenChange={(o) => !o && reset()}
       size="xl"
@@ -191,27 +192,22 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
           <span className="flex size-9 items-center justify-center rounded-lg bg-brand-subtle text-brand-subtle-foreground">
             <FileSpreadsheet className="size-5" />
           </span>
-          Bulk contact import
+          Import contacts
         </span>
       }
-      description="Upload a CSV with phone numbers and custom audience attributes"
+      description="Add many people at once from a spreadsheet file"
       footer={footer ?? undefined}
     >
       <div className="space-y-4">
-        {error && (
-          <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
-            <AlertCircle className="size-4 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
+        {error && <Alert tone="danger">{error}</Alert>}
 
         {step === 'UPLOAD' && (
           <div className="space-y-4">
             <div className="rounded-xl border-2 border-dashed border-border bg-muted/50 p-8 text-center transition-colors hover:border-primary">
               <Upload className="mx-auto mb-3 size-10 text-muted-foreground" />
-              <h4 className="mb-1 text-sm font-semibold text-foreground">Choose a CSV file to import</h4>
+              <h4 className="mb-1 text-sm font-semibold text-foreground">Choose a spreadsheet file (CSV)</h4>
               <p className="mx-auto mb-4 max-w-md text-xs text-muted-foreground">
-                Supports Phone Number, First/Last Name, Email, Tags and unlimited custom parameters.
+                Needs a phone number column. Names, email and labels are optional.
               </p>
               <div className="flex items-center justify-center gap-3">
                 <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
@@ -229,11 +225,10 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
             <div className="space-y-1 rounded-lg border border-success/20 bg-success-subtle p-3.5 text-2xs text-success-subtle-foreground">
               <div className="flex items-center gap-1.5 font-semibold">
                 <Check className="size-3.5" />
-                <span>Automatic E.164 normalization &amp; attribute capture</span>
+                <span>Phone numbers are tidied up for you</span>
               </div>
               <p className="leading-relaxed opacity-90">
-                International numbers are auto-formatted. Extra columns (company, city, balance…) are saved as dynamic
-                attributes for broadcast personalization.
+                Extra columns such as company or city are saved on each contact so you can use them in messages.
               </p>
             </div>
           </div>
@@ -243,7 +238,7 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
           <div className="space-y-4">
             <div className="flex items-center justify-between rounded-lg border border-border bg-muted p-3 text-xs text-foreground">
               <span>
-                Loaded <strong>{parsedRows.length}</strong> contacts from CSV
+                Loaded <strong>{parsedRows.length}</strong> contacts in your file
               </span>
               <button onClick={() => setStep('UPLOAD')} className="text-xs font-semibold text-primary hover:underline">
                 Change file
@@ -251,18 +246,18 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
             </div>
 
             <div className="space-y-3">
-              <span className="text-xs font-semibold uppercase tracking-wider text-foreground">Map CSV columns</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-foreground">Match your columns</span>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {mapSelect('phoneNumber', 'Phone number column', true, false)}
                 {mapSelect('firstName', 'First name column')}
                 {mapSelect('lastName', 'Last name column')}
-                {mapSelect('email', 'Email address column')}
+                {mapSelect('email', 'Email column')}
               </div>
             </div>
 
             <div className="space-y-3 border-t border-border pt-2">
               <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
-                Bulk assign to group &amp; tag (optional)
+                Add everyone to a group or label (optional)
               </span>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div>
@@ -277,9 +272,9 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
                   </select>
                 </div>
                 <div>
-                  <label className={fieldLabel}>Apply tag</label>
+                  <label className={fieldLabel}>Apply label</label>
                   <select value={selectedTagId} onChange={(e) => setSelectedTagId(e.target.value)} className={selectClass}>
-                    <option value="">— no tag —</option>
+                    <option value="">No label</option>
                     {tags.map((t) => (
                       <option key={t.id} value={t.id}>
                         {t.name}
@@ -353,8 +348,8 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
         {step === 'IMPORTING' && (
           <div className="space-y-3 py-12 text-center">
             <div className="mx-auto size-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-            <h4 className="text-sm font-semibold text-foreground">Processing and normalising contacts…</h4>
-            <p className="text-xs text-muted-foreground">Validating phone formats, assigning tags, updating attributes.</p>
+            <h4 className="text-sm font-semibold text-foreground">Importing your contacts...</h4>
+            <p className="text-xs text-muted-foreground">This can take a moment. Keep this open.</p>
           </div>
         )}
 
@@ -364,24 +359,23 @@ export function CsvImportModal({ isOpen, onClose, groups, tags, onImported }: Cs
               <CheckCircle2 className="size-7" />
             </div>
             <div>
-              <h4 className="text-base font-semibold text-foreground">Import processed successfully</h4>
+              <h4 className="text-base font-semibold text-foreground">Import finished</h4>
               <p className="mt-1 text-xs text-muted-foreground">
                 <strong>{importResult.imported}</strong> imported · <strong>{importResult.skipped}</strong> skipped
               </p>
             </div>
             {importResult.errors.length > 0 && (
-              <div className="max-h-32 overflow-y-auto rounded-lg border border-warning/30 bg-warning-subtle p-3 text-left text-xs text-warning-subtle-foreground">
-                <span className="mb-1 block font-semibold">Warnings / skipped rows:</span>
-                <ul className="list-disc space-y-0.5 pl-4 text-2xs">
+              <Alert tone="warning" title="Some rows were skipped" className="text-left">
+                <ul className="max-h-32 list-disc space-y-0.5 overflow-y-auto pl-4 text-sm">
                   {importResult.errors.map((err, i) => (
                     <li key={i}>{err}</li>
                   ))}
                 </ul>
-              </div>
+              </Alert>
             )}
           </div>
         )}
       </div>
-    </Modal>
+    </BottomSheet>
   );
 }
