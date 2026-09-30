@@ -42,6 +42,9 @@ import {
   Forward,
   Edit2,
   Search,
+  Check,
+  Star,
+  MoreVertical,
 } from 'lucide-react';
 import { formatDateTime, formatTimeAgo } from '@/lib/utils';
 import { LEAD_STAGES, getLeadStage } from '@/lib/constants/lead-stages';
@@ -50,6 +53,13 @@ import { StatusBadge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/Toast';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
+import { UserAvatar } from '@/components/ui/avatar';
+import { BottomSheet } from '@/components/ui/bottom-sheet';
+import { parseReactions } from '@/lib/whatsapp/reactions';
+import { MessageMenu, bubbleGestures, newGestureState } from './MessageMenu';
+import { AttachSheet } from './AttachSheet';
+import { dayLabel, messagePreview, replyStatusLine, sameDay, tickState, timeLabel } from './chat-utils';
 import { Input } from '@/components/ui/input';
 import { AudioVoicePlayer } from './AudioVoicePlayer';
 import { VoiceNoteRecorder } from './VoiceNoteRecorder';
@@ -73,6 +83,13 @@ interface StagedMedia {
 export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowProps) {
   const toast = useToast();
   const [messages, setMessages] = useState<any[]>([]);
+  const [menuMessage, setMenuMessage] = useState<any | null>(null);
+  const [replyingTo, setReplyingTo] = useState<any | null>(null);
+  const [noteMode, setNoteMode] = useState(false);
+  const [isAttachSheetOpen, setIsAttachSheetOpen] = useState(false);
+  const [isStarredOpen, setIsStarredOpen] = useState(false);
+  const [starredMessages, setStarredMessages] = useState<any[]>([]);
+  const gestureState = useRef(newGestureState());
   const [text, setText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -666,15 +683,23 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
     setAiSuggestions([]);
 
     try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contactId: contact.id,
-          messageType: 'text',
-          text: text.trim(),
-        }),
-      });
+      // A note goes to /api/chat/internal-notes, which cannot reach WhatsApp at all.
+      const res = noteMode
+        ? await fetch('/api/chat/internal-notes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contactId: contact.id, body: text.trim() }),
+          })
+        : await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contactId: contact.id,
+              messageType: 'text',
+              text: text.trim(),
+              replyToWamid: replyingTo?.wamid || undefined,
+            }),
+          });
 
       const data = await res.json();
       if (!res.ok || data.error) {
@@ -684,7 +709,9 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
         }
       } else {
         setText('');
-        playOutgoingPop();
+        setReplyingTo(null);
+        setNoteMode(false);
+        if (!noteMode) playOutgoingPop();
         fetchMessages();
         onRefreshList();
       }
@@ -729,6 +756,65 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
     } finally {
       setIsSending(false);
     }
+  };
+
+  const patchMessage = (id: string, patch: Record<string, any>) =>
+    setMessages((prev) => prev.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+
+  const handleReplyTo = (m: any) => {
+    setNoteMode(false);
+    setReplyingTo(m);
+    textInputRef.current?.focus();
+  };
+
+  const handleStar = async (m: any) => {
+    const next = !m.starred;
+    patchMessage(m.id, { starred: next });
+    try {
+      const res = await fetch(`/api/chat/messages/${m.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ starred: next }),
+      });
+      if (!res.ok) throw new Error('failed');
+    } catch {
+      patchMessage(m.id, { starred: !next });
+      setErrorMessage('Could not star the message. Try again.');
+    }
+  };
+
+  const handleReact = async (m: any, emoji: string) => {
+    const before = m.reactions;
+    const others = parseReactions(m.reactions).filter((r) => r.from === 'customer');
+    patchMessage(m.id, { reactions: JSON.stringify(emoji ? [...others, { emoji, from: 'me' }] : others) });
+    try {
+      const res = await fetch(`/api/chat/messages/${m.id}/reaction`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emoji }),
+      });
+      if (!res.ok) throw new Error('failed');
+      fetchMessages();
+    } catch {
+      patchMessage(m.id, { reactions: before });
+      setErrorMessage('Could not send the reaction. Try again.');
+    }
+  };
+
+  const openStarred = () => {
+    setIsStarredOpen(true);
+    fetch(`/api/chat?contactId=${contact.id}&starred=1`)
+      .then((res) => res.json())
+      .then((data) => setStarredMessages(Array.isArray(data) ? data : []))
+      .catch(() => setStarredMessages([]));
+  };
+
+  const openSavedReplies = () => {
+    setNoteMode(false);
+    setText('/');
+    setShowSnippetDropdown(true);
+    setSnippetFilter('/');
+    setTimeout(() => textInputRef.current?.focus(), 0);
   };
 
   const contactName = `${contact?.firstName || ''} ${contact?.lastName || ''}`.trim() || contact?.phoneNumber || 'Customer';
@@ -783,44 +869,31 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
             {onBackMobile && (
               <button
                 onClick={onBackMobile}
-                className="lg:hidden p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                className="md:hidden p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                 aria-label="Back to chat list"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}
 
-            <div className="w-10 h-10 rounded-full bg-primary text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-2xs ring-2 ring-primary/20">
-              {contactName.substring(0, 2).toUpperCase()}
-            </div>
+            <UserAvatar name={contactName} size="lg" />
 
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-foreground truncate">{contactName}</h3>
+                <h3 className="text-base font-semibold text-foreground truncate">{contactName}</h3>
                 {modules.lead_crm && (
                   <StatusBadge tone={currentStage.tone}>{currentStage.label}</StatusBadge>
                 )}
               </div>
-
-              {/* 24-Hour Active Window Pill */}
-              <div className="flex items-center gap-1.5">
-                {effectiveWindowActive ? (
-                  <span className="inline-flex items-center gap-1 text-2xs font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/80">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    24h Active • {hoursRemaining}h {minutesRemaining}m
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-2xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/80">
-                    <Lock className="w-2.5 h-2.5" />
-                    24h Expired &bull; Template Required
-                  </span>
-                )}
-              </div>
+              <p className="truncate text-sm text-muted-foreground">{replyStatusLine(effectiveWindowActive)}</p>
             </div>
           </div>
 
           {/* Header Action Tools */}
           <div className="flex items-center gap-2">
+            <IconButton label="Starred messages" onClick={openStarred}>
+              <Star />
+            </IconButton>
             <button
               type="button"
               onClick={() => setIsTemplatePickerOpen(!isTemplatePickerOpen)}
@@ -901,27 +974,67 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
               </p>
             </div>
           ) : (
-            messages.map((m) => {
+            messages.map((m, idx) => {
               const isOutbound = m.direction === 'OUTBOUND';
               const hasMedia = !!m.mediaUrl;
               const msgType = m.messageType || 'text';
+              const when = new Date(m.timestamp);
+              const showDay = idx === 0 || !sameDay(new Date(messages[idx - 1].timestamp), when);
+              const dayChip = showDay ? (
+                <div className="flex justify-center py-1">
+                  <span className="rounded-full bg-raised px-3 py-1 text-xs font-medium text-muted-foreground">{dayLabel(when)}</span>
+                </div>
+              ) : null;
+              const quoted = m.replyToWamid ? messages.find((x) => x.wamid === m.replyToWamid) : null;
+              const reactionList = parseReactions(m.reactions);
+              const reactionGroups = Object.entries(
+                reactionList.reduce<Record<string, number>>((acc, r) => ({ ...acc, [r.emoji]: (acc[r.emoji] || 0) + 1 }), {})
+              );
+
+              // Internal note: team-only, never sent to WhatsApp, styled apart from customer bubbles.
+              if (m.direction === 'INTERNAL') {
+                return (
+                  <React.Fragment key={m.id}>
+                    {dayChip}
+                    <div className="flex justify-center" {...bubbleGestures(gestureState.current, () => setMenuMessage(m), () => {})}>
+                      <div className="w-full max-w-md rounded-2xl border border-dashed border-warning bg-warning-subtle px-3.5 py-2.5 text-warning-subtle-foreground">
+                        <p className="flex items-center gap-1.5 text-xs font-semibold">
+                          <Lock className="size-3.5" />
+                          Only your team sees this
+                        </p>
+                        <p className="whitespace-pre-wrap pt-1 text-sm">{m.body}</p>
+                        <p className="pt-1 text-right text-xs opacity-70">{timeLabel(when)}</p>
+                      </div>
+                    </div>
+                  </React.Fragment>
+                );
+              }
 
               return (
+                <React.Fragment key={m.id}>
+                {dayChip}
                 <div
-                  key={m.id}
                   className={`flex flex-col group/msg ${isOutbound ? 'items-end' : 'items-start'}`}
                   onMouseEnter={() => setHoveredMessageId(m.id)}
                   onMouseLeave={() => setHoveredMessageId(null)}
                 >
                   <div className={`flex items-center gap-2 max-w-full ${isOutbound ? 'flex-row-reverse' : 'flex-row'}`}>
                     <div
-                      onClick={() => setHoveredMessageId(hoveredMessageId === m.id ? null : m.id)}
+                      {...bubbleGestures(gestureState.current, () => setMenuMessage(m), () => handleReplyTo(m))}
                       className={`max-w-[88%] sm:max-w-[75%] md:max-w-[65%] p-3 md:p-3.5 space-y-1.5 transition-all relative cursor-pointer sm:cursor-default shadow-2xs select-text ${
                         isOutbound
-                          ? 'bg-wa-bubble-out text-foreground border border-[#c3f4bb] rounded-2xl rounded-tr-xs'
-                          : 'bg-card text-foreground border border-border rounded-2xl rounded-tl-xs'
+                          ? 'bg-wa-bubble-out text-wa-bubble-out-foreground rounded-[var(--radius-bubble)] rounded-tr-[var(--radius-bubble-tail)]'
+                          : 'bg-wa-bubble-in text-wa-bubble-in-foreground rounded-[var(--radius-bubble)] rounded-tl-[var(--radius-bubble-tail)]'
                       }`}
                     >
+                      {m.replyToWamid && (
+                        <div className="rounded-lg border-l-4 border-primary bg-foreground/5 px-2.5 py-1.5">
+                          <p className="text-xs font-semibold text-foreground">
+                            {quoted ? (quoted.direction === 'OUTBOUND' ? 'You' : contactName) : 'Original message'}
+                          </p>
+                          <p className="truncate text-sm text-muted-foreground">{messagePreview(quoted)}</p>
+                        </div>
+                      )}
                       {/* Media Type: Image */}
                       {msgType === 'image' && hasMedia && (
                         <div
@@ -1044,64 +1157,43 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                       )}
 
                       {/* Message Timestamp & Status */}
-                      <div
-                        className={`flex items-center justify-end gap-1 text-2xs select-none pt-0.5 ${
-                          isOutbound ? 'text-muted-foreground' : 'text-muted-foreground'
-                        }`}
-                      >
-                        <span className="font-mono text-2xs">{formatDateTime(m.timestamp)}</span>
-                        {isOutbound && (
-                          <CheckCheck
-                            className={`w-3.5 h-3.5 ${
-                              m.status === 'READ'
-                                ? 'text-info font-normal'
-                                : m.status === 'DELIVERED'
-                                ? 'text-muted-foreground'
-                                : 'text-muted-foreground'
-                            }`}
-                          />
-                        )}
+                      <div className="flex items-center justify-end gap-1 pt-0.5 text-xs text-muted-foreground select-none">
+                        {m.starred && <Star className="size-3 fill-current" aria-label="Starred" />}
+                        <span>{timeLabel(when)}</span>
+                        {isOutbound &&
+                          (tickState(m.status) === 'sent' ? (
+                            <Check className="size-3.5" aria-label="Sent" />
+                          ) : (
+                            <CheckCheck
+                              className={`size-3.5 ${tickState(m.status) === 'read' ? 'text-read-tick' : ''}`}
+                              aria-label={tickState(m.status) === 'read' ? 'Read' : 'Delivered'}
+                            />
+                          ))}
                       </div>
                     </div>
 
-                    {/* Hover Actions (Copy, Forward, Edit) */}
-                    {hoveredMessageId === m.id && (
-                      <div className="flex items-center gap-1 bg-card/80 backdrop-blur-sm border border-border p-1 rounded-full  animate-in fade-in zoom-in duration-150">
-                        {m.body && (
-                          <button
-                            onClick={() => handleCopyMessage(m.body)}
-                            className="p-1.5 text-muted-foreground hover:text-primary hover:bg-black/5 rounded-full transition-colors"
-                            title="Copy message text"
-                            aria-label="Copy message text"
-                          >
-                            <Copy className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleOpenForward(m)}
-                          className="p-1.5 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
-                          title="Forward message"
-                          aria-label="Forward message"
-                        >
-                          <Forward className="w-3.5 h-3.5" />
-                        </button>
-                        {m.body && isOutbound && (
-                          <button
-                            onClick={() => {
-                              setEditingMessageId(m.id);
-                              setEditMessageText(m.body);
-                            }}
-                            className="p-1.5 text-muted-foreground hover:text-amber-600 hover:bg-amber-50 rounded-full transition-colors"
-                            title="Edit message (Local CRM only)"
-                            aria-label="Edit message"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    )}
+                    {/* Message options: the same menu as long-press */}
+                    <IconButton
+                      label="Message options"
+                      size="sm"
+                      className="hidden shrink-0 md:inline-flex md:opacity-0 md:group-hover/msg:opacity-100 md:focus-visible:opacity-100"
+                      onClick={() => setMenuMessage(m)}
+                    >
+                      <MoreVertical />
+                    </IconButton>
                   </div>
+                  {reactionGroups.length > 0 && (
+                    <div className={`-mt-2 flex gap-1 px-2 ${isOutbound ? 'justify-end' : ''}`}>
+                      {reactionGroups.map(([emoji, n]) => (
+                        <span key={emoji} className="rounded-full border border-border bg-card px-2 py-0.5 text-sm">
+                          {emoji}
+                          {n > 1 && <span className="pl-1 text-xs text-muted-foreground">{n}</span>}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
+                </React.Fragment>
               );
             })
           )}
@@ -1302,7 +1394,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
               <div className="flex items-center gap-2 min-w-0">
                 <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                 <span className="text-amber-800 text-2xs font-medium truncate">
-                  24h Window Inactive: May require an approved WhatsApp template.
+                  This customer has not written in 24 hours. Use a template to reply.
                 </span>
               </div>
               <button
@@ -1324,130 +1416,54 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
             />
           ) : (
             <div className="relative">
-              {/* Attachment Popover */}
-              {isAttachmentMenuOpen && (
-                <div className="absolute bottom-14 left-0 bg-card rounded-2xl border border-border shadow-xl p-2 z-30 grid grid-cols-2 gap-1.5 min-w-[240px] animate-in fade-in slide-in-from-bottom-2 duration-150">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsAttachmentMenuOpen(false);
-                      cameraInputRef.current?.click();
-                    }}
-                    className="p-2.5 rounded-xl hover:bg-emerald-50/60 flex items-center gap-2.5 text-xs font-semibold text-foreground transition-all col-span-2 bg-muted border border-emerald-200/80 active:scale-[0.98]"
-                  >
-                    <div className="p-1.5 rounded-lg bg-primary text-white shadow-2xs">
-                      <Camera className="w-4 h-4" />
-                    </div>
-                    <div className="text-left">
-                      <span className="block font-semibold text-foreground">Take Photo / Video</span>
-                      <span className="text-2xs text-muted-foreground font-normal block">Capture from camera</span>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => triggerFileInput('image')}
-                    className="p-2 rounded-xl hover:bg-accent flex items-center gap-2 text-xs font-medium text-foreground transition-all active:scale-95"
-                  >
-                    <div className="p-1.5 rounded-lg bg-emerald-100 text-emerald-800">
-                      <ImageIcon className="w-4 h-4" />
-                    </div>
-                    <span>Photo</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => triggerFileInput('video')}
-                    className="p-2 rounded-xl hover:bg-accent flex items-center gap-2 text-xs font-medium text-foreground transition-all active:scale-95"
-                  >
-                    <div className="p-1.5 rounded-lg bg-blue-100 text-blue-700">
-                      <Video className="w-4 h-4" />
-                    </div>
-                    <span>Video</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => triggerFileInput('document')}
-                    className="p-2 rounded-xl hover:bg-accent flex items-center gap-2 text-xs font-medium text-foreground transition-all active:scale-95"
-                  >
-                    <div className="p-1.5 rounded-lg bg-purple-100 text-purple-700">
-                      <FileIcon className="w-4 h-4" />
-                    </div>
-                    <span>Document</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => triggerFileInput('audio')}
-                    className="p-2 rounded-xl hover:bg-accent flex items-center gap-2 text-xs font-medium text-foreground transition-all active:scale-95"
-                  >
-                    <div className="p-1.5 rounded-lg bg-amber-100 text-amber-700">
-                      <Music className="w-4 h-4" />
-                    </div>
-                    <span>Audio</span>
-                  </button>
+              {replyingTo && !noteMode && (
+                <div className="mb-2 flex items-center gap-2 rounded-2xl bg-raised px-3 py-2">
+                  <div className="min-w-0 flex-1 border-l-4 border-primary pl-2">
+                    <p className="text-xs font-semibold text-foreground">
+                      Replying to {replyingTo.direction === 'OUTBOUND' ? 'yourself' : contactName}
+                    </p>
+                    <p className="truncate text-sm text-muted-foreground">{messagePreview(replyingTo)}</p>
+                  </div>
+                  <IconButton label="Cancel reply" size="sm" onClick={() => setReplyingTo(null)}>
+                    <X />
+                  </IconButton>
+                </div>
+              )}
+              {noteMode && (
+                <div className="mb-2 flex items-center gap-2 rounded-2xl bg-warning-subtle px-3 py-2 text-warning-subtle-foreground">
+                  <Lock className="size-4 shrink-0" />
+                  <p className="min-w-0 flex-1 text-sm font-medium">Note to your team. Only your team sees this.</p>
+                  <IconButton label="Cancel note" size="sm" onClick={() => setNoteMode(false)}>
+                    <X />
+                  </IconButton>
                 </div>
               )}
 
-              <form onSubmit={handleSend} className="flex items-center gap-1.5 sm:gap-2">
-                {/* Paperclip Button */}
-                <button
-                  type="button"
-                  onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
-                  className={`p-2 sm:p-2.5 rounded-xl shrink-0 transition-all active:scale-95 ${
-                    isAttachmentMenuOpen
-                      ? 'bg-emerald-100 text-emerald-900'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-                  }`}
-                  title="Attach file"
-                  aria-label="Attach file"
-                >
-                  <Paperclip className="w-4 h-4" />
-                </button>
-
-                {/* Quick Camera Snap */}
-                <button
-                  type="button"
-                  onClick={() => cameraInputRef.current?.click()}
-                  className="p-2 sm:p-2.5 rounded-xl text-muted-foreground hover:text-primary hover:bg-accent transition-all shrink-0 active:scale-95"
-                  title="Take photo from camera"
-                  aria-label="Take photo from camera"
-                >
-                  <Camera className="w-4 h-4" />
-                </button>
+              <form onSubmit={handleSend} className="flex items-center gap-2">
+                <IconButton label="Attach" onClick={() => setIsAttachSheetOpen(true)}>
+                  <Plus />
+                </IconButton>
 
                 <input
                   ref={textInputRef}
                   type="text"
-                  placeholder={
-                    modules.canned_snippets
-                      ? 'Type your WhatsApp reply or "/" for quick sales snippets...'
-                      : 'Type your WhatsApp reply...'
-                  }
+                  placeholder={noteMode ? 'Write a note for your team' : 'Message'}
                   value={text}
                   onChange={handleTextChange}
-                  className="flex-1 min-w-0 px-3.5 py-2 sm:py-2.5 text-xs rounded-xl border border-border bg-muted text-foreground placeholder:text-muted-foreground focus:bg-card focus:outline-hidden focus:ring-2 focus:ring-ring/30 focus:border-ring transition-all"
+                  className={`h-11 min-w-0 flex-1 rounded-full px-4 text-base text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${
+                    noteMode ? 'bg-warning-subtle' : 'bg-raised'
+                  }`}
                 />
 
-                {!text.trim() && (
-                  <button
-                    type="button"
-                    onClick={() => setIsRecordingVoice(true)}
-                    className="p-2 sm:p-2.5 rounded-xl text-muted-foreground hover:text-primary hover:bg-accent transition-all shrink-0 active:scale-95"
-                    title="Record WhatsApp voice note"
-                    aria-label="Record WhatsApp voice note"
-                  >
-                    <Mic className="w-4 h-4" />
-                  </button>
+                {text.trim() ? (
+                  <Button type="submit" variant="wa" size="icon-lg" disabled={isSending} aria-label={noteMode ? 'Save note' : 'Send message'}>
+                    {isSending ? <Loader2 className="animate-spin" /> : <Send />}
+                  </Button>
+                ) : (
+                  <IconButton label="Record a voice note" size="lg" onClick={() => setIsRecordingVoice(true)}>
+                    <Mic />
+                  </IconButton>
                 )}
-
-                <button
-                  type="submit"
-                  disabled={isSending || !text.trim()}
-                  className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-primary hover:bg-primary/90 active:scale-95 text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-all disabled:opacity-50 shrink-0"
-                  aria-label="Send message"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Send</span>
-                </button>
               </form>
             </div>
           )}
@@ -1496,6 +1512,52 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
           )}
         </div>
       </div>
+
+      <MessageMenu
+        message={menuMessage}
+        onClose={() => setMenuMessage(null)}
+        onReply={handleReplyTo}
+        onReact={handleReact}
+        onStar={handleStar}
+        onCopy={(m) => handleCopyMessage(m.body)}
+        onForward={handleOpenForward}
+        onEdit={(m) => {
+          setEditingMessageId(m.id);
+          setEditMessageText(m.body);
+        }}
+        myReaction={menuMessage ? parseReactions(menuMessage.reactions).find((r) => r.from !== 'customer')?.emoji : undefined}
+      />
+
+      <AttachSheet
+        open={isAttachSheetOpen}
+        onOpenChange={setIsAttachSheetOpen}
+        onPhoto={() => triggerFileInput('image')}
+        onDocument={() => triggerFileInput('document')}
+        onTemplate={() => setIsTemplatePickerOpen(true)}
+        onSavedReply={openSavedReplies}
+        onNote={() => {
+          setReplyingTo(null);
+          setNoteMode(true);
+          setTimeout(() => textInputRef.current?.focus(), 0);
+        }}
+      />
+
+      <BottomSheet open={isStarredOpen} onOpenChange={setIsStarredOpen} title="Starred messages">
+        <div className="max-h-[60vh] overflow-y-auto pb-2">
+          {starredMessages.length === 0 ? (
+            <p className="px-4 py-6 text-center text-sm text-muted-foreground">Star a message to find it here.</p>
+          ) : (
+            starredMessages.map((sm) => (
+              <div key={sm.id} className="border-b border-border px-4 py-3">
+                <p className="text-xs text-muted-foreground">
+                  {sm.direction === 'OUTBOUND' ? 'You' : sm.direction === 'INTERNAL' ? 'Team note' : contactName} - {dayLabel(new Date(sm.timestamp))}, {timeLabel(new Date(sm.timestamp))}
+                </p>
+                <p className="whitespace-pre-wrap text-sm text-foreground">{messagePreview(sm)}</p>
+              </div>
+            ))
+          )}
+        </div>
+      </BottomSheet>
 
       {/* Invoice Generator Modal */}
       <Modal

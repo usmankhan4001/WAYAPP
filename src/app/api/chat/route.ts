@@ -6,6 +6,7 @@ import { WhatsAppClient } from '@/lib/whatsapp/client';
 import { interpretMetaError } from '@/lib/whatsapp/errors';
 import { sanitizePhoneNumber } from '@/lib/whatsapp/phone';
 import { getReplyWindow } from '@/lib/whatsapp/window';
+import { isSendable } from '@/lib/whatsapp/chat-extras';
 import { logger } from '@/lib/logger';
 import { readFile } from 'fs/promises';
 import path from 'path';
@@ -19,7 +20,13 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const contactId = searchParams.get('contactId');
   const conversationId = searchParams.get('conversationId');
-  const filter = searchParams.get('filter') || 'all'; // all, unread
+  const KNOWN_FILTERS = ['all', 'unread', 'waiting', 'archived', 'closing', 'failed', 'mine', 'unassigned', 'resolved', 'spam'];
+  const rawFilter = searchParams.get('filter') || 'all';
+  const filter = KNOWN_FILTERS.includes(rawFilter) ? rawFilter : 'all'; // unknown values fall back to All
+  const HOUR = 60 * 60 * 1000;
+  // // all, unread, waiting, archived
+  const starredOnly = searchParams.get('starred') === '1';
+  // (also: mine, unassigned, resolved, spam)
   const search = searchParams.get('search')?.trim().toLowerCase();
   const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 200);
   const cursor = searchParams.get('cursor') || undefined;
@@ -58,7 +65,7 @@ export async function GET(request: NextRequest) {
       }
 
       const messages = await prisma.chatMessage.findMany({
-        where: { OR: orConditions },
+        where: { OR: orConditions, ...(starredOnly ? { starred: true } : {}) },
         orderBy: { timestamp: 'asc' },
         take: messageLimit,
       });
@@ -87,7 +94,28 @@ export async function GET(request: NextRequest) {
     // 2. Build conversation filter query
     const convWhere: any = {};
 
-    if (filter === 'unread') {
+    // Archived chats are hidden everywhere except the Archived filter.
+    convWhere.archived = filter === 'archived';
+
+    if (filter === 'closing') {
+      // The reply window closes 24h after the customer's latest inbound message: closing = 21-24h old.
+      const recent = await prisma.chatMessage.groupBy({
+        by: ['contactId'],
+        where: { direction: 'INBOUND', timestamp: { gt: new Date(Date.now() - 24 * HOUR) } },
+        _max: { timestamp: true },
+      });
+      const cutoff = Date.now() - 21 * HOUR;
+      convWhere.contactId = {
+        in: recent.filter((r: any) => r._max?.timestamp && new Date(r._max.timestamp).getTime() <= cutoff).map((r: any) => r.contactId),
+      };
+    } else if (filter === 'failed') {
+      const failed = await prisma.chatMessage.findMany({
+        where: { direction: 'OUTBOUND', status: 'FAILED', timestamp: { gt: new Date(Date.now() - 24 * HOUR) } },
+        select: { contactId: true },
+        distinct: ['contactId'],
+      });
+      convWhere.contactId = { in: failed.map((r: any) => r.contactId) };
+    } else if (filter === 'unread') {
       convWhere.unreadCount = { gt: 0 };
     } else if (filter === 'mine' && authResult.session?.userId) {
       convWhere.assignedToId = authResult.session.userId;
@@ -123,13 +151,22 @@ export async function GET(request: NextRequest) {
             groups: { include: { group: true } },
           },
         },
+        // Internal notes never count as the last message of a chat.
         messages: {
+          where: { direction: { not: 'INTERNAL' } },
           orderBy: { timestamp: 'desc' },
           take: 1,
         },
       },
-      orderBy: { lastMessageAt: 'desc' },
+      orderBy: [{ pinned: 'desc' }, { lastMessageAt: 'desc' }],
     });
+
+    // Waiting on me: the customer wrote last and we have not answered.
+    if (filter === 'waiting') {
+      const waiting = conversations.filter((c: any) => c.messages?.[0]?.direction === 'INBOUND');
+      conversations.length = 0;
+      conversations.push(...waiting);
+    }
 
     // Pagination: detect if there's a next page
     let nextCursor: string | null = null;
@@ -141,7 +178,10 @@ export async function GET(request: NextRequest) {
     // Also fetch contacts that do not have an explicit conversation record yet
     const existingContactIds = new Set(conversations.map((c) => c.contactId).filter(Boolean));
 
-    if (filter !== 'unread' && !cursor) {
+    if (!['unread', 'waiting', 'archived', 'closing', 'failed'].includes(filter) && !cursor) {
+      // Archived chats must not resurface as empty virtual chats.
+      const archivedRows = await prisma.conversation.findMany({ where: { archived: true }, select: { contactId: true } });
+      archivedRows.forEach((r: any) => r.contactId && existingContactIds.add(r.contactId));
       const contactsWithoutConv = await prisma.contact.findMany({
         where: {
           id: { notIn: Array.from(existingContactIds) },
@@ -212,6 +252,7 @@ export async function POST(request: NextRequest) {
       mediaType,
       caption,
       filename,
+      replyToWamid,
     } = body;
 
     let contact: any = null;
@@ -270,6 +311,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // A reply may only quote a real WhatsApp message, never an internal note.
+    let quotedWamid: string | null = null;
+    if (replyToWamid && typeof replyToWamid === 'string') {
+      const quoted = await prisma.chatMessage.findUnique({ where: { wamid: replyToWamid } });
+      if (quoted && isSendable(quoted)) quotedWamid = replyToWamid;
+    }
+
     const client = await WhatsAppClient.createFromSettings();
     let wamid: string | null = null;
     let messageBody = text?.trim() || '';
@@ -324,6 +372,7 @@ export async function POST(request: NextRequest) {
         mediaUrl: uploadedMediaId ? undefined : absoluteMediaUrl,
         caption: caption?.trim() || text?.trim() || undefined,
         filename: filename || undefined,
+        replyToMessageId: quotedWamid || undefined,
       });
 
       wamid = sendRes.messages?.[0]?.id || null;
@@ -351,7 +400,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Message text or attachment is required' }, { status: 400 });
       }
 
-      const sendRes = await client.sendTextMessage(contact.phoneNumber, text.trim());
+      const sendRes = await client.sendTextMessage(contact.phoneNumber, text.trim(), quotedWamid || undefined);
       wamid = sendRes.messages?.[0]?.id || null;
       savedMessageType = 'text';
     }
@@ -381,6 +430,7 @@ export async function POST(request: NextRequest) {
         messageType: savedMessageType,
         body: messageBody,
         mediaUrl: savedMediaUrl,
+        replyToWamid: quotedWamid,
         status: 'SENT',
         timestamp: new Date(),
       },

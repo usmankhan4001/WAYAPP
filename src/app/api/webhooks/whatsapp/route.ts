@@ -6,6 +6,7 @@ import { sanitizePhoneNumber } from '@/lib/whatsapp/phone';
 import { decryptString, timingSafeCompare } from '@/lib/crypto';
 import { logger } from '@/lib/logger';
 import { findInboundContact } from '@/lib/whatsapp/contact-match';
+import { attachReaction } from '@/lib/whatsapp/chat-extras';
 import { enqueueOutboundWebhook } from '@/worker/outbound-webhooks';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
@@ -271,6 +272,8 @@ export async function POST(request: NextRequest) {
             let interactiveTitle: string | undefined = undefined;
             let buttonPayload: string | undefined = undefined;
             const messageType = incoming.type || 'text';
+            // The customer swiped "reply" on one of our messages: Meta sends its id as context.id.
+            const replyToWamid: string | null = incoming.context?.id || null;
 
             if (incoming.type === 'text') {
               bodyText = incoming.text?.body || '';
@@ -313,7 +316,19 @@ export async function POST(request: NextRequest) {
               bodyText = `[${incoming.type?.toUpperCase()} attachment]`;
             }
 
-            if (bodyText.trim().toUpperCase() === 'STOP' || bodyText.trim().toUpperCase() === 'UNSUBSCRIBE') {
+            // A reaction is not a message: attach it to the message it targets and stop. No new
+            // bubble, no unread bump, no contact/interaction change, no automation trigger.
+            if (incoming.type === 'reaction') {
+              const targetWamid = incoming.reaction?.message_id;
+              if (targetWamid) {
+                await attachReaction(targetWamid, incoming.reaction?.emoji || '', 'customer').catch((err) =>
+                  logger.warn({ err }, 'Failed to attach inbound reaction')
+                );
+              }
+              continue;
+            }
+
+            if (bodyText.trim().toUpperCase() === 'STOP' ||bodyText.trim().toUpperCase() === 'UNSUBSCRIBE') {
               isOptOut = true;
             }
 
@@ -409,8 +424,10 @@ export async function POST(request: NextRequest) {
                 body: bodyText,
                 mediaUrl,
                 status: 'DELIVERED',
+                ...(replyToWamid ? { replyToWamid } : {}),
               },
               create: {
+                replyToWamid,
                 contactId: contact.id,
                 conversationId: conversation.id,
                 phoneNumber: normalizedPhone,

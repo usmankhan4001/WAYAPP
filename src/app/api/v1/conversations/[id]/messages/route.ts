@@ -19,7 +19,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!conversation) return apiError('Conversation not found', 'not_found', 404);
 
     const rows = await prisma.chatMessage.findMany({
-      where: { conversationId: id },
+      where: { conversationId: id, direction: { not: 'INTERNAL' } },
       take: limit + 1,
       cursor: cursor ? { id: cursor } : undefined,
       orderBy: [{ timestamp: 'desc' }, { id: 'desc' }],

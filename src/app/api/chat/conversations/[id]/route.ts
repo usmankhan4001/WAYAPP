@@ -66,9 +66,20 @@ export async function PATCH(
   const { session } = authResult;
 
   try {
-    const { id } = await params;
+    let { id } = await params;
     const body = await request.json();
-    const { assignedToId, status } = body;
+
+    // The list shows contacts with no conversation yet as virtual_<contactId>. Pinning or
+    // archiving one creates the real row first.
+    if (id.startsWith('virtual_')) {
+      const created = await prisma.conversation.upsert({
+        where: { contactId: id.slice('virtual_'.length) },
+        update: {},
+        create: { contactId: id.slice('virtual_'.length), status: 'OPEN', lastMessageAt: new Date(), unreadCount: 0 },
+      });
+      id = created.id;
+    }
+    const { assignedToId, status, pinned, archived, markUnread } = body;
 
     const existing = await prisma.conversation.findUnique({ where: { id } });
     if (!existing) {
@@ -88,6 +99,11 @@ export async function PATCH(
         payload: JSON.stringify({ assignedToId, previousAssignedToId: existing.assignedToId }),
       });
     }
+
+    // Pin, archive and mark-unread are plain flags; no event trail needed.
+    if (typeof pinned === 'boolean') updateData.pinned = pinned;
+    if (typeof archived === 'boolean') updateData.archived = archived;
+    if (markUnread === true && existing.unreadCount === 0) updateData.unreadCount = 1;
 
     // Handle status change
     if (status && status !== existing.status) {

@@ -93,7 +93,7 @@ export async function processInboundBot(params: {
 
         // Load last 5 messages for conversation memory
         const recentMessages = await prisma.chatMessage.findMany({
-          where: { contactId },
+          where: { contactId, direction: { not: 'INTERNAL' } },
           orderBy: { timestamp: 'desc' },
           take: 5,
         });

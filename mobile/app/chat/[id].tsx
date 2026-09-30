@@ -79,6 +79,8 @@ export default function MobileChatScreen() {
   const [text, setText] = useState('');
   const [serverUrl, setServerUrl] = useState('');
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [menuMessage, setMenuMessage] = useState<any | null>(null);
+  const [replyingTo, setReplyingTo] = useState<any | null>(null);
   const listRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -141,12 +143,13 @@ export default function MobileChatScreen() {
   }, [messages?.length]);
 
   const sendMutation = useMutation({
-    mutationFn: async (payload: { text?: string; templateName?: string; languageCode?: string }) => {
+    mutationFn: async (payload: { text?: string; templateName?: string; languageCode?: string; replyToWamid?: string }) => {
       return await mobileApiFetch('/api/chat', {
         method: 'POST',
         body: JSON.stringify({
           contactId,
           ...(payload.text ? { text: payload.text } : {}),
+          ...(payload.replyToWamid ? { replyToWamid: payload.replyToWamid } : {}),
           ...(payload.templateName
             ? { templateName: payload.templateName, languageCode: payload.languageCode || 'en_US', bodyVariables: [] }
             : {}),
@@ -155,6 +158,7 @@ export default function MobileChatScreen() {
     },
     onSuccess: () => {
       setText('');
+      setReplyingTo(null);
       setShowTemplatePicker(false);
       queryClient.invalidateQueries({ queryKey: ['messages', contactId] });
     },
@@ -165,8 +169,40 @@ export default function MobileChatScreen() {
 
   const handleSend = () => {
     if (!text.trim() || sendMutation.isPending) return;
-    sendMutation.mutate({ text: text.trim() });
+    sendMutation.mutate({ text: text.trim(), replyToWamid: replyingTo?.wamid || undefined });
   };
+
+  const refreshMessages = () => queryClient.invalidateQueries({ queryKey: ['messages', contactId] });
+
+  // Star or unstar (PATCH /api/chat/messages/:id).
+  const toggleStar = async (m: any) => {
+    try {
+      await mobileApiFetch(`/api/chat/messages/${m.id}`, { method: 'PATCH', body: JSON.stringify({ starred: !m.starred }) });
+      refreshMessages();
+    } catch (err: any) {
+      Alert.alert('Could not star the message', err.message || 'Try again.');
+    }
+  };
+
+  // React (POST /api/chat/messages/:id/reaction). An empty emoji removes our reaction.
+  const react = async (m: any, emoji: string) => {
+    try {
+      await mobileApiFetch(`/api/chat/messages/${m.id}/reaction`, { method: 'POST', body: JSON.stringify({ emoji }) });
+      refreshMessages();
+    } catch (err: any) {
+      Alert.alert('Could not send the reaction', err.message || 'Try again.');
+    }
+  };
+
+  const parseReactions = (raw?: string | null): { emoji: string; from: string }[] => {
+    try {
+      const v = raw ? JSON.parse(raw) : [];
+      return Array.isArray(v) ? v : [];
+    } catch {
+      return [];
+    }
+  };
+
 
   const resolveMediaUrl = (url: string) => (url.startsWith('http') ? url : `${serverUrl}${url}`);
 
@@ -229,13 +265,13 @@ export default function MobileChatScreen() {
           <View style={styles.windowBannerAlert}>
             <ShieldAlert color={c.warning} size={14} />
             <Text style={styles.windowTextAlert}>
-              24-Hour WhatsApp Policy: Customer has not messaged recently. Send a template to re-engage.
+              Use a template to reply
             </Text>
           </View>
         ) : (
           <View style={styles.windowBannerActive}>
             <Clock color={c.primary} size={14} />
-            <Text style={styles.windowTextActive}>24-Hour Active Session: Free-form messaging enabled</Text>
+            <Text style={styles.windowTextActive}>You can reply freely</Text>
           </View>
         )}
 
@@ -272,21 +308,71 @@ export default function MobileChatScreen() {
                 );
               }
 
+              // Internal note: only the team sees it, it is never sent to WhatsApp.
+              if (item.direction === 'INTERNAL') {
+                return (
+                  <TouchableOpacity activeOpacity={0.9} onLongPress={() => setMenuMessage(item)} style={styles.noteBubble}>
+                    <Text style={styles.noteLabel}>Only your team sees this</Text>
+                    <Text style={styles.msgText}>{item.body}</Text>
+                  </TouchableOpacity>
+                );
+              }
+
               const isOutbound = item.direction === 'OUTBOUND';
+              const quoted = item.replyToWamid ? (messages || []).find((x: any) => x.wamid === item.replyToWamid) : null;
+              const reactions = parseReactions(item.reactions);
               return (
-                <View style={[styles.msgBubble, isOutbound ? styles.msgOutbound : styles.msgInbound]}>
+                <View>
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onLongPress={() => setMenuMessage(item)}
+                  delayLongPress={350}
+                  style={[styles.msgBubble, isOutbound ? styles.msgOutbound : styles.msgInbound]}
+                >
+                  {item.replyToWamid ? (
+                    <View style={styles.quoteBox}>
+                      <Text style={styles.quoteText} numberOfLines={2}>
+                        {quoted?.body || 'Original message'}
+                      </Text>
+                    </View>
+                  ) : null}
                   {renderMessageContent(item)}
                   <View style={styles.msgFooter}>
                     <Text style={styles.msgTime}>
                       {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </Text>
+                    {item.starred ? <Text style={styles.msgTime}>Starred</Text> : null}
                     {isOutbound && <StatusTick status={item.status} />}
                   </View>
+                </TouchableOpacity>
+                {reactions.length > 0 && (
+                  <View style={[styles.reactionRow, isOutbound ? { alignSelf: 'flex-end' } : { alignSelf: 'flex-start' }]}>
+                    {reactions.map((r, i) => (
+                      <Text key={i} style={styles.reactionChip}>
+                        {r.emoji}
+                      </Text>
+                    ))}
+                  </View>
+                )}
                 </View>
               );
             }}
             contentContainerStyle={styles.msgList}
           />
+        )}
+
+        {replyingTo && (
+          <View style={styles.replyBar}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.replyBarTitle}>Replying to {replyingTo.direction === 'OUTBOUND' ? 'yourself' : 'customer'}</Text>
+              <Text style={styles.quoteText} numberOfLines={1}>
+                {replyingTo.body || 'Message'}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => setReplyingTo(null)} accessibilityLabel="Cancel reply">
+              <X color={c['muted-foreground']} size={18} />
+            </TouchableOpacity>
+          </View>
         )}
 
         {/* Send Input */}
@@ -318,6 +404,50 @@ export default function MobileChatScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Message menu: reactions, reply, star */}
+      <Modal visible={!!menuMessage} animationType="slide" transparent onRequestClose={() => setMenuMessage(null)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setMenuMessage(null)}>
+          <View style={styles.modalSheet}>
+            {menuMessage && menuMessage.direction !== 'INTERNAL' && (
+              <View style={styles.emojiRow}>
+                {['\u{1F44D}', '\u2764\uFE0F', '\u{1F602}', '\u{1F62E}', '\u{1F622}', '\u{1F64F}'].map((e) => (
+                  <TouchableOpacity
+                    key={e}
+                    style={styles.emojiBtn}
+                    onPress={() => {
+                      react(menuMessage, e);
+                      setMenuMessage(null);
+                    }}
+                  >
+                    <Text style={styles.emojiText}>{e}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+            {menuMessage && menuMessage.direction !== 'INTERNAL' && (
+              <TouchableOpacity
+                style={styles.menuRow}
+                onPress={() => {
+                  setReplyingTo(menuMessage);
+                  setMenuMessage(null);
+                }}
+              >
+                <Text style={styles.menuRowText}>Reply</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={styles.menuRow}
+              onPress={() => {
+                if (menuMessage) toggleStar(menuMessage);
+                setMenuMessage(null);
+              }}
+            >
+              <Text style={styles.menuRowText}>{menuMessage?.starred ? 'Remove star' : 'Star'}</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Template Picker */}
       <Modal
@@ -371,6 +501,90 @@ export default function MobileChatScreen() {
 }
 
 const styles = StyleSheet.create({
+  noteBubble: {
+    alignSelf: 'center',
+    width: '92%',
+    backgroundColor: c['warning-subtle'],
+    borderColor: c.warning,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderRadius: 16,
+    padding: 12,
+    marginVertical: 4,
+  },
+  noteLabel: {
+    color: c['warning-subtle-foreground'],
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  quoteBox: {
+    borderLeftWidth: 3,
+    borderLeftColor: c.primary,
+    backgroundColor: c.raised,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginBottom: 6,
+  },
+  quoteText: {
+    color: c['muted-foreground'],
+    fontSize: 13,
+  },
+  reactionRow: {
+    flexDirection: 'row',
+    gap: 4,
+    marginTop: -6,
+    marginHorizontal: 12,
+    marginBottom: 6,
+  },
+  reactionChip: {
+    backgroundColor: c.card,
+    borderColor: c.border,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    fontSize: 14,
+    overflow: 'hidden',
+  },
+  replyBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: c.raised,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  replyBarTitle: {
+    color: c.foreground,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  emojiRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  emojiBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emojiText: {
+    fontSize: 26,
+  },
+  menuRow: {
+    minHeight: 48,
+    justifyContent: 'center',
+  },
+  menuRowText: {
+    color: c.foreground,
+    fontSize: 16,
+    fontWeight: '600',
+  },
   container: {
     flex: 1,
     backgroundColor: c.background,
