@@ -4,6 +4,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { requireAuth } from '@/lib/auth/rbac';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { ALLOWED_MIME_TYPES, normalizeMime } from '@/lib/media-types';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,21 +15,6 @@ const MAX_FILE_SIZES: Record<string, number> = {
   document: 100 * 1024 * 1024, // 100MB
 };
 
-// Strict allow-list: HTML/SVG/XML/JS are rejected outright (stored-XSS risk
-// when served back from the same origin)
-const ALLOWED_MIME_TYPES: Record<string, string> = {
-  'image/jpeg': '.jpg',
-  'image/png': '.png',
-  'image/webp': '.webp',
-  'image/gif': '.gif',
-  'video/mp4': '.mp4',
-  'video/webm': '.webm',
-  'audio/ogg': '.ogg',
-  'audio/mpeg': '.mp3',
-  'audio/mp4': '.m4a',
-  'application/pdf': '.pdf',
-  'text/plain': '.txt',
-};
 
 function getMediaTypeFromMime(mimeType: string): 'image' | 'video' | 'audio' | 'document' {
   if (mimeType.startsWith('image/')) return 'image';
@@ -55,12 +41,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    const mimeType = file.type || 'application/octet-stream';
+    const mimeType = normalizeMime(file.type);
     const allowedExt = ALLOWED_MIME_TYPES[mimeType];
     if (!allowedExt) {
       return NextResponse.json(
         {
-          error: `File type "${mimeType}" is not allowed. Supported types: ${Object.keys(ALLOWED_MIME_TYPES).join(', ')}`,
+          error: 'That file type is not supported. You can send photos, videos, voice notes, PDFs, and Word, Excel or PowerPoint files.',
         },
         { status: 415 }
       );

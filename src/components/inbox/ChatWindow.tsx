@@ -595,7 +595,8 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
       });
 
       if (!uploadRes.ok) {
-        throw new Error('Failed to upload file to media server.');
+        const why = await uploadRes.json().catch(() => null);
+        throw new Error(why?.error || 'Could not upload the file. Please try again.');
       }
 
       const uploadData = await uploadRes.json();
@@ -643,7 +644,10 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
         body: formData,
       });
 
-      if (!uploadRes.ok) throw new Error('Voice note upload failed.');
+      if (!uploadRes.ok) {
+        const why = await uploadRes.json().catch(() => null);
+        throw new Error(why?.error || 'Could not send the voice note. Please try again.');
+      }
 
       const uploadData = await uploadRes.json();
       const mediaUrl = uploadData.url;

@@ -28,8 +28,11 @@ export function VoiceNoteRecorder({ onSendVoiceNote, onCancel }: VoiceNoteRecord
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // WhatsApp accepts ogg (opus) and mp4 (aac) voice notes but not webm, so prefer those.
       const mimeType = MediaRecorder.isTypeSupported('audio/ogg; codecs=opus')
         ? 'audio/ogg; codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/mp4')
+        ? 'audio/mp4'
         : MediaRecorder.isTypeSupported('audio/webm; codecs=opus')
         ? 'audio/webm; codecs=opus'
         : 'audio/mp4';
