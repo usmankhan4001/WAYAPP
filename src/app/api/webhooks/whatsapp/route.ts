@@ -5,6 +5,8 @@ import { MetaWebhookPayload } from '@/lib/whatsapp/types';
 import { sanitizePhoneNumber } from '@/lib/whatsapp/phone';
 import { decryptString, timingSafeCompare } from '@/lib/crypto';
 import { logger } from '@/lib/logger';
+import { findInboundContact } from '@/lib/whatsapp/contact-match';
+import { enqueueOutboundWebhook } from '@/worker/outbound-webhooks';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 // Valid status lifecycle ranking to prevent status regression
@@ -147,6 +149,21 @@ export async function POST(request: NextRequest) {
             const timestamp = statusObj.timestamp
               ? new Date(parseInt(statusObj.timestamp, 10) * 1000)
               : new Date();
+
+            // Tell customer integrations. Fire-and-forget: a webhook problem must never break intake.
+            try {
+              const recipient = statusObj.recipient_id ? String(statusObj.recipient_id) : ''
+              const errCode = statusObj.errors?.[0]?.code
+              enqueueOutboundWebhook('message.status_updated', {
+                wamid,
+                phoneNumber: recipient ? sanitizePhoneNumber(recipient).e164 || `+${recipient}` : null,
+                status: String(statusObj.status || '').toLowerCase(),
+                timestamp: timestamp.toISOString(),
+                ...(errCode !== undefined ? { errorCode: String(errCode) } : {}),
+              }).catch((err) => logger.warn({ err }, 'message.status_updated webhook enqueue failed'))
+            } catch (err) {
+              logger.warn({ err }, 'message.status_updated webhook enqueue failed')
+            }
 
             // Update ChatMessage receipts with forward-progression guard
             const existingChat = await prisma.chatMessage.findFirst({
@@ -301,27 +318,16 @@ export async function POST(request: NextRequest) {
             }
 
             // Find existing contact by exact phone or matching normalized digits
-            const cleanDigits = rawSenderPhone.replace(/[^0-9]/g, '');
-            const phoneConditions: any[] = [
-              { phoneNumber: normalizedPhone },
-              { phoneNumber: cleanDigits },
-              { phoneNumber: `+${cleanDigits}` },
-            ];
-            if (cleanDigits.length >= 8) {
-              phoneConditions.push({ phoneNumber: { endsWith: cleanDigits.slice(-9) } });
-            }
-
-            let contact = await prisma.contact.findFirst({
-              where: {
-                OR: phoneConditions,
-              },
-            });
+            // Exact E.164 match first; a last-9-digits match is used only when it is unambiguous,
+            // and then the stored phoneNumber is never overwritten (that used to merge two people).
+            const match = await findInboundContact(rawSenderPhone, normalizedPhone);
+            let contact: any = match?.contact ?? null;
 
             if (contact) {
               contact = await prisma.contact.update({
                 where: { id: contact.id },
                 data: {
-                  phoneNumber: normalizedPhone,
+                  ...(match!.exact ? { phoneNumber: normalizedPhone } : {}),
                   lastInteractionAt: new Date(),
                   ...(isOptOut ? { status: 'UNSUBSCRIBED', optedOutAt: new Date() } : {}),
                 },
@@ -337,11 +343,20 @@ export async function POST(request: NextRequest) {
                     lastInteractionAt: new Date(),
                   },
                 });
+                try {
+                  enqueueOutboundWebhook('contact.created', {
+                    contactId: contact.id,
+                    phoneNumber: contact.phoneNumber,
+                    firstName: contact.firstName ?? null,
+                    lastName: contact.lastName ?? null,
+                    source: 'whatsapp_inbound',
+                  }).catch((err) => logger.warn({ err }, 'contact.created webhook enqueue failed'))
+                } catch (err) {
+                  logger.warn({ err }, 'contact.created webhook enqueue failed')
+                }
               } catch (createErr) {
                 // Concurrency retry: if contact was created in parallel, find it
-                contact = await prisma.contact.findFirst({
-                  where: { OR: phoneConditions },
-                });
+                contact = (await findInboundContact(rawSenderPhone, normalizedPhone))?.contact ?? null;
                 if (!contact) {
                   logger.error({ error: createErr }, 'Failed to create or retrieve contact during webhook');
                   continue;

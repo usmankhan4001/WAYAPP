@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { formatTimeAgo } from '@/lib/utils';
 import { ChatWindow } from '@/components/inbox/ChatWindow';
 import { NewChatModal } from '@/components/inbox/NewChatModal';
+import { useLiveRefresh, ReconnectingBanner } from '@/components/inbox/useLiveRefresh';
 import { SkeletonConversation } from '@/components/ui/Skeleton';
 import { FilterTabs } from '@/components/ui/filter-tabs';
 import { Button } from '@/components/ui/button';
@@ -29,30 +30,34 @@ function InboxContent() {
   const [error, setError] = useState<string | null>(null);
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
 
-  const fetchConversations = useCallback(() => {
-    const controller = new AbortController();
+  // Rejects on failure so useLiveRefresh can back off and show the "Reconnecting..." banner.
+  const fetchConversations = useCallback(async () => {
     const url = `/api/chat?filter=${filter}&limit=50${search ? `&search=${encodeURIComponent(search)}` : ''}`;
-    fetch(url, { signal: controller.signal })
-      .then((res) => res.json())
-      .then((data) => {
-        const list = Array.isArray(data) ? data : data?.conversations || [];
-        setConversations(list);
-        if (
-          list.length > 0 &&
-          !selectedContact &&
-          !urlContactId &&
-          typeof window !== 'undefined' &&
-          window.innerWidth >= 1024
-        ) {
-          setSelectedContact(list[0].contact || list[0]);
-        }
-      })
-      .catch((err) => {
-        if (err.name !== 'AbortError') setError('Failed to load conversations. Please check your connection.');
-      })
-      .finally(() => setLoading(false));
-    return () => controller.abort();
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : data?.conversations || [];
+      setConversations(list);
+      setError(null);
+      if (
+        list.length > 0 &&
+        !selectedContact &&
+        !urlContactId &&
+        typeof window !== 'undefined' &&
+        window.innerWidth >= 1024
+      ) {
+        setSelectedContact(list[0].contact || list[0]);
+      }
+    } catch (err) {
+      setError('Failed to load conversations. Please check your connection.');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   }, [filter, search, selectedContact, urlContactId]);
+
+  const { offline } = useLiveRefresh(fetchConversations);
 
   useEffect(() => {
     if (urlContactId) {
@@ -70,16 +75,11 @@ function InboxContent() {
     }
   }, [urlContactId]);
 
+  // Refetch straight away when the filter or search changes; the hook handles the rest.
   useEffect(() => {
-    const cancel = fetchConversations();
-    const interval = setInterval(() => {
-      if (!document.hidden) fetchConversations();
-    }, 2500);
-    return () => {
-      cancel?.();
-      clearInterval(interval);
-    };
-  }, [fetchConversations]);
+    fetchConversations().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, search]);
 
   const handleSelect = (conv: AnyRecord) => {
     const contactObj = conv.contact || conv;
@@ -87,7 +87,8 @@ function InboxContent() {
   };
 
   return (
-    <div className="flex h-full w-full overflow-hidden bg-muted text-foreground">
+    <div className="relative flex h-full w-full overflow-hidden bg-muted text-foreground">
+      <ReconnectingBanner show={offline} />
       <NewChatModal
         isOpen={isNewChatOpen}
         onClose={() => setIsNewChatOpen(false)}

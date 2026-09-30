@@ -239,3 +239,17 @@ export async function setModuleEnabled(moduleId: string, isEnabled: boolean) {
   invalidateModuleCache();
   return result;
 }
+
+/**
+ * API guard: returns a 403 Response when the module is switched off, otherwise null.
+ * Usage:  const off = await moduleOffResponse('flows'); if (off) return off;
+ * The Settings toggles used to be cosmetic; this makes them real on the server.
+ */
+export async function moduleOffResponse(moduleId: string, label?: string): Promise<Response | null> {
+  if (await isModuleEnabled(moduleId)) return null
+  const name = label || moduleId.replace(/_/g, ' ')
+  return Response.json(
+    { error: `The ${name} feature is switched off. An administrator can turn it on in Settings.` },
+    { status: 403 }
+  )
+}

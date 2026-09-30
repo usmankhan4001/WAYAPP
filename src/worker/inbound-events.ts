@@ -4,13 +4,13 @@ import { processInboundAutomation } from '@/lib/whatsapp/automation';
 import { enqueueOutboundWebhook } from './outbound-webhooks';
 import { InboundConversationEvent } from '@/lib/whatsapp/types';
 import { logger } from '@/lib/logger';
+import { isModuleEnabled } from '@/lib/modules';
 
 /**
  * Kill switch for the inbound automation engines (Visual Flows, Bots, keyword
  * Automations). They are HELD unless INBOUND_AUTOMATIONS=on.
  *
- * Why: the module toggles in Settings do not gate these engines — the worker never
- * calls isModuleEnabled() — and a seeded example flow is PUBLISHED at boot. Until
+ * Why: a seeded example flow is PUBLISHED at boot. Until
  * Meta's webhook was pointed at WayApp none of them had ever run against a real
  * customer; the moment inbound starts arriving they would all begin replying, on top
  * of whatever else already answers that number (n8n's booking-link flow). Held
@@ -38,33 +38,51 @@ export async function processInboundEvent(event: InboundConversationEvent): Prom
     return
   }
 
-  // 2. Try Visual Flow Builder Engine
-  const handledByFlow = await processInboundFlow({
-    contactId,
-    conversationId,
-    phoneNumber,
-    bodyText,
-  });
+  // The Settings module switches are enforced here as well as on the API: a switched-off
+  // module's engine is skipped. If the switch state cannot be read, fail closed (skip).
+  const moduleOn = async (id: string): Promise<boolean> => {
+    try {
+      return await isModuleEnabled(id);
+    } catch (err) {
+      logger.error({ err, id }, '[InboundEvents] Could not read module switch - skipping engine');
+      return false;
+    }
+  };
+  const flowsOn = await moduleOn('flows');
+  const botsOn = await moduleOn('ai_bots');
 
-  if (handledByFlow) {
-    logger.info({ contactId }, '[InboundEvents] Handled by Visual Flow');
-    return;
+  // 2. Try Visual Flow Builder Engine
+  if (flowsOn) {
+    const handledByFlow = await processInboundFlow({
+      contactId,
+      conversationId,
+      phoneNumber,
+      bodyText,
+    });
+
+    if (handledByFlow) {
+      logger.info({ contactId }, '[InboundEvents] Handled by Visual Flow');
+      return;
+    }
   }
 
   // 3. Try Bot Engine (AI / Keyword / HTTP)
-  const handledByBot = await processInboundBot({
-    contactId,
-    conversationId,
-    phoneNumber,
-    bodyText,
-  });
+  if (botsOn) {
+    const handledByBot = await processInboundBot({
+      contactId,
+      conversationId,
+      phoneNumber,
+      bodyText,
+    });
 
-  if (handledByBot) {
-    logger.info({ contactId }, '[InboundEvents] Handled by Bot');
-    return;
+    if (handledByBot) {
+      logger.info({ contactId }, '[InboundEvents] Handled by Bot');
+      return;
+    }
   }
 
-  // 4. Try Legacy/Generic Keyword Automations
+  // 4. Try Legacy/Generic Keyword Automations (part of the Flows module)
+  if (!flowsOn) return;
   try {
     await processInboundAutomation({
       contactId,

@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth/rbac';
+import { moduleOffResponse } from '@/lib/modules';
 import { chunkMarkdownContent, generateKnowledgeBaseMarkdown } from '@/lib/ai/knowledge';
 import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request);
   if ('response' in authResult) return authResult.response;
+
+  const moduleOff = await moduleOffResponse('ai_bots', 'Knowledge base');
+  if (moduleOff) return moduleOff;
 
   try {
     const kbs = await prisma.knowledgeBase.findMany({
@@ -26,6 +30,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth(request);
   if ('response' in authResult) return authResult.response;
+
+  const moduleOff = await moduleOffResponse('ai_bots', 'Knowledge base');
+  if (moduleOff) return moduleOff;
 
   try {
     const body = await request.json();

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ensureDatabaseSchema } from '@/lib/db-init';
 import { requireAuth } from '@/lib/auth/rbac';
+import { moduleOffResponse } from '@/lib/modules';
 
 export async function PUT(
   request: NextRequest,
@@ -9,6 +10,9 @@ export async function PUT(
 ) {
   const authResult = await requireAuth(request);
   if ('response' in authResult) return authResult.response;
+
+  const moduleOff = await moduleOffResponse('flows', 'Automations');
+  if (moduleOff) return moduleOff;
 
   try {
     await ensureDatabaseSchema();
@@ -46,6 +50,9 @@ export async function DELETE(
 ) {
   const authResult = await requireAuth(request);
   if ('response' in authResult) return authResult.response;
+
+  const moduleOff = await moduleOffResponse('flows', 'Automations');
+  if (moduleOff) return moduleOff;
 
   try {
     await ensureDatabaseSchema();

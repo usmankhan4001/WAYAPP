@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth/rbac';
+import { moduleOffResponse } from '@/lib/modules';
 import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   const authResult = await requireAuth(request);
   if ('response' in authResult) return authResult.response;
+
+  const moduleOff = await moduleOffResponse('flows', 'Flows');
+  if (moduleOff) return moduleOff;
 
   try {
     const flows = await prisma.flow.findMany({
@@ -25,6 +29,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const authResult = await requireAuth(request);
   if ('response' in authResult) return authResult.response;
+
+  const moduleOff = await moduleOffResponse('flows', 'Flows');
+  if (moduleOff) return moduleOff;
 
   const { session } = authResult;
 
