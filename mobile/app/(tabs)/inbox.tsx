@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,42 +8,59 @@ import {
   RefreshControl,
   StyleSheet,
   SafeAreaView,
+  ScrollView,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
-import { mobileApiFetch, getCurrentUserId } from '../../lib/api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { mobileApiFetch } from '../../lib/api';
 import { theme } from '../../lib/theme';
 
 const c = theme.dark;
 
-const FILTERS: { id: 'all' | 'mine' | 'unassigned'; label: string }[] = [
+type FilterId = 'all' | 'unread' | 'waiting' | 'archived' | 'mine';
+
+// Same filters as the web inbox; the server does the work (GET /api/chat?filter=...).
+const FILTERS: { id: FilterId; label: string }[] = [
   { id: 'all', label: 'All' },
-  { id: 'mine', label: 'Assigned to Me' },
-  { id: 'unassigned', label: 'Unassigned' },
+  { id: 'unread', label: 'Unread' },
+  { id: 'waiting', label: 'Waiting on me' },
+  { id: 'archived', label: 'Archived' },
+  { id: 'mine', label: 'Mine' },
 ];
 
 export default function MobileInboxScreen() {
   const router = useRouter();
-  const [filter, setFilter] = useState<'all' | 'mine' | 'unassigned'>('all');
-  const [userId, setUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    getCurrentUserId().then(setUserId);
-  }, []);
+  const [filter, setFilter] = useState<FilterId>('all');
+  const queryClient = useQueryClient();
 
   const { data: conversations, isLoading, isError, refetch, isRefetching } = useQuery({
-    queryKey: ['mobile_conversations', filter, userId],
+    queryKey: ['mobile_conversations', filter],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (filter === 'mine' && userId) params.set('assignedToId', userId);
-      if (filter === 'unassigned') params.set('assignedToId', 'none');
-      const qs = params.toString();
-      const data = await mobileApiFetch(`/api/v1/conversations${qs ? `?${qs}` : ''}`);
-      return Array.isArray(data) ? data : [];
+      const data = await mobileApiFetch(`/api/chat?filter=${filter}&limit=50`);
+      return Array.isArray(data) ? data : data?.conversations || [];
     },
-    enabled: filter !== 'mine' || Boolean(userId),
     refetchInterval: 5000,
   });
+
+  const updateConversation = async (item: any, body: Record<string, unknown>) => {
+    try {
+      await mobileApiFetch(`/api/chat/conversations/${item.id}`, { method: 'PATCH', body: JSON.stringify(body) });
+      queryClient.invalidateQueries({ queryKey: ['mobile_conversations'] });
+    } catch (err: any) {
+      Alert.alert('Could not update the chat', err.message || 'Try again in a moment.');
+    }
+  };
+
+  // Long-press a chat: pin, archive or mark unread.
+  const openActions = (item: any) => {
+    Alert.alert('Chat actions', undefined, [
+      { text: item.pinned ? 'Unpin chat' : 'Pin chat', onPress: () => updateConversation(item, { pinned: !item.pinned }) },
+      { text: item.archived ? 'Move back to chats' : 'Archive chat', onPress: () => updateConversation(item, { archived: !item.archived }) },
+      ...(item.unreadCount > 0 ? [] : [{ text: 'Mark as unread', onPress: () => updateConversation(item, { markUnread: true }) }]),
+      { text: 'Cancel', style: 'cancel' as const },
+    ]);
+  };
 
   const renderItem = ({ item }: { item: any }) => {
     const contact = item.contact || {};
@@ -54,6 +71,8 @@ export default function MobileInboxScreen() {
       <TouchableOpacity
         style={styles.convCard}
         onPress={() => router.push(`/chat/${contact.id}`)}
+        onLongPress={() => openActions(item)}
+        delayLongPress={400}
       >
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{name.charAt(0).toUpperCase()}</Text>
@@ -64,6 +83,7 @@ export default function MobileInboxScreen() {
             <Text style={styles.name} numberOfLines={1}>
               {name}
             </Text>
+            {item.pinned && <Text style={styles.pinned}>Pinned</Text>}
             {item.unreadCount > 0 && (
               <View style={styles.unreadBadge}>
                 <Text style={styles.unreadText}>{item.unreadCount}</Text>
@@ -93,7 +113,7 @@ export default function MobileInboxScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.filterRow}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterRow}>
         {FILTERS.map((f) => (
           <TouchableOpacity
             key={f.id}
@@ -105,7 +125,7 @@ export default function MobileInboxScreen() {
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
 
       {isLoading ? (
         <View style={styles.center}>
@@ -150,6 +170,14 @@ const styles = StyleSheet.create({
   list: {
     padding: 12,
   },
+  filterScroll: {
+    flexGrow: 0,
+  },
+  pinned: {
+    color: c['muted-foreground'],
+    fontSize: 11,
+    marginLeft: 6,
+  },
   filterRow: {
     flexDirection: 'row',
     gap: 8,
@@ -158,7 +186,9 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   filterChip: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
+    minHeight: 40,
+    justifyContent: 'center',
     paddingVertical: 6,
     borderRadius: 999,
     backgroundColor: c.card,
@@ -171,11 +201,11 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     color: c['muted-foreground'],
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '700',
   },
   filterChipTextActive: {
-    color: c.foreground,
+    color: c['primary-foreground'],
   },
   center: {
     flex: 1,

@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
     // 2. Fetch 2-Way chat messages (inbound replies)
     const chatMessages = await prisma.chatMessage.findMany({
       where: {
+        direction: { not: 'INTERNAL' },
         timestamp: {
           gte: startDate,
         },

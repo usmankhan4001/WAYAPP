@@ -2,33 +2,47 @@
 
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { MessageSquare, Search, UserPlus, Sparkles, CheckCheck, ShieldCheck, AlertCircle } from 'lucide-react';
+import { MessageSquare, Plus, AlertCircle, ShieldCheck } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import { formatTimeAgo } from '@/lib/utils';
 import { ChatWindow } from '@/components/inbox/ChatWindow';
 import { NewChatModal } from '@/components/inbox/NewChatModal';
+import { ChatListRow, type RowAction } from '@/components/inbox/ChatListRow';
+import { LIST_FILTERS } from '@/components/inbox/chat-utils';
 import { useLiveRefresh, ReconnectingBanner } from '@/components/inbox/useLiveRefresh';
 import { SkeletonConversation } from '@/components/ui/Skeleton';
-import { FilterTabs } from '@/components/ui/filter-tabs';
+import { useToast } from '@/components/ui/Toast';
+import { Chip } from '@/components/ui/chip';
+import { SearchField } from '@/components/ui/search-field';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyRecord = Record<string, any>;
 
+// Filters the dashboard links to, on top of the four chips. Unknown values fall back to All.
+const EXTRA_FILTERS: { value: string; label: string }[] = [
+  { value: 'closing', label: 'Closing soon' },
+  { value: 'failed', label: 'Failed' },
+];
+const KNOWN_FILTERS: string[] = [...LIST_FILTERS.map((f) => f.value), ...EXTRA_FILTERS.map((f) => f.value)];
+const TWO_PANE_MIN_WIDTH = 768;
+
 function InboxContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const toast = useToast();
   const urlContactId = searchParams.get('contactId');
+  const urlConversationId = searchParams.get('conversation');
+  const urlFilter = searchParams.get('filter') || 'all';
+  const wantsNewChat = searchParams.get('new') === '1';
 
   const [conversations, setConversations] = useState<AnyRecord[]>([]);
   const [selectedContact, setSelectedContact] = useState<AnyRecord | null>(null);
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const [filter, setFilter] = useState<string>(KNOWN_FILTERS.includes(urlFilter) ? urlFilter : 'all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isNewChatOpen, setIsNewChatOpen] = useState(false);
+  const [isNewChatOpen, setIsNewChatOpen] = useState(wantsNewChat);
 
   // Rejects on failure so useLiveRefresh can back off and show the "Reconnecting..." banner.
   const fetchConversations = useCallback(async () => {
@@ -44,20 +58,31 @@ function InboxContent() {
         list.length > 0 &&
         !selectedContact &&
         !urlContactId &&
+        !urlConversationId &&
         typeof window !== 'undefined' &&
-        window.innerWidth >= 1024
+        window.innerWidth >= TWO_PANE_MIN_WIDTH
       ) {
         setSelectedContact(list[0].contact || list[0]);
       }
     } catch (err) {
-      setError('Failed to load conversations. Please check your connection.');
+      setError('Could not load your chats. Check your connection and try again.');
       throw err;
     } finally {
       setLoading(false);
     }
-  }, [filter, search, selectedContact, urlContactId]);
+  }, [filter, search, selectedContact, urlContactId, urlConversationId]);
 
   const { offline } = useLiveRefresh(fetchConversations);
+
+  // The dashboard links here with ?new=1.
+  useEffect(() => {
+    if (wantsNewChat) setIsNewChatOpen(true);
+  }, [wantsNewChat]);
+
+  const closeNewChat = () => {
+    setIsNewChatOpen(false);
+    if (wantsNewChat) router.replace('/inbox');
+  };
 
   useEffect(() => {
     if (urlContactId) {
@@ -70,10 +95,17 @@ function InboxContent() {
           }
         })
         .catch(() => {});
-    } else if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+    } else if (urlConversationId) {
+      fetch(`/api/chat/conversations/${encodeURIComponent(urlConversationId)}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((conv) => {
+          if (conv?.contact) setSelectedContact(conv.contact);
+        })
+        .catch(() => {});
+    } else if (typeof window !== 'undefined' && window.innerWidth < TWO_PANE_MIN_WIDTH) {
       setSelectedContact(null);
     }
-  }, [urlContactId]);
+  }, [urlContactId, urlConversationId]);
 
   // Refetch straight away when the filter or search changes; the hook handles the rest.
   useEffect(() => {
@@ -86,62 +118,61 @@ function InboxContent() {
     router.push(`/inbox?contactId=${contactObj.id}`);
   };
 
+  const handleRowAction = async (conv: AnyRecord, action: RowAction) => {
+    const body: AnyRecord =
+      action === 'pin' ? { pinned: true }
+      : action === 'unpin' ? { pinned: false }
+      : action === 'archive' ? { archived: true }
+      : action === 'unarchive' ? { archived: false }
+      : { markUnread: true };
+    try {
+      const res = await fetch(`/api/chat/conversations/${encodeURIComponent(conv.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (action === 'archive') toast.success('Chat archived');
+      await fetchConversations();
+    } catch {
+      toast.error('Could not update the chat', 'Try again in a moment.');
+    }
+  };
+
+  const chips = [...LIST_FILTERS, ...EXTRA_FILTERS.filter((f) => f.value === filter)];
+
   return (
-    <div className="relative flex h-full w-full overflow-hidden bg-muted text-foreground">
+    <div className="relative flex h-full w-full overflow-hidden bg-background text-foreground">
       <ReconnectingBanner show={offline} />
       <NewChatModal
         isOpen={isNewChatOpen}
-        onClose={() => setIsNewChatOpen(false)}
+        onClose={closeNewChat}
         onSelectContact={(contact) => {
           setSelectedContact(contact);
           fetchConversations();
         }}
       />
 
-      {/* Conversation list */}
+      {/* Chat list */}
       <div
         className={cn(
-          'flex h-full w-full shrink-0 flex-col border-r border-border bg-card lg:w-96 lg:min-w-[360px] lg:max-w-[400px]',
-          selectedContact ? 'hidden lg:flex' : 'flex'
+          'relative flex h-full w-full shrink-0 flex-col border-r border-border bg-background md:w-[360px] lg:w-96',
+          selectedContact ? 'hidden md:flex' : 'flex'
         )}
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-border p-3.5">
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-semibold tracking-tight text-foreground">Chats</h2>
-            {conversations.length > 0 && (
-              <span className="rounded-full bg-muted px-2 py-0.5 text-2xs font-semibold text-muted-foreground">
-                {conversations.length}
-              </span>
-            )}
+        <div className="shrink-0 space-y-3 px-4 pb-2 pt-4">
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">Chats</h2>
+          <SearchField value={search} onValueChange={setSearch} placeholder="Search chats or phone numbers" />
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+            {chips.map((f) => (
+              <Chip key={f.value} selected={filter === f.value} onClick={() => setFilter(f.value)}>
+                {f.label}
+              </Chip>
+            ))}
           </div>
-          <Button variant="wa" size="sm" onClick={() => setIsNewChatOpen(true)} title="Start a new WhatsApp chat">
-            <UserPlus />
-            <span>New chat</span>
-          </Button>
         </div>
 
-        <div className="shrink-0 space-y-2.5 border-b border-border p-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search chats or phone…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-9 pl-8 text-xs"
-            />
-          </div>
-          <FilterTabs
-            size="sm"
-            options={[
-              { value: 'all', label: 'All' },
-              { value: 'unread', label: <span className="inline-flex items-center gap-1"><Sparkles className="size-3" />Unread</span> },
-            ]}
-            value={filter}
-            onValueChange={(v) => setFilter(v as 'all' | 'unread')}
-          />
-        </div>
-
-        <div className="flex-1 divide-y divide-border overflow-y-auto">
+        <div className="flex-1 overflow-y-auto pb-24">
           {loading ? (
             Array.from({ length: 6 }).map((_, i) => <SkeletonConversation key={i} />)
           ) : error ? (
@@ -149,82 +180,54 @@ function InboxContent() {
               <div className="mx-auto flex size-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
                 <AlertCircle className="size-5" />
               </div>
-              <p className="text-xs font-medium text-destructive">{error}</p>
-              <button
+              <p className="text-sm font-medium text-destructive">{error}</p>
+              <Button
+                variant="outline"
                 onClick={() => {
                   setError(null);
-                  fetchConversations();
+                  fetchConversations().catch(() => {});
                 }}
-                className="text-xs font-semibold text-primary hover:underline"
               >
-                Retry
-              </button>
+                Try again
+              </Button>
             </div>
           ) : conversations.length === 0 ? (
-            <div className="space-y-2 p-8 text-center text-xs text-muted-foreground">
+            <div className="space-y-2 p-8 text-center text-sm text-muted-foreground">
               <MessageSquare className="mx-auto mb-1 size-8 text-muted-foreground/50" />
-              <p className="font-semibold text-foreground">No chats found</p>
-              <p className="text-2xs">Start a new conversation or adjust your search filter.</p>
+              <p className="font-semibold text-foreground">No chats here</p>
+              <p>Start a new chat, or change the filter or search.</p>
             </div>
           ) : (
             conversations.map((c) => {
               const contactObj = c.contact || c;
-              const isSelected = selectedContact?.id === contactObj.id;
-              const contactName = `${contactObj.firstName || ''} ${contactObj.lastName || ''}`.trim() || 'Customer';
-              const lastMsg = c.messages?.[0] || contactObj.chatMessages?.[0];
-              const isOutbound = lastMsg?.direction === 'OUTBOUND';
               return (
-                <div
+                <ChatListRow
                   key={c.id || contactObj.id}
-                  onClick={() => handleSelect(c)}
-                  className={cn(
-                    'flex cursor-pointer select-none items-start gap-3 p-3.5 transition-colors active:bg-accent',
-                    isSelected ? 'border-l-4 border-primary bg-brand-subtle' : 'hover:bg-accent'
-                  )}
-                >
-                  <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
-                    {contactName.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-0.5 flex items-center justify-between gap-1">
-                      <span className="truncate text-xs font-semibold text-foreground">{contactName}</span>
-                      <span className="shrink-0 font-mono text-2xs text-muted-foreground">
-                        {c.lastMessageAt ? formatTimeAgo(new Date(c.lastMessageAt)) : ''}
-                      </span>
-                    </div>
-                    <div className="mb-1 flex items-center gap-1 truncate text-2xs text-muted-foreground">
-                      {isOutbound && (
-                        <CheckCheck
-                          className={cn(
-                            'size-3.5 shrink-0',
-                            lastMsg?.status === 'READ'
-                              ? 'text-info'
-                              : lastMsg?.status === 'DELIVERED'
-                              ? 'text-muted-foreground'
-                              : 'text-muted-foreground/50'
-                          )}
-                        />
-                      )}
-                      <span className="truncate">{lastMsg?.body || 'Media attachment'}</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="truncate font-mono text-2xs text-muted-foreground">{contactObj.phoneNumber}</span>
-                      {c.unreadCount > 0 && (
-                        <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1.5 text-2xs font-bold text-primary-foreground">
-                          {c.unreadCount}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                  conversation={c}
+                  selected={selectedContact?.id === contactObj.id}
+                  onSelect={() => handleSelect(c)}
+                  onAction={(a) => handleRowAction(c, a)}
+                />
               );
             })
           )}
         </div>
+
+        {/* Round new-chat button, bottom right of the list (above the tab bar on phones). */}
+        <Button
+          variant="wa"
+          size="icon-lg"
+          className="absolute bottom-20 right-4 size-14 shadow-lg md:bottom-6"
+          onClick={() => setIsNewChatOpen(true)}
+          aria-label="New chat"
+          title="New chat"
+        >
+          <Plus className="size-6" />
+        </Button>
       </div>
 
-      {/* Chat window */}
-      <div className={cn('flex h-full min-w-0 flex-1 flex-col bg-chat-canvas', selectedContact ? 'flex' : 'hidden lg:flex')}>
+      {/* Chat screen */}
+      <div className={cn('flex h-full min-w-0 flex-1 flex-col bg-chat-canvas', selectedContact ? 'flex' : 'hidden md:flex')}>
         {selectedContact ? (
           <ChatWindow
             contact={selectedContact}
@@ -237,14 +240,14 @@ function InboxContent() {
               <MessageSquare className="size-8" />
             </div>
             <div className="max-w-sm space-y-1">
-              <h3 className="text-base font-semibold text-foreground">WAYAPP for web &amp; desktop</h3>
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                Select a customer thread to begin live 1-to-1 WhatsApp chatting, send templates, or share media.
+              <h3 className="text-base font-semibold text-foreground">Pick a chat</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Choose a customer on the left to read and reply, or start a new chat.
               </p>
             </div>
-            <div className="flex items-center gap-1.5 pt-4 text-2xs font-medium text-muted-foreground">
+            <div className="flex items-center gap-1.5 pt-4 text-xs font-medium text-muted-foreground">
               <ShieldCheck className="size-3.5 text-primary" />
-              <span>End-to-end Meta WhatsApp Cloud API connectivity</span>
+              <span>Your chats stay private to your team</span>
             </div>
           </div>
         )}
@@ -257,7 +260,7 @@ export default function InboxPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex h-full w-full items-center justify-center bg-muted">
+        <div className="flex h-full w-full items-center justify-center bg-background">
           <div className="size-8 animate-spin rounded-full border-3 border-primary border-t-transparent" />
         </div>
       }

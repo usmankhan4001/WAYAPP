@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       let recentMsgs = chatHistory;
       if (!recentMsgs.length && contactId) {
         recentMsgs = await prisma.chatMessage.findMany({
-          where: { contactId },
+          where: { contactId, direction: { not: 'INTERNAL' } },
           orderBy: { timestamp: 'desc' },
           take: 6,
         });
@@ -177,7 +177,7 @@ Keep messages concise, friendly, with 1-2 relevant emojis, natural WhatsApp styl
       let recentMsgs = chatHistory;
       if (!recentMsgs.length && contactId) {
         recentMsgs = await prisma.chatMessage.findMany({
-          where: { contactId },
+          where: { contactId, direction: { not: 'INTERNAL' } },
           orderBy: { timestamp: 'desc' },
           take: 12,
         });

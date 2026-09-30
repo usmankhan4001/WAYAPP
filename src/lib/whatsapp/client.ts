@@ -679,11 +679,13 @@ export class WhatsAppClient {
    * Send 2-Way Freeform Text message (within 24h conversation window)
    */
   async sendTextMessage(
-    toOrParams: string | { to: string; text: string },
-    optionalText?: string
+    toOrParams: string | { to: string; text: string; replyToMessageId?: string },
+    optionalText?: string,
+    replyToMessageIdArg?: string
   ): Promise<MetaSendResponse> {
     const to = typeof toOrParams === 'string' ? toOrParams : toOrParams.to;
     const text = typeof toOrParams === 'string' ? (optionalText || '') : toOrParams.text;
+    const replyToMessageId = typeof toOrParams === 'string' ? replyToMessageIdArg : toOrParams.replyToMessageId;
     const cleanPhone = to.replace(/[^0-9]/g, '');
 
     if (this.isMockMode) {
@@ -696,7 +698,7 @@ export class WhatsAppClient {
     }
     this.assertRealConnection('send a text message');
 
-    const payload = {
+    const payload: Record<string, any> = {
       messaging_product: 'whatsapp',
       recipient_type: 'individual',
       to: cleanPhone,
@@ -706,6 +708,8 @@ export class WhatsAppClient {
         body: text,
       },
     };
+    // Quote the message being replied to.
+    if (replyToMessageId) payload.context = { message_id: replyToMessageId };
 
     const response = await metaFetch(`${META_GRAPH_URL}/${this.phoneNumberId}/messages`, {
       method: 'POST',
@@ -729,9 +733,50 @@ export class WhatsAppClient {
   }
 
   /**
+   * React to a message with an emoji. An empty emoji removes the reaction. Reactions carry no
+   * body of their own, so callers store them on the target message, not as a new bubble.
+   */
+  async sendReaction(params: { to: string; messageId: string; emoji: string }): Promise<MetaSendResponse> {
+    const cleanPhone = params.to.replace(/[^0-9]/g, '');
+
+    if (this.isMockMode) {
+      const fakeWamid = `wamid.HBgL${Date.now()}R${Math.random().toString(36).substring(2, 9).toUpperCase()}A`;
+      return {
+        messaging_product: 'whatsapp',
+        contacts: [{ input: params.to, wa_id: cleanPhone }],
+        messages: [{ id: fakeWamid, message_status: 'accepted' }],
+      };
+    }
+    this.assertRealConnection('send a reaction');
+
+    const response = await metaFetch(`${META_GRAPH_URL}/${this.phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: cleanPhone,
+        type: 'reaction',
+        reaction: { message_id: params.messageId, emoji: params.emoji },
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok || data.error) {
+      const err = new Error(data.error?.message || response.statusText);
+      (err as any).code = data.error?.code || response.status;
+      throw err;
+    }
+    return data as MetaSendResponse;
+  }
+
+  /**
    * Send 2-Way Freeform Media message (Image, Video, Audio, Document)
    */
-  async sendMediaMessage(params: SendMediaMessageParams): Promise<MetaSendResponse> {
+  async sendMediaMessage(params: SendMediaMessageParams & { replyToMessageId?: string }): Promise<MetaSendResponse> {
     const cleanPhone = params.to.replace(/[^0-9]/g, '');
 
     if (this.isMockMode) {
@@ -766,6 +811,7 @@ export class WhatsAppClient {
       type: params.type,
       [params.type]: mediaObject,
     };
+    if (params.replyToMessageId) payload.context = { message_id: params.replyToMessageId };
 
     const response = await metaFetch(`${META_GRAPH_URL}/${this.phoneNumberId}/messages`, {
       method: 'POST',
