@@ -107,3 +107,37 @@ export {
   AvatarGroupCount,
   AvatarBadge,
 }
+
+
+/** Two-letter initials from a name or phone number. */
+function initialsOf(name?: string | null): string {
+  const parts = (name ?? "").trim().split(/s+/).filter(Boolean)
+  if (parts.length === 0) return "?"
+  const letters = parts.length === 1 ? parts[0].slice(0, 2) : parts[0][0] + parts[parts.length - 1][0]
+  return letters.toUpperCase()
+}
+
+/**
+ * Avatar with a photo and an initials fallback. One call for the common case:
+ * <UserAvatar name="Sara Khan" src={url} size="lg" />
+ */
+function UserAvatar({
+  name,
+  src,
+  size = "default",
+  className,
+}: {
+  name?: string | null
+  src?: string | null
+  size?: "default" | "sm" | "lg"
+  className?: string
+}) {
+  return (
+    <Avatar size={size} className={className}>
+      {src ? <AvatarImage src={src} alt={name ?? ""} /> : null}
+      <AvatarFallback className="bg-raised font-semibold text-foreground">{initialsOf(name)}</AvatarFallback>
+    </Avatar>
+  )
+}
+
+export { UserAvatar, initialsOf }

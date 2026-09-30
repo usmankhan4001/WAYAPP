@@ -455,7 +455,7 @@ export default function SettingsPage() {
         <div className="flex items-center gap-2 self-start">
           <button
             onClick={() => setIsGuideOpen(true)}
-            className="px-3 py-1.5 rounded-xl border border-border bg-card hover:bg-black/5 text-sm font-normal text-foreground flex items-center gap-1.5 shadow-2xs"
+            className="px-3 py-1.5 rounded-xl border border-border bg-card hover:bg-accent text-sm font-normal text-foreground flex items-center gap-1.5 shadow-2xs"
           >
             <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
             <span>Setup help</span>
@@ -463,7 +463,7 @@ export default function SettingsPage() {
 
           <button
             onClick={handleDisconnect}
-            className="px-3 py-1.5 rounded-xl border border-rose-200 bg-card text-rose-700 hover:bg-rose-50 text-sm font-normal flex items-center gap-1.5 shadow-2xs"
+            className="px-3 py-1.5 rounded-xl border border-destructive/30 bg-card text-destructive hover:bg-destructive/10 text-sm font-normal flex items-center gap-1.5 shadow-2xs"
             title="Disconnect and re-enter setup"
           >
             <LogOut className="w-3.5 h-3.5" />
@@ -476,14 +476,14 @@ export default function SettingsPage() {
         <div
           className={`p-3 rounded-xl text-sm flex items-center gap-2 shadow-2xs ${
             notice.success
-              ? 'bg-black/5 text-brand-subtle-foreground border border-transparent'
-              : 'bg-rose-50 text-rose-800 border border-rose-200'
+              ? 'bg-raised text-brand-subtle-foreground border border-transparent'
+              : 'bg-destructive/10 text-destructive border border-destructive/30'
           }`}
         >
           {notice.success ? (
             <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
           ) : (
-            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <AlertCircle className="w-4 h-4 text-destructive shrink-0" />
           )}
           <span>{notice.text}</span>
         </div>
@@ -581,7 +581,7 @@ export default function SettingsPage() {
           <div className="p-4 rounded-2xl bg-foreground text-background flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${settings.isConnected ? 'bg-primary' : 'bg-amber-400'}`} />
+                <span className={`w-2 h-2 rounded-full ${settings.isConnected ? 'bg-primary' : 'bg-warning'}`} />
                 <span className="text-sm font-semibold">
                   {settings.isConnected ? 'Connected' : 'Not connected yet'}
                 </span>
@@ -672,7 +672,7 @@ export default function SettingsPage() {
                 <div>
                   <div className="flex items-center gap-1 mb-1">
                     <label className="text-sm font-normal text-foreground">
-                      Phone Number ID <span className="text-rose-500">*</span>
+                      Phone Number ID <span className="text-destructive">*</span>
                     </label>
                     <InfoTooltip content="Found in Meta for Developers > WhatsApp > API Setup." />
                   </div>
@@ -688,7 +688,7 @@ export default function SettingsPage() {
                 <div>
                   <div className="flex items-center gap-1 mb-1">
                     <label className="text-sm font-normal text-foreground">
-                      WhatsApp Business Account ID <span className="text-rose-500">*</span>
+                      WhatsApp Business Account ID <span className="text-destructive">*</span>
                     </label>
                     <InfoTooltip content="Found in Meta Business Manager > WhatsApp Accounts." />
                   </div>
@@ -705,7 +705,7 @@ export default function SettingsPage() {
               <div>
                 <div className="flex items-center gap-1 mb-1">
                   <label className="text-sm font-normal text-foreground">
-                    Access token <span className="text-rose-500">*</span>
+                    Access token <span className="text-destructive">*</span>
                   </label>
                   <InfoTooltip content="Permanent Token with whatsapp_business_messaging and whatsapp_business_management permissions." />
                 </div>
@@ -726,7 +726,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={handleTestConnection}
                       disabled={testing}
-                      className="px-3.5 py-1.5 rounded-xl border border-border bg-card hover:bg-black/5 text-foreground text-sm font-normal flex items-center gap-1.5 shadow-2xs"
+                      className="px-3.5 py-1.5 rounded-xl border border-border bg-card hover:bg-accent text-foreground text-sm font-normal flex items-center gap-1.5 shadow-2xs"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${testing ? 'animate-spin text-primary' : 'text-muted-foreground'}`} />
                       <span>{testing ? 'Checking...' : 'Check again and show details'}</span>
@@ -735,7 +735,7 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => setIsPinModalOpen(true)}
-                      className="px-3 py-1.5 rounded-xl border border-border text-foreground hover:bg-black/5 text-sm font-normal shadow-2xs"
+                      className="px-3 py-1.5 rounded-xl border border-border text-foreground hover:bg-accent text-sm font-normal shadow-2xs"
                     >
                       Register this phone number
                     </button>
@@ -750,14 +750,14 @@ export default function SettingsPage() {
                 </div>
 
                 {testDetails?.phoneDetails && (
-                  <div className="p-3 rounded-xl bg-black/5 border border-border grid grid-cols-2 sm:grid-cols-5 gap-2 text-sm">
+                  <div className="p-3 rounded-xl bg-raised border border-border grid grid-cols-2 sm:grid-cols-5 gap-2 text-sm">
                     <div>
                       <span className="text-xs text-muted-foreground uppercase font-normal">Display Phone</span>
                       <p className="font-normal font-mono text-foreground">{testDetails.phoneDetails.display_phone_number || 'N/A'}</p>
                     </div>
                     <div>
                       <span className="text-xs text-muted-foreground uppercase font-normal">Display Name</span>
-                      <p className={`font-normal ${testDetails.phoneDetails.name_status === 'APPROVED' ? 'text-foreground' : 'text-amber-700'}`}>
+                      <p className={`font-normal ${testDetails.phoneDetails.name_status === 'APPROVED' ? 'text-foreground' : 'text-warning-subtle-foreground'}`}>
                         {testDetails.phoneDetails.name_status || (testDetails.phoneDetails.verified_name ? 'APPROVED' : 'PENDING')}
                       </p>
                     </div>
@@ -798,12 +798,12 @@ export default function SettingsPage() {
                       type="text"
                       readOnly
                       value={webhookUrl}
-                      className="w-full px-3 py-2 text-sm rounded-xl border border-input font-mono bg-black/5 text-muted-foreground"
+                      className="w-full px-3 py-2 text-sm rounded-xl border border-input font-mono bg-raised text-muted-foreground"
                     />
                     <button
                       type="button"
                       onClick={handleCopyWebhook}
-                      className="px-3.5 py-2 rounded-xl border border-border bg-card hover:bg-black/5 text-foreground text-sm font-normal flex items-center gap-1 shadow-2xs"
+                      className="px-3.5 py-2 rounded-xl border border-border bg-card hover:bg-accent text-foreground text-sm font-normal flex items-center gap-1 shadow-2xs"
                     >
                       {copied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
                       <span>{copied ? 'Copied' : 'Copy'}</span>
@@ -850,7 +850,7 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="px-5 py-2.5 rounded-xl bg-foreground hover:bg-foreground/90 text-white text-sm font-normal  transition-all disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl bg-foreground hover:bg-foreground/90 text-background text-sm font-normal  transition-all disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save changes'}
               </button>
@@ -954,7 +954,7 @@ export default function SettingsPage() {
 
             <button
               onClick={() => setIsAddingSnippet(!isAddingSnippet)}
-              className="px-3.5 py-1.5 rounded-xl bg-whatsapp-green hover:bg-primary/90 text-white text-sm font-normal flex items-center gap-1.5  transition-all self-start sm:self-auto"
+              className="px-3.5 py-1.5 rounded-xl bg-wa hover:bg-wa-hover text-wa-foreground text-sm font-normal flex items-center gap-1.5  transition-all self-start sm:self-auto"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{isAddingSnippet ? 'Cancel' : 'New saved reply'}</span>
@@ -1022,7 +1022,7 @@ export default function SettingsPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 text-sm font-normal rounded-xl bg-whatsapp-green text-white shadow-xs"
+                  className="px-4 py-1.5 text-sm font-normal rounded-xl bg-wa text-wa-foreground shadow-xs"
                 >
                   Save Shortcut
                 </button>
@@ -1068,7 +1068,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => handleDeleteSnippet(s.id)}
-                  className="p-2 text-muted-foreground hover:text-rose-600 rounded-full transition-colors shrink-0"
+                  className="p-2 text-muted-foreground hover:text-destructive rounded-full transition-colors shrink-0"
                   title="Delete shortcut"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -1101,7 +1101,7 @@ export default function SettingsPage() {
 
             <button
               onClick={() => setIsCreatingKey(!isCreatingKey)}
-              className="px-3.5 py-1.5 rounded-xl bg-whatsapp-green hover:bg-primary/90 text-white text-sm font-normal flex items-center gap-1.5 transition-all self-start sm:self-auto"
+              className="px-3.5 py-1.5 rounded-xl bg-wa hover:bg-wa-hover text-wa-foreground text-sm font-normal flex items-center gap-1.5 transition-all self-start sm:self-auto"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{isCreatingKey ? 'Cancel' : 'New API Key'}</span>
@@ -1147,7 +1147,7 @@ export default function SettingsPage() {
                 <button
                   type="submit"
                   disabled={creatingKey || !newKeyName.trim()}
-                  className="px-4 py-1.5 text-sm font-normal rounded-xl bg-whatsapp-green text-white shadow-xs disabled:opacity-50"
+                  className="px-4 py-1.5 text-sm font-normal rounded-xl bg-wa text-wa-foreground shadow-xs disabled:opacity-50"
                 >
                   {creatingKey ? 'Generating...' : 'Generate Key'}
                 </button>
@@ -1157,28 +1157,28 @@ export default function SettingsPage() {
 
           {/* Newly created key reveal */}
           {revealedKey && (
-            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-2">
+            <div className="p-4 rounded-2xl bg-warning-subtle border border-warning/40 space-y-2">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-bold text-amber-900">
+                <h4 className="text-sm font-bold text-warning-subtle-foreground">
                   "{revealedKey.name}" created — copy this key now
                 </h4>
-                <button onClick={() => setRevealedKey(null)} className="text-amber-500 hover:text-amber-700">
+                <button onClick={() => setRevealedKey(null)} className="text-warning hover:text-warning-subtle-foreground">
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <p className="text-xs text-amber-800">
+              <p className="text-xs text-warning-subtle-foreground">
                 This is the only time the full key is shown. It cannot be retrieved again — store it somewhere safe.
               </p>
               <div className="flex gap-2">
                 <input
                   readOnly
                   value={revealedKey.rawKey}
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-amber-300 font-mono bg-card text-foreground"
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-warning/40 font-mono bg-card text-foreground"
                 />
                 <button
                   type="button"
                   onClick={handleCopyRawKey}
-                  className="px-3.5 py-2 rounded-xl border border-amber-300 bg-card hover:bg-amber-100 text-amber-800 text-sm font-normal flex items-center gap-1 shrink-0"
+                  className="px-3.5 py-2 rounded-xl border border-warning/40 bg-card hover:bg-warning/20 text-warning-subtle-foreground text-sm font-normal flex items-center gap-1 shrink-0"
                 >
                   {rawKeyCopied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{rawKeyCopied ? 'Copied' : 'Copy'}</span>
@@ -1232,7 +1232,7 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => handleRevokeApiKey(k.id)}
-                    className="p-2 text-muted-foreground hover:text-rose-600 rounded-full transition-colors shrink-0"
+                    className="p-2 text-muted-foreground hover:text-destructive rounded-full transition-colors shrink-0"
                     title="Revoke key"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -1278,7 +1278,7 @@ export default function SettingsPage() {
             />
             <button
               onClick={() => fetchAuditLog(1)}
-              className="px-3.5 py-2 rounded-xl border border-border bg-card hover:bg-black/5 text-foreground text-sm font-normal flex items-center gap-1.5 shadow-2xs"
+              className="px-3.5 py-2 rounded-xl border border-border bg-card hover:bg-accent text-foreground text-sm font-normal flex items-center gap-1.5 shadow-2xs"
             >
               <Search className="w-3.5 h-3.5" />
               <span>Filter</span>
@@ -1320,7 +1320,7 @@ export default function SettingsPage() {
                           <span
                             className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                               entry.action.includes('FAILED')
-                                ? 'bg-rose-50 text-rose-700'
+                                ? 'bg-destructive/10 text-destructive'
                                 : entry.action.includes('SUCCESS') || entry.action.includes('CREATED')
                                 ? 'bg-brand-subtle text-primary'
                                 : 'bg-muted text-foreground'

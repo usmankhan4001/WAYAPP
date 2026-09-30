@@ -91,72 +91,113 @@ const p = primitives;
 
 export type SemanticColors = Record<string, string>;
 
+/**
+ * "Ink and Lime" (docs/UI_SPEC.md section 2). Ink = near-black neutrals,
+ * lime = the accent fill, deep green = links/icons/chart line on light.
+ */
+export const ink = {
+  950: "#141414",
+  900: "#1b1b1b",
+  800: "#262626",
+  700: "#2e2e2e",
+  500: "#6b6b6b",
+  400: "#a3a3a3",
+  200: "#e6e6e6",
+  100: "#ededed",
+  50: "#f6f6f6",
+  lime: "#c0f7a6",
+  limeHover: "#adeb90",
+  limeBubble: "#d6f8c4",
+  limeSubtle: "#e6f9da",
+  limeSubtleDark: "#22301c",
+  green: "#0f5c3a",
+  chartMain: "#0f4d3a",
+  chartPrev: "#bfe3d0",
+  highlight: "#f5e663",
+  success: "#1f9d55",
+  warning: "#e6a100",
+  danger: "#d64545",
+  readTick: "#34b7f1",
+} as const;
+
+const k = ink;
+
 export const semantic: { light: SemanticColors; dark: SemanticColors } = {
   light: {
     // shadcn/ui core
-    background: p.slate[50],
-    foreground: p.slate[900],
+    background: k[50],
+    foreground: k[900],
     card: p.white,
-    "card-foreground": p.slate[900],
+    "card-foreground": k[900],
     popover: p.white,
-    "popover-foreground": p.slate[900],
-    primary: p.emerald[600],
+    "popover-foreground": k[900],
+    primary: k[900],
     "primary-foreground": p.white,
-    secondary: p.slate[100],
-    "secondary-foreground": p.slate[900],
-    muted: p.slate[100],
-    "muted-foreground": p.slate[500],
-    accent: p.slate[100],
-    "accent-foreground": p.slate[900],
-    destructive: p.red[600],
+    secondary: k[100],
+    "secondary-foreground": k[900],
+    muted: k[100],
+    "muted-foreground": k[500],
+    accent: k[100],
+    "accent-foreground": k[900],
+    destructive: k.danger,
     "destructive-foreground": p.white,
-    border: p.slate[200],
-    input: p.slate[200],
-    ring: p.emerald[600],
+    border: k[200],
+    input: k[200],
+    ring: k.green,
+
+    // Ink and Lime additions
+    raised: k[100],
+    lime: k.lime,
+    "lime-foreground": k[900],
+    link: k.green,
+    "read-tick": k.readTick,
 
     // shadcn/ui sidebar block
     sidebar: p.white,
-    "sidebar-foreground": p.slate[700],
-    "sidebar-primary": p.emerald[600],
+    "sidebar-foreground": k[500],
+    "sidebar-primary": k[900],
     "sidebar-primary-foreground": p.white,
-    "sidebar-accent": p.slate[100],
-    "sidebar-accent-foreground": p.slate[900],
-    "sidebar-border": p.slate[200],
-    "sidebar-ring": p.emerald[600],
+    "sidebar-accent": k.limeSubtle,
+    "sidebar-accent-foreground": k.green,
+    "sidebar-border": k[200],
+    "sidebar-ring": k.green,
 
-    // our additions — product brand (alias of primary, kept for intent clarity)
-    brand: p.emerald[600],
+    // product brand = deep green on light (links, active nav, icons)
+    brand: k.green,
     "brand-foreground": p.white,
-    "brand-subtle": p.emerald[50],
-    "brand-subtle-foreground": p.emerald[700],
+    "brand-subtle": k.limeSubtle,
+    "brand-subtle-foreground": k.green,
 
-    // our additions — WhatsApp messaging surfaces (fixed, never themed)
-    wa: p.wa.green,
-    "wa-foreground": p.white,
-    "wa-hover": p.wa.greenHover,
-    "wa-bubble-out": p.wa.bubbleOut,
-    "wa-bubble-out-foreground": p.slate[900],
-    "wa-bubble-in": p.wa.bubbleIn,
-    "wa-bubble-in-foreground": p.slate[900],
-    "chat-canvas": p.wa.canvas,
+    // messaging surfaces: send button = lime, bubbles per spec
+    wa: k.lime,
+    "wa-foreground": k[900],
+    "wa-hover": k.limeHover,
+    "wa-bubble-out": k.limeBubble,
+    "wa-bubble-out-foreground": k[900],
+    "wa-bubble-in": p.white,
+    "wa-bubble-in-foreground": k[900],
+    "chat-canvas": k[50],
 
-    // our additions — status
-    success: p.green[600],
+    // status
+    success: k.success,
     "success-foreground": p.white,
     "success-subtle": p.green[50],
     "success-subtle-foreground": p.green[700],
-    warning: p.amber[500],
-    "warning-foreground": p.slate[900],
+    warning: k.warning,
+    "warning-foreground": k[900],
     "warning-subtle": p.amber[50],
     "warning-subtle-foreground": p.amber[700],
-    info: p.blue[600],
-    "info-foreground": p.white,
-    "info-subtle": p.blue[50],
-    "info-subtle-foreground": p.blue[700],
+    danger: k.danger,
+    "danger-foreground": p.white,
+    info: k.readTick,
+    "info-foreground": k[900],
+    "info-subtle": p.sky[50],
+    "info-subtle-foreground": p.sky[700],
 
-    // dataviz — categorical series (distinct hues, AA on card bg)
-    "chart-1": p.emerald[500],
-    "chart-2": p.blue[500],
+    // dataviz
+    "chart-1": k.chartMain,
+    "chart-2": k.chartPrev,
+    "chart-highlight": k.highlight,
     "chart-3": p.amber[500],
     "chart-4": p.purple[500],
     "chart-5": p.rose[500],
@@ -164,64 +205,74 @@ export const semantic: { light: SemanticColors; dark: SemanticColors } = {
   },
 
   dark: {
-    background: p.slate[950],
-    foreground: p.slate[100],
-    card: p.slate[900],
-    "card-foreground": p.slate[100],
-    popover: p.slate[900],
-    "popover-foreground": p.slate[100],
-    primary: p.emerald[500],
-    "primary-foreground": p.slate[950],
-    secondary: p.slate[800],
-    "secondary-foreground": p.slate[100],
-    muted: p.slate[800],
-    "muted-foreground": p.slate[400],
-    accent: p.slate[800],
-    "accent-foreground": p.slate[100],
-    destructive: p.red[500],
-    "destructive-foreground": p.slate[950],
-    border: p.slate[800],
-    input: p.slate[800],
-    ring: p.emerald[500],
+    background: k[950],
+    foreground: k[50],
+    card: k[900],
+    "card-foreground": k[50],
+    popover: k[800],
+    "popover-foreground": k[50],
+    primary: k.lime,
+    "primary-foreground": k[900],
+    secondary: k[800],
+    "secondary-foreground": k[50],
+    muted: k[800],
+    "muted-foreground": k[400],
+    accent: k[800],
+    "accent-foreground": k[50],
+    destructive: k.danger,
+    "destructive-foreground": p.white,
+    border: k[700],
+    input: k[700],
+    ring: k.lime,
 
-    sidebar: p.slate[900],
-    "sidebar-foreground": p.slate[300],
-    "sidebar-primary": p.emerald[500],
-    "sidebar-primary-foreground": p.slate[950],
-    "sidebar-accent": p.slate[800],
-    "sidebar-accent-foreground": p.slate[100],
-    "sidebar-border": p.slate[800],
-    "sidebar-ring": p.emerald[500],
+    raised: k[800],
+    lime: k.lime,
+    "lime-foreground": k[900],
+    link: k.lime,
+    "read-tick": k.readTick,
 
-    brand: p.emerald[500],
-    "brand-foreground": p.slate[950],
-    "brand-subtle": "#052e23",
-    "brand-subtle-foreground": p.emerald[300],
+    sidebar: k[900],
+    "sidebar-foreground": k[400],
+    "sidebar-primary": k.lime,
+    "sidebar-primary-foreground": k[900],
+    "sidebar-accent": k[800],
+    "sidebar-accent-foreground": k[50],
+    "sidebar-border": k[700],
+    "sidebar-ring": k.lime,
 
-    wa: p.wa.green,
-    "wa-foreground": p.white,
-    "wa-hover": p.wa.greenHover,
-    "wa-bubble-out": p.wa.bubbleOutDark,
-    "wa-bubble-out-foreground": p.slate[100],
-    "wa-bubble-in": p.wa.bubbleInDark,
-    "wa-bubble-in-foreground": p.slate[100],
-    "chat-canvas": p.wa.canvasDark,
+    brand: k.lime,
+    "brand-foreground": k[900],
+    "brand-subtle": k.limeSubtleDark,
+    "brand-subtle-foreground": k.lime,
 
-    success: p.green[500],
-    "success-foreground": p.slate[950],
-    "success-subtle": "#04240f",
+    wa: k.lime,
+    "wa-foreground": k[900],
+    "wa-hover": k.limeHover,
+    "wa-bubble-out": k.lime,
+    "wa-bubble-out-foreground": k[900],
+    "wa-bubble-in": k[800],
+    "wa-bubble-in-foreground": k[50],
+    "chat-canvas": k[950],
+
+    success: k.success,
+    "success-foreground": p.white,
+    "success-subtle": "#12281b",
     "success-subtle-foreground": p.green[400],
-    warning: p.amber[400],
-    "warning-foreground": p.slate[950],
-    "warning-subtle": "#2c1e04",
+    warning: k.warning,
+    "warning-foreground": k[900],
+    "warning-subtle": "#2c2208",
     "warning-subtle-foreground": p.amber[400],
-    info: p.blue[400],
-    "info-foreground": p.slate[950],
-    "info-subtle": "#0a1f3d",
-    "info-subtle-foreground": p.blue[400],
+    danger: k.danger,
+    "danger-foreground": p.white,
+    info: k.readTick,
+    "info-foreground": k[900],
+    "info-subtle": "#0d2530",
+    "info-subtle-foreground": k.readTick,
 
-    "chart-1": p.emerald[400],
-    "chart-2": p.blue[400],
+    // on dark the main series is lime (deep green would vanish on ink)
+    "chart-1": k.lime,
+    "chart-2": "#3f5a49",
+    "chart-highlight": k.highlight,
     "chart-3": p.amber[400],
     "chart-4": p.purple[400],
     "chart-5": p.rose[400],
@@ -233,8 +284,15 @@ export const semantic: { light: SemanticColors; dark: SemanticColors } = {
 // 3. COMPONENT TOKENS — theme-independent
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Base corner radius. shadcn derives sm/md/lg/xl from this. */
-export const radius = "0.625rem"; // 10px
+/** Base corner radius (inputs, 14px). lg = this, xl = +4, 2xl = card. */
+export const radius = "0.875rem"; // 14px
+
+/** Extra radii exposed as --radius-card / --radius-bubble. */
+export const radii: Record<string, string> = {
+  "radius-card": "1.25rem", // 20px
+  "radius-bubble": "1.125rem", // 18px
+  "radius-bubble-tail": "0.375rem", // 6px
+};
 
 export const dimensions: Record<string, string> = {
   "header-height": "3.5rem", // 56
@@ -271,11 +329,17 @@ export const zIndex: Record<string, string> = {
 
 /** Numeric mirror of `radius` / `dimensions` for the RN theme (px). */
 export const nativeScale = {
-  radius: 10,
-  radiusSm: 6,
-  radiusMd: 8,
-  radiusLg: 10,
-  radiusXl: 14,
+  radius: 14,
+  radiusSm: 10,
+  radiusMd: 12,
+  radiusLg: 14,
+  radiusXl: 18,
+  radiusCard: 20,
+  radiusInput: 14,
+  radiusBubble: 18,
   headerHeight: 56,
   bottomNavHeight: 64,
 };
+
+/** Font family name shared by web (next/font Urbanist) and Expo. */
+export const fontFamily = "Urbanist";

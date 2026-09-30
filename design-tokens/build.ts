@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import {
   semantic,
   radius,
+  radii,
   dimensions,
   shadows,
   motion,
@@ -35,6 +36,7 @@ function cssVars(map: Record<string, string>, indent = "  "): string {
 
 const componentVars: Record<string, string> = {
   radius,
+  ...radii,
   ...dimensions,
   ...shadows,
   ...motion,
@@ -43,7 +45,8 @@ const componentVars: Record<string, string> = {
 
 const tokensCss = `${BANNER}
 
-:root {
+:root,
+.light {
 ${cssVars(semantic.light)}
 
   /* component tokens (theme-independent) */

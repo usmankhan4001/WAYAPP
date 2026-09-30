@@ -70,7 +70,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </main>
         </div>
 
-        <MobileTabBar onOpenMore={() => setIsMobileMenuOpen(true)} />
+        <MobileTabBar />
 
         <MetaSetupGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
       </div>

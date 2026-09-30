@@ -15,7 +15,7 @@
   `inline` = reference the var() directly in generated utilities so `.dark` swaps them.
 */
 @theme inline {
-  --font-sans: Inter, system-ui, sans-serif;
+  --font-sans: var(--font-urbanist), Urbanist, system-ui, sans-serif;
 
   /* smallest sanctioned UI text — badges, metadata, timestamps. Kills the
      arbitrary text-[9px]/[10px]/[11px] scattered across the app. */
@@ -84,11 +84,20 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
   --color-chart-6: var(--chart-6);
+  --color-chart-highlight: var(--chart-highlight);
+  --color-raised: var(--raised);
+  --color-lime: var(--lime);
+  --color-lime-foreground: var(--lime-foreground);
+  --color-link: var(--link);
+  --color-read-tick: var(--read-tick);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: var(--radius-card);
 
   --shadow-2xs: var(--shadow-2xs);
   --shadow-xs: var(--shadow-xs);

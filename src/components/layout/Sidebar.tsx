@@ -89,7 +89,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
               onClick={onNavigate}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                'flex w-full items-center justify-between rounded-full px-3 py-2.5 text-sm font-medium transition-colors',
                 active
                   ? 'bg-sidebar-accent font-semibold text-sidebar-accent-foreground'
                   : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground'
@@ -100,7 +100,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
                 <span>{item.label}</span>
               </span>
               {item.badge === 'unread' && unreadCount > 0 ? (
-                <span className="rounded-full bg-primary px-1.5 text-2xs font-semibold text-primary-foreground">
+                <span className="rounded-full bg-lime px-1.5 text-2xs font-semibold text-lime-foreground">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               ) : active ? (
@@ -153,10 +153,104 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
+/**
+ * Compact side rail for 768-1279px: icon over a short label, same nav config
+ * and unread badge as the full sidebar.
+ */
+function SidebarRail() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { user } = useSession();
+  const { enabledModules } = useModules();
+  const { developerMode } = useDeveloperMode();
+  const { unreadCount } = useNotifications();
+  const navItems = getVisibleNav(enabledModules, developerMode);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
+      router.refresh();
+    } catch {
+      window.location.href = '/login';
+    }
+  };
+
+  return (
+    <aside className="flex h-full w-20 shrink-0 flex-col items-center border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+      <Link href="/" aria-label="WAYAPP home" className="flex h-14 items-center justify-center">
+        <span className="flex size-9 items-center justify-center rounded-full bg-primary p-2 text-primary-foreground">
+          <svg viewBox="0 0 512 512" fill="none" className="size-full">
+            <path d="M120 180L180 340L256 220L332 340L392 180" stroke="currentColor" strokeWidth="52" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="392" cy="180" r="32" fill="currentColor" />
+          </svg>
+        </span>
+      </Link>
+
+      <nav className="flex w-full flex-1 flex-col items-center gap-1 overflow-y-auto px-1.5 py-2">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const active = isActiveHref(pathname, item.href);
+          return (
+            <Link
+              key={item.id}
+              href={item.href}
+              aria-current={active ? 'page' : undefined}
+              className={cn(
+                'flex w-full flex-col items-center gap-1 rounded-2xl px-1 py-2 transition-colors duration-150',
+                active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <span
+                className={cn(
+                  'relative flex h-8 w-12 items-center justify-center rounded-full transition-colors duration-150',
+                  active ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'hover:bg-sidebar-accent/60'
+                )}
+              >
+                <Icon className="size-5" />
+                {item.badge === 'unread' && unreadCount > 0 && (
+                  <span className="absolute -right-0.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-lime px-1 text-2xs font-bold text-lime-foreground">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </span>
+              <span className={cn('max-w-full truncate text-xs', active ? 'font-semibold' : 'font-medium')}>
+                {item.shortLabel ?? item.label}
+              </span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      {user && (
+        <div className="flex flex-col items-center gap-2 border-t border-sidebar-border py-3">
+          <span
+            title={user.name || user.email || ''}
+            className="flex size-9 items-center justify-center rounded-full bg-raised text-sm font-semibold text-foreground"
+          >
+            {(user.name || user.email || 'U').substring(0, 1).toUpperCase()}
+          </span>
+          <button
+            onClick={handleLogout}
+            className="flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+            title="Sign out"
+            aria-label="Sign out"
+          >
+            <LogOut className="size-4" />
+          </button>
+        </div>
+      )}
+    </aside>
+  );
+}
+
 export function Sidebar({ isMobileOpen = false, onCloseMobile }: SidebarProps) {
   return (
     <>
-      <div className="hidden md:block">
+      <div className="hidden md:block xl:hidden">
+        <SidebarRail />
+      </div>
+      <div className="hidden xl:block">
         <SidebarBody />
       </div>
 
