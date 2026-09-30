@@ -1,57 +1,94 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { FileText, Plus, RefreshCw, Send, AlertCircle, Edit3 } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { FileText, Plus, RefreshCw, Send } from 'lucide-react';
 
 import { WhatsAppMockupPreview } from '@/components/templates/WhatsAppMockupPreview';
 import { TemplateBuilderModal } from '@/components/templates/TemplateBuilderModal';
 import { SendTestModal } from '@/components/templates/SendTestModal';
-import { InfoTooltip, Tooltip } from '@/components/ui/Tooltip';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
-import { StatusBadge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Alert } from '@/components/ui/alert';
+import { Chip } from '@/components/ui/chip';
+import { ListRow } from '@/components/ui/list-row';
+import { SearchField } from '@/components/ui/search-field';
+import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { useToast } from '@/components/ui/Toast';
+import { useIsMobile } from '@/lib/hooks/use-is-mobile';
+import {
+  bodyTextOf,
+  categoryLabel,
+  chipCounts,
+  filterTemplates,
+  firstLine,
+  plainName,
+  rejectionSentence,
+  statusInfo,
+  type CategoryFilter,
+  type StatusFilter,
+  type TemplateRecord,
+} from '@/lib/templates/present';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Template = Record<string, any>;
-
-const STATUS: Record<string, { tone: string; label: string }> = {
-  APPROVED: { tone: 'success', label: '● Approved' },
-  PENDING: { tone: 'warning', label: '⏳ Meta reviewing…' },
-  REJECTED: { tone: 'destructive', label: '✕ Rejected' },
-};
+const STATUS_CHIPS: Array<{ key: StatusFilter; label: string }> = [
+  { key: 'ALL', label: 'All' },
+  { key: 'APPROVED', label: 'Approved' },
+  { key: 'PENDING', label: 'Waiting' },
+  { key: 'REJECTED', label: 'Rejected' },
+];
+const CATEGORY_CHIPS: Array<{ key: CategoryFilter; label: string }> = [
+  { key: 'ALL', label: 'All types' },
+  { key: 'MARKETING', label: 'Promotion' },
+  { key: 'UTILITY', label: 'Update' },
+  { key: 'AUTHENTICATION', label: 'Login code' },
+];
 
 export default function TemplatesPage() {
   const toast = useToast();
-  const [templates, setTemplates] = useState<Template[]>([]);
+  const isMobile = useIsMobile();
+  const [templates, setTemplates] = useState<TemplateRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState<StatusFilter>('ALL');
+  const [category, setCategory] = useState<CategoryFilter>('ALL');
+
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [testModalTemplate, setTestModalTemplate] = useState<Template | null>(null);
-  const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
-
-  const fetchTemplates = () => {
-    fetch('/api/templates')
-      .then((res) => res.json())
-      .then((data) => {
-        const list: Template[] = Array.isArray(data) ? data : [];
-        setTemplates(list);
-        setPreviewTemplate((prev) => prev ?? list[0] ?? null);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+  const [prefill, setPrefill] = useState<TemplateRecord | null>(null);
+  const [builderKey, setBuilderKey] = useState(0);
+  const openBuilder = (from: TemplateRecord | null) => {
+    setPrefill(from);
+    setBuilderKey((k) => k + 1);
+    setSheetOpen(false);
+    setIsCreateOpen(true);
   };
+  const [testTemplate, setTestTemplate] = useState<TemplateRecord | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
-  useEffect(() => {
-    fetchTemplates();
+  const fetchTemplates = useCallback(() => {
+    setLoadFailed(false);
+    fetch('/api/templates')
+      .then((res) => {
+        if (!res.ok) throw new Error('bad response');
+        return res.json();
+      })
+      .then((data) => setTemplates(Array.isArray(data) ? data : []))
+      .catch(() => setLoadFailed(true))
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
-    if (!templates.some((t) => t.status === 'PENDING')) return;
+    fetchTemplates();
+  }, [fetchTemplates]);
+
+  // While Meta is still reviewing something, quietly check again.
+  useEffect(() => {
+    if (!templates.some((t) => statusInfo(t.status).key === 'PENDING')) return;
     const interval = setInterval(() => {
       fetch('/api/templates')
         .then((res) => res.json())
@@ -67,196 +104,195 @@ export default function TemplatesPage() {
       const res = await fetch('/api/templates/sync', { method: 'POST' });
       const data = await res.json();
       if (data.success) {
-        toast.success('Templates synced', data.message);
+        toast.success('Templates updated', 'Your list now matches Meta.');
         fetchTemplates();
       } else {
-        toast.error('Sync failed', data.error || 'Failed to sync templates from Meta');
+        toast.error('Could not update', 'We could not reach Meta. Check your WhatsApp connection and try again.');
       }
     } catch {
-      toast.error('Unable to reach server to sync templates.');
+      toast.error('Could not update', 'We could not reach Meta. Check your connection and try again.');
     } finally {
       setIsSyncing(false);
     }
   };
 
-  const parseComponents = (tpl: Template) => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (typeof tpl.components === 'string' ? JSON.parse(tpl.components) : tpl.components) as any[];
-    } catch {
-      return [];
-    }
+  const filters = { query, status, category };
+  const visible = useMemo(() => filterTemplates(templates, filters), [templates, query, status, category]); // eslint-disable-line react-hooks/exhaustive-deps
+  const counts = useMemo(() => chipCounts(templates, filters), [templates, query, status, category]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const selected =
+    templates.find((t) => String(t.id) === selectedId) ?? (isMobile ? null : visible[0] ?? null);
+
+  const open = (t: TemplateRecord) => {
+    setSelectedId(String(t.id));
+    if (isMobile) setSheetOpen(true);
+  };
+
+  const details = (t: TemplateRecord) => {
+    const info = statusInfo(t.status);
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={info.variant}>{info.label}</Badge>
+          <span className="text-sm text-muted-foreground">
+            {categoryLabel(t.category)} · {t.language}
+          </span>
+        </div>
+        {info.key === 'REJECTED' && (
+          <Alert
+            tone="danger"
+            title="Meta did not approve this"
+            action={
+              <Button size="sm" variant="outline" onClick={() => openBuilder(t)}>
+                Make a new one
+              </Button>
+            }
+          >
+            {rejectionSentence(t.rejectedReason)}
+          </Alert>
+        )}
+        <WhatsAppMockupPreview components={t.components} />
+        <Button className="w-full" disabled={info.key !== 'APPROVED'} onClick={() => setTestTemplate(t)}>
+          <Send />
+          Send a test
+        </Button>
+        {info.key !== 'APPROVED' && (
+          <p className="text-center text-xs text-muted-foreground">You can send a test once Meta approves it.</p>
+        )}
+      </div>
+    );
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
-        title={
-          <span className="inline-flex items-center gap-1.5">
-            WhatsApp template manager
-            <InfoTooltip content="Manage, create and track real-time approvals for Meta-approved WhatsApp message templates." />
-          </span>
-        }
-        description="Create templates with realistic variables and track Meta auto-approvals in real time."
+        title="Templates"
+        description="Messages Meta must approve before you can start a chat. Meta usually reviews within a day."
         actions={
           <>
-            <Tooltip content="Pulls all approved, pending and rejected templates directly from your Meta WABA account.">
-              <Button variant="outline" size="sm" onClick={handleSyncMeta} disabled={isSyncing}>
-                <RefreshCw className={isSyncing ? 'animate-spin text-primary' : ''} />
-                {isSyncing ? 'Syncing…' : 'Sync from Meta'}
-              </Button>
-            </Tooltip>
-            <Button size="sm" onClick={() => setIsCreateOpen(true)}>
+            <Button variant="outline" size="sm" onClick={handleSyncMeta} disabled={isSyncing}>
+              <RefreshCw className={isSyncing ? 'animate-spin' : ''} />
+              {isSyncing ? 'Updating' : 'Sync from Meta'}
+            </Button>
+            <Button size="sm" onClick={() => openBuilder(null)}>
               <Plus />
-              Create template
+              New template
             </Button>
           </>
         }
       />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* List */}
-        <div className="space-y-3 lg:col-span-7">
-          {loading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="space-y-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
-                  <div className="flex items-center justify-between">
-                    <Skeleton width={140} height={14} />
-                    <Skeleton width={70} height={18} variant="rounded" />
-                  </div>
-                  <Skeleton lines={2} />
-                </div>
+      {loadFailed && (
+        <Alert
+          tone="danger"
+          title="We could not load your templates"
+          action={<Button size="sm" variant="outline" onClick={() => { setLoading(true); fetchTemplates(); }}>Try again</Button>}
+        >
+          Check your connection, then try again.
+        </Alert>
+      )}
+
+      {loading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 rounded-2xl bg-card p-4">
+              <div className="min-w-0 flex-1 space-y-2">
+                <Skeleton width={160} height={14} />
+                <Skeleton width="80%" height={12} />
+              </div>
+              <Skeleton width={72} height={20} variant="rounded" />
+            </div>
+          ))}
+        </div>
+      ) : templates.length === 0 && !loadFailed ? (
+        <div className="rounded-2xl bg-card">
+          <EmptyState
+            icon={FileText}
+            title="No templates yet"
+            description="Pull in the ones you already have at Meta, or write a new one."
+            actionLabel={isSyncing ? 'Updating' : 'Sync from Meta'}
+            onAction={handleSyncMeta}
+          />
+        </div>
+      ) : templates.length > 0 ? (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <div className="space-y-3 lg:col-span-7">
+            <SearchField value={query} onValueChange={setQuery} placeholder="Search templates" />
+            <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
+              {STATUS_CHIPS.map((c) => (
+                <Chip key={c.key} selected={status === c.key} count={counts.status[c.key]} onClick={() => setStatus(c.key)}>
+                  {c.label}
+                </Chip>
               ))}
             </div>
-          ) : templates.length === 0 ? (
-            <div className="rounded-xl bg-card ring-1 ring-foreground/10">
-              <EmptyState
-                icon={FileText}
-                title="No templates found"
-                description={'Create a template with custom variables or click "Sync from Meta" to pull your existing WhatsApp Business templates.'}
-                actionLabel="Create first template"
-                onAction={() => setIsCreateOpen(true)}
-              />
+            <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
+              {CATEGORY_CHIPS.map((c) => (
+                <Chip key={c.key} selected={category === c.key} count={counts.category[c.key]} onClick={() => setCategory(c.key)}>
+                  {c.label}
+                </Chip>
+              ))}
             </div>
-          ) : (
-            templates.map((tpl) => {
-              const components = parseComponents(tpl);
-              const bodyText = components.find((c) => c.type === 'BODY')?.text || '';
-              const selected = previewTemplate?.id === tpl.id;
-              const status = STATUS[tpl.status] ?? STATUS.REJECTED;
 
-              return (
-                <div
-                  key={tpl.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setPreviewTemplate(tpl)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      setPreviewTemplate(tpl);
-                    }
-                  }}
-                  className={cn(
-                    'w-full cursor-pointer space-y-3 rounded-xl bg-card p-4 text-left ring-1 transition-all outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                    selected ? 'ring-2 ring-primary' : 'ring-foreground/10 hover:ring-foreground/20'
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <FileText className={cn('size-4 shrink-0', selected ? 'text-primary' : 'text-muted-foreground')} />
-                      <h3 className="truncate font-mono text-xs font-semibold text-foreground">{tpl.name}</h3>
+            {visible.length === 0 ? (
+              <div className="rounded-2xl bg-card">
+                <EmptyState
+                  variant="compact"
+                  icon={FileText}
+                  title="Nothing matches"
+                  description="Try a different word or clear the filters."
+                  actionLabel="Clear filters"
+                  onAction={() => { setQuery(''); setStatus('ALL'); setCategory('ALL'); }}
+                />
+              </div>
+            ) : (
+              <div className="divide-y divide-border overflow-hidden rounded-2xl bg-card">
+                {visible.map((t) => {
+                  const info = statusInfo(t.status);
+                  return (
+                    <div key={t.id}>
+                      <ListRow
+                        title={plainName(t.name)}
+                        subtitle={firstLine(bodyTextOf(t)) || 'No message text'}
+                        meta={<Badge variant={info.variant}>{info.label}</Badge>}
+                        trailing={<span>{categoryLabel(t.category)} · {t.language}</span>}
+                        active={!isMobile && selected?.id === t.id}
+                        onClick={() => open(t)}
+                      />
+                      {info.key === 'REJECTED' && (
+                        <div className="px-4 pb-3">
+                          <Alert tone="danger" className="p-3 text-xs">{rejectionSentence(t.rejectedReason)}</Alert>
+                        </div>
+                      )}
                     </div>
-                    <StatusBadge tone={status.tone} className="shrink-0 uppercase">
-                      {status.label}
-                    </StatusBadge>
-                  </div>
-
-                  <p className="line-clamp-3 text-xs leading-relaxed text-muted-foreground">{bodyText}</p>
-
-                  {tpl.status === 'REJECTED' && (
-                    <div className="space-y-1 rounded-lg border border-destructive/30 bg-destructive/10 p-2.5 text-xs text-destructive">
-                      <div className="flex items-center gap-1.5 font-semibold">
-                        <AlertCircle className="size-3.5" />
-                        <span>Meta rejection reason:</span>
-                      </div>
-                      <p className="text-2xs">
-                        {tpl.rejectedReason || 'Template violated WhatsApp Business Policy or missing realistic sample values.'}
-                      </p>
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsCreateOpen(true);
-                        }}
-                        className="mt-1 inline-flex cursor-pointer items-center gap-1 text-2xs font-semibold underline"
-                      >
-                        <Edit3 className="size-3" />
-                        Fix &amp; resubmit
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between border-t border-border pt-2 text-2xs">
-                    <div className="flex items-center gap-2 text-2xs font-semibold uppercase text-muted-foreground">
-                      <span>{tpl.category}</span>
-                      <span>·</span>
-                      <span>{tpl.language}</span>
-                    </div>
-                    <Tooltip content="Send a single test message of this template to your personal WhatsApp number.">
-                      <Button
-                        variant="ghost"
-                        size="xs"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setTestModalTemplate(tpl);
-                        }}
-                      >
-                        <Send />
-                        Send test
-                      </Button>
-                    </Tooltip>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* Live preview */}
-        <div className="sticky top-24 flex h-fit flex-col items-center rounded-xl bg-card p-6 ring-1 ring-foreground/10 lg:col-span-5">
-          <div className="mb-4 flex w-full items-center justify-between border-b border-border pb-2">
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              WhatsApp phone mockup
-              <InfoTooltip content="How this template will appear inside the recipient's WhatsApp mobile app." />
-            </span>
-            {previewTemplate && (
-              <Button variant="ghost" size="xs" onClick={() => setTestModalTemplate(previewTemplate)}>
-                <Send />
-                Test template
-              </Button>
+                  );
+                })}
+              </div>
             )}
           </div>
 
-          {previewTemplate ? (
-            <WhatsAppMockupPreview
-              templateName={previewTemplate.name}
-              category={previewTemplate.category}
-              components={previewTemplate.components}
-              sampleVariables={{ '1': 'Customer', '2': 'Apex Store', '3': 'PROMO20' }}
-            />
-          ) : (
-            <div className="flex h-80 items-center justify-center text-xs text-muted-foreground">
-              Select or create a template to view the mockup
+          <div className="hidden lg:col-span-5 lg:block">
+            <div className="sticky top-24 rounded-2xl bg-card p-5">
+              {selected ? (
+                <>
+                  <h2 className="mb-3 text-lg font-semibold text-foreground">{plainName(selected.name)}</h2>
+                  {details(selected)}
+                </>
+              ) : (
+                <p className="py-16 text-center text-sm text-muted-foreground">Pick a template to see how it looks.</p>
+              )}
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      ) : null}
 
-      <TemplateBuilderModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onCreated={fetchTemplates} />
-      <SendTestModal isOpen={!!testModalTemplate} template={testModalTemplate} onClose={() => setTestModalTemplate(null)} />
+      {isMobile && selected && (
+        <BottomSheet open={sheetOpen} onOpenChange={setSheetOpen} title={plainName(selected.name)}>
+          {details(selected)}
+        </BottomSheet>
+      )}
+
+      <TemplateBuilderModal key={builderKey} initial={prefill} isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onCreated={fetchTemplates} />
+      <SendTestModal isOpen={!!testTemplate} template={testTemplate} onClose={() => setTestTemplate(null)} />
     </div>
   );
 }

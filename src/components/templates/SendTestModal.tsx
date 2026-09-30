@@ -1,11 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Send, CheckCircle2, AlertCircle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Send } from 'lucide-react';
 
-import { Modal } from '@/components/ui/modal';
+import { BottomSheet } from '@/components/ui/bottom-sheet';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SearchField } from '@/components/ui/search-field';
+import { ListRow } from '@/components/ui/list-row';
+import { contactLabel, defaultSample, plainName, variableNumbers, bodyTextOf } from '@/lib/templates/present';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyRecord = Record<string, any>;
@@ -17,29 +21,36 @@ interface SendTestModalProps {
 }
 
 export function SendTestModal({ isOpen, onClose, template }: SendTestModalProps) {
+  const [contacts, setContacts] = useState<AnyRecord[]>([]);
+  const [search, setSearch] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
-  const [variables, setVariables] = useState<Record<number, string>>({ 1: 'Test Customer', 2: 'Apex Store', 3: 'PROMO50' });
+  const [variables, setVariables] = useState<Record<string, string>>({});
 
-  let parsedComponents: AnyRecord[] = [];
-  try {
-    if (template?.components) {
-      parsedComponents = typeof template.components === 'string' ? JSON.parse(template.components) : template.components;
-    }
-  } catch {
-    /* noop */
-  }
-  const bodyComp = parsedComponents.find((c) => c && c.type === 'BODY');
-  const expectedVarCount = bodyComp?.text ? (bodyComp.text.match(/{{\d+}}/g) || []).length : 0;
+  useEffect(() => {
+    if (!isOpen) return;
+    setResult(null);
+    setVariables({});
+    fetch('/api/contacts')
+      .then((r) => r.json())
+      .then((d) => setContacts(Array.isArray(d) ? d.slice(0, 200) : []))
+      .catch(() => setContacts([]));
+  }, [isOpen]);
 
   if (!template) return null;
+
+  const vars = variableNumbers(bodyTextOf(template));
+  const q = search.trim().toLowerCase();
+  const shown = contacts
+    .filter((c) => !q || `${contactLabel(c)} ${c.phoneNumber ?? ''}`.toLowerCase().includes(q))
+    .slice(0, 5);
 
   const handleSendTest = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSending(true);
     setResult(null);
-    const bodyVars = Array.from({ length: expectedVarCount }, (_, i) => variables[i + 1] || `Sample_${i + 1}`);
+    const bodyVars = vars.map((n) => variables[n]?.trim() || defaultSample(n));
     try {
       const res = await fetch('/api/templates/test', {
         method: 'POST',
@@ -52,99 +63,84 @@ export function SendTestModal({ isOpen, onClose, template }: SendTestModalProps)
           templateComponents: template.components,
         }),
       });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || 'Failed to dispatch test message');
-      setResult({ success: true, message: data.message || `Test message dispatched to ${phoneNumber}` });
-    } catch (err) {
-      setResult({ success: false, message: err instanceof Error ? err.message : 'Failed to dispatch test message' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) throw new Error('send failed');
+      setResult({ success: true, message: `Test message sent to ${phoneNumber}. It should arrive in a few seconds.` });
+    } catch {
+      setResult({
+        success: false,
+        message: 'The test message did not send. Check the number includes the country code and that WhatsApp is connected, then try again.',
+      });
     } finally {
       setIsSending(false);
     }
   };
 
   return (
-    <Modal
+    <BottomSheet
       open={isOpen}
       onOpenChange={(o) => !o && onClose()}
-      title={
-        <span className="inline-flex items-center gap-2">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-brand-subtle text-brand-subtle-foreground">
-            <Send className="size-4" />
-          </span>
-          Send test WhatsApp message
-        </span>
-      }
-      description={<span className="font-mono">Template: {template.name}</span>}
+      title="Send a test"
+      description={`Send "${plainName(template.name)}" to one person to see how it looks.`}
       footer={
         <>
           <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
+            Close
           </Button>
-          <Button type="submit" form="send-test-form" disabled={isSending}>
+          <Button type="submit" form="send-test-form" disabled={isSending || !phoneNumber.trim()}>
             <Send />
-            {isSending ? 'Sending…' : 'Dispatch test'}
+            {isSending ? 'Sending' : 'Send test'}
           </Button>
         </>
       }
     >
       <form id="send-test-form" onSubmit={handleSendTest} className="space-y-4">
-        {result && (
-          <div
-            className={`flex items-center gap-2 rounded-lg border p-3 text-xs ${
-              result.success
-                ? 'border-success/20 bg-success-subtle text-success-subtle-foreground'
-                : 'border-destructive/30 bg-destructive/10 text-destructive'
-            }`}
-          >
-            {result.success ? <CheckCircle2 className="size-4 shrink-0" /> : <AlertCircle className="size-4 shrink-0" />}
-            <span>{result.message}</span>
-          </div>
-        )}
+        {result && <Alert tone={result.success ? 'success' : 'danger'}>{result.message}</Alert>}
 
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-foreground">
-            Recipient WhatsApp number (E.164) <span className="text-destructive">*</span>
-          </label>
-          <Input
-            required
-            placeholder="+971501234567"
-            value={phoneNumber}
-            onChange={(e) => setPhoneNumber(e.target.value)}
-            className="font-mono"
-          />
-          <p className="mt-1 text-2xs text-muted-foreground">Include country code with + symbol</p>
-        </div>
-
-        <div className="space-y-2 rounded-lg border border-border bg-muted p-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-foreground">Dynamic template parameters</span>
-            <span className="font-mono text-2xs font-medium text-muted-foreground">
-              {expectedVarCount} {expectedVarCount === 1 ? 'variable' : 'variables'}
-            </span>
-          </div>
-
-          {expectedVarCount === 0 ? (
-            <p className="py-1 text-xs italic text-muted-foreground">This template has no dynamic variables (static message).</p>
-          ) : (
-            <div className="grid grid-cols-1 gap-2">
-              {Array.from({ length: expectedVarCount }).map((_, idx) => {
-                const varNum = idx + 1;
-                return (
-                  <div key={varNum} className="flex items-center gap-2">
-                    <span className="w-8 shrink-0 font-mono text-xs font-bold text-muted-foreground">{`{{${varNum}}}`}</span>
-                    <Input
-                      placeholder={`Value for {{${varNum}}}`}
-                      value={variables[varNum] || ''}
-                      onChange={(e) => setVariables({ ...variables, [varNum]: e.target.value })}
-                      className="flex-1"
-                    />
-                  </div>
-                );
-              })}
+        <div className="space-y-2">
+          <p className="text-sm font-semibold text-foreground">Who should get it</p>
+          <SearchField value={search} onValueChange={setSearch} placeholder="Search your contacts" />
+          {shown.length > 0 && (
+            <div className="overflow-hidden rounded-2xl border border-border">
+              {shown.map((c) => (
+                <ListRow
+                  key={c.id ?? c.phoneNumber}
+                  title={contactLabel(c)}
+                  subtitle={c.phoneNumber}
+                  active={phoneNumber === c.phoneNumber}
+                  onClick={() => setPhoneNumber(c.phoneNumber)}
+                />
+              ))}
             </div>
           )}
+          <Input
+            required
+            inputMode="tel"
+            placeholder="Or type a number, like +971501234567"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+          />
         </div>
+
+        {vars.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-foreground">Fill in the blanks</p>
+            {vars.map((n) => (
+              <div key={n}>
+                <label htmlFor={`test-var-${n}`} className="mb-1 block text-xs text-muted-foreground">
+                  {Number(n) === 1 ? 'Name' : `Detail ${n}`}
+                </label>
+                <Input
+                  id={`test-var-${n}`}
+                  placeholder={defaultSample(n)}
+                  value={variables[n] ?? ''}
+                  onChange={(e) => setVariables({ ...variables, [n]: e.target.value })}
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </form>
-    </Modal>
+    </BottomSheet>
   );
 }

@@ -1,628 +1,411 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import {
-  X,
-  Plus,
-  Trash2,
-  Sparkles,
-  AlertCircle,
-  CheckCircle2,
-  Globe,
-  Image as ImageIcon,
-  Video,
-  FileText,
-  Smartphone,
-  Copy,
-  ExternalLink,
-  PhoneCall,
-  MessageSquare,
-  HelpCircle,
-} from 'lucide-react';
+import React, { useMemo, useRef, useState } from 'react';
+import { Plus, Trash2, Check } from 'lucide-react';
+
 import { WhatsAppMockupPreview } from './WhatsAppMockupPreview';
-import { InfoTooltip } from '@/components/ui/Tooltip';
-import { Modal } from '@/components/ui/modal';
+import { BottomSheet } from '@/components/ui/bottom-sheet';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Chip } from '@/components/ui/chip';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { bodyTextOf, categoryLabel, defaultSample, insertVariable, parseComponents, plainName, variableLabel, variableNumbers, type TemplateRecord } from '@/lib/templates/present';
 
 interface TemplateBuilderModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreated: () => void;
+  /** pre-fill from an existing (for example rejected) template */
+  initial?: TemplateRecord | null;
 }
 
 const META_LANGUAGES = [
   { code: 'en_US', name: 'English (US)' },
   { code: 'en_GB', name: 'English (UK)' },
-  { code: 'ar', name: 'Arabic (العربية)' },
-  { code: 'ur', name: 'Urdu (اردو)' },
-  { code: 'hi', name: 'Hindi (हिन्दी)' },
-  { code: 'fr', name: 'French (Français)' },
-  { code: 'es', name: 'Spanish (Español)' },
-  { code: 'de', name: 'German (Deutsch)' },
-  { code: 'it', name: 'Italian (Italiano)' },
+  { code: 'ar', name: 'Arabic' },
+  { code: 'ur', name: 'Urdu' },
+  { code: 'hi', name: 'Hindi' },
+  { code: 'fr', name: 'French' },
+  { code: 'es', name: 'Spanish' },
+  { code: 'de', name: 'German' },
+  { code: 'it', name: 'Italian' },
   { code: 'pt_BR', name: 'Portuguese (Brazil)' },
-  { code: 'ru', name: 'Russian (Русский)' },
-  { code: 'tr', name: 'Turkish (Türkçe)' },
+  { code: 'ru', name: 'Russian' },
+  { code: 'tr', name: 'Turkish' },
   { code: 'zh_CN', name: 'Chinese (Simplified)' },
-  { code: 'ja', name: 'Japanese (日本語)' },
-  { code: 'id', name: 'Indonesian (Bahasa)' },
-  { code: 'fa', name: 'Persian (فارسی)' },
+  { code: 'ja', name: 'Japanese' },
+  { code: 'id', name: 'Indonesian' },
+  { code: 'fa', name: 'Persian' },
 ];
 
-export function TemplateBuilderModal({ isOpen, onClose, onCreated }: TemplateBuilderModalProps) {
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState<'MARKETING' | 'UTILITY' | 'AUTHENTICATION'>('MARKETING');
-  const [language, setLanguage] = useState('en_US');
-  
-  // Header State
-  const [headerType, setHeaderType] = useState<'NONE' | 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT'>('NONE');
-  const [headerText, setHeaderText] = useState('');
-  const [headerSampleValue, setHeaderSampleValue] = useState('');
-  const [headerMediaUrl, setHeaderMediaUrl] = useState('');
+type Category = 'MARKETING' | 'UTILITY' | 'AUTHENTICATION';
+type HeaderType = 'NONE' | 'TEXT' | 'IMAGE' | 'VIDEO' | 'DOCUMENT';
+const HEADER_LABEL: Record<HeaderType, string> = { NONE: 'None', TEXT: 'Text', IMAGE: 'Picture', VIDEO: 'Video', DOCUMENT: 'Document' };
+const DEFAULT_MEDIA = 'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=800&q=80';
+type ButtonType = 'QUICK_REPLY' | 'URL' | 'PHONE_NUMBER' | 'COPY_CODE';
+interface BuilderButton {
+  type: ButtonType;
+  text: string;
+  url?: string;
+  urlSample?: string;
+  phone_number?: string;
+}
 
-  // Body State
-  const [bodyText, setBodyText] = useState(
-    'Hi {{1}}, your order {{2}} has been confirmed! We will deliver it by {{3}}.'
-  );
-  const [sampleValues, setSampleValues] = useState<Record<string, string>>({
-    '1': 'Usman',
-    '2': 'ORD-98241',
-    '3': 'Tomorrow, 2:00 PM',
-  });
+const CATEGORY_HELP: Record<Category, string> = {
+  MARKETING: 'Promotions, offers and news. Customers can turn these off.',
+  UTILITY: 'Updates about something they asked for, like an order or a booking.',
+  AUTHENTICATION: 'One-time login codes.',
+};
 
-  // Footer State
-  const [footerText, setFooterText] = useState('Reply STOP to opt out');
+const STEPS = ['Name and type', 'Message', 'Review'];
 
-  // Buttons State (Up to 10 Quick Replies or CTAs)
-  const [buttons, setButtons] = useState<
-    Array<{
-      type: 'QUICK_REPLY' | 'URL' | 'PHONE_NUMBER' | 'COPY_CODE';
-      text: string;
-      url?: string;
-      urlSample?: string;
-      phone_number?: string;
-      code?: string;
-    }>
-  >([
-    { type: 'QUICK_REPLY', text: 'Track Order' },
-    { type: 'URL', text: 'View Invoice', url: 'https://example.com/orders/{{1}}', urlSample: 'ORD-98241' },
-  ]);
+// A friendly name becomes the snake_case id Meta needs.
+const toMetaName = (title: string) =>
+  title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+
+export function TemplateBuilderModal({ isOpen, onClose, onCreated, initial }: TemplateBuilderModalProps) {
+  const seed = useMemo(() => {
+    if (!initial) return null;
+    const parts = parseComponents(initial.components);
+    const header = parts.find((c) => c.type === 'HEADER');
+    const footer = parts.find((c) => c.type === 'FOOTER');
+    const btns = (parts.find((c) => c.type === 'BUTTONS')?.buttons ?? []) as BuilderButton[];
+    const body = parts.find((c) => c.type === 'BODY');
+    const samples: Record<string, string> = {};
+    (body?.example?.body_text?.[0] ?? []).forEach((v: string, i: number) => { samples[String(i + 1)] = v; });
+    return { header, footer, btns, samples, body: bodyTextOf(initial) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const [step, setStep] = useState(0);
+  const [title, setTitle] = useState(initial ? plainName(initial.name) : '');
+  const [category, setCategory] = useState<Category>((initial?.category as Category) || 'UTILITY');
+  const [language, setLanguage] = useState<string>(initial?.language || 'en_US');
+
+  const [headerType, setHeaderType] = useState<HeaderType>((seed?.header?.format as HeaderType) || 'NONE');
+  const [headerText, setHeaderText] = useState<string>(seed?.header?.format === 'TEXT' ? seed.header.text ?? '' : '');
+  const [headerSampleValue, setHeaderSampleValue] = useState<string>(seed?.header?.example?.header_text?.[0] ?? '');
+  const [headerMediaUrl, setHeaderMediaUrl] = useState<string>('');
+  const [bodyText, setBodyText] = useState<string>(seed?.body || 'Hi {{1}}, thanks for getting in touch.');
+  const [sampleValues, setSampleValues] = useState<Record<string, string>>(seed ? seed.samples : { '1': 'Sam' });
+  const [footerText, setFooterText] = useState<string>(seed?.footer?.text ?? '');
+  const [buttons, setButtons] = useState<BuilderButton[]>(seed?.btns ?? []);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
 
-  // Extract variables from body text in real-time
-  const detectedBodyVars = useMemo(() => {
-    const matches = bodyText.match(/{{\d+}}/g) || [];
-    return Array.from(new Set(matches)).map((m) => m.replace(/[{}]/g, ''));
-  }, [bodyText]);
+  const metaName = toMetaName(title);
+  const bodyVars = useMemo(() => variableNumbers(bodyText), [bodyText]);
+  const headerVars = useMemo(() => variableNumbers(headerText), [headerText]);
+  const nextVar = (bodyVars.length ? Math.max(...bodyVars.map(Number)) : 0) + 1;
 
-  // Extract variables from header text
-  const detectedHeaderVars = useMemo(() => {
-    const matches = headerText.match(/{{\d+}}/g) || [];
-    return Array.from(new Set(matches)).map((m) => m.replace(/[{}]/g, ''));
-  }, [headerText]);
-
-  // Insert variable into Body
-  const handleInsertBodyVar = () => {
-    const nextNum = detectedBodyVars.length + 1;
-    setBodyText((prev) => `${prev} {{${nextNum}}}`);
-    setSampleValues((prev) => ({ ...prev, [String(nextNum)]: `Sample ${nextNum}` }));
+  const handleAddVariable = () => {
+    const cursor = bodyRef.current?.selectionStart ?? undefined;
+    const res = insertVariable(bodyText, cursor);
+    setBodyText(res.text);
+    setSampleValues((prev) => ({ ...prev, [String(res.number)]: prev[String(res.number)] || defaultSample(res.number) }));
+    requestAnimationFrame(() => {
+      bodyRef.current?.focus();
+      bodyRef.current?.setSelectionRange(res.cursor, res.cursor);
+    });
   };
 
-  // Add button
-  const handleAddButton = (type: 'QUICK_REPLY' | 'URL' | 'PHONE_NUMBER' | 'COPY_CODE') => {
+  const addButton = (type: ButtonType) => {
     if (buttons.length >= 10) return;
-    if (type === 'QUICK_REPLY') {
-      setButtons([...buttons, { type: 'QUICK_REPLY', text: 'Reply Option' }]);
-    } else if (type === 'URL') {
-      setButtons([...buttons, { type: 'URL', text: 'Visit Website', url: 'https://example.com' }]);
-    } else if (type === 'PHONE_NUMBER') {
-      setButtons([...buttons, { type: 'PHONE_NUMBER', text: 'Call Us', phone_number: '+971501234567' }]);
-    } else if (type === 'COPY_CODE') {
-      setButtons([...buttons, { type: 'COPY_CODE', text: 'Copy Code', code: 'WAYAPP2026' }]);
-    }
+    const seed: Record<ButtonType, BuilderButton> = {
+      QUICK_REPLY: { type, text: 'Yes, please' },
+      URL: { type, text: 'Visit website', url: 'https://example.com' },
+      PHONE_NUMBER: { type, text: 'Call us', phone_number: '+971501234567' },
+      COPY_CODE: { type, text: 'Copy code' },
+    };
+    setButtons([...buttons, seed[type]]);
   };
+  const updateButton = (i: number, patch: Partial<BuilderButton>) =>
+    setButtons(buttons.map((b, idx) => (idx === i ? { ...b, ...patch } : b)));
 
-  const handleRemoveButton = (index: number) => {
-    setButtons(buttons.filter((_, i) => i !== index));
-  };
-
-  // Build Preview Components with Samples Replaced
+  // Components exactly as before: this is what the preview shows and what is submitted.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const previewComponents: any[] = [];
-  
-  if (headerType === 'TEXT' && headerText) {
-    let replacedHeader = headerText;
-    detectedHeaderVars.forEach((v) => {
-      replacedHeader = replacedHeader.replace(new RegExp(`{{${v}}}`, 'g'), headerSampleValue || `[Sample ${v}]`);
-    });
-    previewComponents.push({ type: 'HEADER', format: 'TEXT', text: replacedHeader });
+  if (headerType === 'TEXT' && headerText.trim()) {
+    previewComponents.push({ type: 'HEADER', format: 'TEXT', text: headerText.replace(/{{\s*\d+\s*}}/g, headerSampleValue || 'Sample') });
   } else if (headerType === 'IMAGE') {
-    previewComponents.push({
-      type: 'HEADER',
-      format: 'IMAGE',
-      example: { header_handle: [headerMediaUrl || 'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=800&q=80'] },
-    });
-  } else if (headerType === 'VIDEO') {
-    previewComponents.push({ type: 'HEADER', format: 'VIDEO' });
-  } else if (headerType === 'DOCUMENT') {
-    previewComponents.push({ type: 'HEADER', format: 'DOCUMENT' });
+    previewComponents.push({ type: 'HEADER', format: 'IMAGE', example: { header_handle: [headerMediaUrl || DEFAULT_MEDIA] } });
+  } else if (headerType === 'VIDEO' || headerType === 'DOCUMENT') {
+    previewComponents.push({ type: 'HEADER', format: headerType });
   }
-
-  let replacedBody = bodyText;
-  detectedBodyVars.forEach((v) => {
-    replacedBody = replacedBody.replace(new RegExp(`{{${v}}}`, 'g'), sampleValues[v] || `[Sample ${v}]`);
-  });
-  previewComponents.push({ type: 'BODY', text: replacedBody });
-
-  if (footerText) previewComponents.push({ type: 'FOOTER', text: footerText });
+  previewComponents.push({ type: 'BODY', text: bodyText || ' ' });
+  if (footerText.trim()) previewComponents.push({ type: 'FOOTER', text: footerText });
   if (buttons.length > 0) previewComponents.push({ type: 'BUTTONS', buttons });
 
-  // Pre-flight compliance validator
-  const validationErrors = useMemo(() => {
-    const errs: string[] = [];
-    if (!name.trim()) errs.push('Template Name is required.');
-    else if (!/^[a-z0-9_]+$/.test(name)) errs.push('Template Name must be lower snake_case (e.g. order_update_2026).');
+  const step1Errors = useMemo(() => {
+    const e: string[] = [];
+    if (!metaName) e.push('Give the message a name so you can find it later.');
+    return e;
+  }, [metaName]);
 
-    if (!bodyText.trim()) errs.push('Body text cannot be empty.');
-    if (bodyText.length > 1024) errs.push('Body text exceeds 1024 character limit.');
-
-    // Check adjacent variables
-    if (/{{(\d+)}}\s*{{(\d+)}}/.test(bodyText)) {
-      errs.push('Meta does not allow adjacent variables (e.g. {{1}}{{2}}) without text in between.');
+  const step2Errors = useMemo(() => {
+    const e: string[] = [];
+    if (!bodyText.trim()) e.push('Write the message before you continue.');
+    if (bodyText.length > 1024) e.push('The message is too long. Keep it under 1024 characters.');
+    if (/{{(\d+)}}\s*{{(\d+)}}/.test(bodyText)) e.push('Two blanks cannot sit next to each other. Put a word between them.');
+    for (const v of bodyVars) {
+      if (!sampleValues[v]?.trim()) e.push(`Add an example for "${variableLabel(v)}" so Meta can check the message.`);
     }
+    buttons.forEach((b, i) => {
+      if (!b.text.trim()) e.push(`Button ${i + 1} needs a label.`);
+    });
+    return e;
+  }, [bodyText, bodyVars, sampleValues, buttons]);
 
-    // Check missing samples
-    for (const v of detectedBodyVars) {
-      if (!sampleValues[v] || !sampleValues[v].trim()) {
-        errs.push(`Please provide a realistic sample value for variable {{${v}}}.`);
-      }
-    }
+  const errorsForStep = step === 0 ? step1Errors : step === 1 ? step2Errors : [];
+  const canContinue = errorsForStep.length === 0;
 
-    return errs;
-  }, [name, bodyText, detectedBodyVars, sampleValues]);
-
-  // Early return AFTER all hooks so hook order stays consistent across renders
-  if (!isOpen) return null;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validationErrors.length > 0) {
-      setError(validationErrors[0]);
+  const handleSubmit = async () => {
+    const all = [...step1Errors, ...step2Errors];
+    if (all.length > 0) {
+      setError(all[0]);
       return;
     }
-
     setIsSubmitting(true);
     setError(null);
 
-    // Format components strictly to Meta Graph API requirements
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const components: any[] = [];
-
-    if (headerType === 'TEXT' && headerText) {
-      const hObj: any = { type: 'HEADER', format: 'TEXT', text: headerText.trim() };
-      if (detectedHeaderVars.length > 0) {
-        hObj.example = { header_text: [headerSampleValue || 'Sample Header'] };
-      }
-      components.push(hObj);
+    if (headerType === 'TEXT' && headerText.trim()) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const h: any = { type: 'HEADER', format: 'TEXT', text: headerText.trim() };
+      if (headerVars.length > 0) h.example = { header_text: [headerSampleValue || 'Sample Header'] };
+      components.push(h);
     } else if (headerType === 'IMAGE' || headerType === 'VIDEO' || headerType === 'DOCUMENT') {
-      components.push({
-        type: 'HEADER',
-        format: headerType,
-        example: {
-          header_handle: [headerMediaUrl || 'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=800&q=80'],
-        },
-      });
+      components.push({ type: 'HEADER', format: headerType, example: { header_handle: [headerMediaUrl || DEFAULT_MEDIA] } });
     }
-
-    // Body with 2D sample array
-    const bodyObj: any = {
-      type: 'BODY',
-      text: bodyText.trim(),
-    };
-
-    if (detectedBodyVars.length > 0) {
-      bodyObj.example = {
-        body_text: [detectedBodyVars.map((v) => sampleValues[v]?.trim() || `Sample_${v}`)],
-      };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const bodyObj: any = { type: 'BODY', text: bodyText.trim() };
+    if (bodyVars.length > 0) {
+      bodyObj.example = { body_text: [bodyVars.map((v) => sampleValues[v]?.trim() || `Sample_${v}`)] };
     }
     components.push(bodyObj);
-
-    if (footerText.trim()) {
-      components.push({ type: 'FOOTER', text: footerText.trim() });
-    }
-
+    if (footerText.trim()) components.push({ type: 'FOOTER', text: footerText.trim() });
     if (buttons.length > 0) {
-      const validButtons = buttons.map((b) => {
+      const valid = buttons.map((b) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const btn: any = { type: b.type, text: b.text.trim() };
         if (b.type === 'URL') {
           btn.url = b.url?.trim() || 'https://example.com';
-          if (btn.url.includes('{{1}}')) {
-            btn.example = [b.urlSample || 'sample_slug'];
-          }
+          if (btn.url.includes('{{1}}')) btn.example = [b.urlSample || 'sample_slug'];
         } else if (b.type === 'PHONE_NUMBER') {
           btn.phone_number = b.phone_number?.trim() || '+971501234567';
         }
         return btn;
       });
-      components.push({ type: 'BUTTONS', buttons: validButtons });
+      components.push({ type: 'BUTTONS', buttons: valid });
     }
 
     try {
       const res = await fetch('/api/templates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim().toLowerCase(),
-          category,
-          language,
-          components,
-        }),
+        body: JSON.stringify({ name: metaName, category, language, components }),
       });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to submit template to Meta');
-      }
-
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'rejected');
       onCreated();
       onClose();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const detail = err instanceof Error && err.message !== 'rejected' ? ` Meta said: ${err.message}` : '';
+      setError(`Your message was not sent to Meta.${detail} Check it and try again.`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <Modal
+    <BottomSheet
       open={isOpen}
       onOpenChange={(o) => !o && onClose()}
       size="xl"
-      contentClassName="max-h-[80vh]"
-      title={
-        <span className="inline-flex items-center gap-2">
-          <Sparkles className="size-4 text-primary" />
-          Meta WhatsApp template creator
-        </span>
-      }
-      description="Design a template and submit it to Meta for approval"
+      contentClassName="max-h-[85vh]"
+      title="New template"
+      description={`Step ${step + 1} of 3: ${STEPS[step]}`}
       footer={
         <>
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" form="template-builder-form" disabled={isSubmitting || validationErrors.length > 0}>
-            {isSubmitting ? 'Submitting to Meta…' : 'Submit for approval'}
-          </Button>
+          {step === 0 ? (
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+          ) : (
+            <Button type="button" variant="outline" onClick={() => { setError(null); setStep(step - 1); }}>
+              Back
+            </Button>
+          )}
+          {step < 2 ? (
+            <Button type="button" disabled={!canContinue} onClick={() => setStep(step + 1)}>
+              Continue
+            </Button>
+          ) : (
+            <Button type="button" disabled={isSubmitting} onClick={handleSubmit}>
+              <Check />
+              {isSubmitting ? 'Sending to Meta' : 'Submit to Meta'}
+            </Button>
+          )}
         </>
       }
     >
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Left Form: 7 cols */}
-        <form id="template-builder-form" onSubmit={handleSubmit} className="space-y-5 lg:col-span-7">
-            {error && (
-              <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-xl flex items-start gap-2.5 text-xs text-destructive">
-                <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="font-bold">Submission Rejected</p>
-                  <p className="mt-0.5">{error}</p>
-                </div>
-              </div>
-            )}
+      <div className="space-y-4">
+        <div className="flex gap-1.5" aria-hidden>
+          {STEPS.map((_, i) => (
+            <span key={i} className={`h-1 flex-1 rounded-full ${i <= step ? 'bg-primary' : 'bg-muted'}`} />
+          ))}
+        </div>
 
-            {/* Template Identity */}
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">
-                  Template Name (lower_snake_case) *
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. order_confirmed_notification"
-                  value={name}
-                  onChange={(e) => setName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
-                  className="input-base font-mono text-xs"
-                  required
-                />
-                <span className="text-2xs text-muted-foreground">Only lowercase letters, numbers, and underscores.</span>
-              </div>
+        {error && <Alert tone="danger" onDismiss={() => setError(null)}>{error}</Alert>}
 
-              <div className="grid grid-cols-2 gap-3">
-                {/* Category */}
-                <div>
-                  <label className="block text-xs font-semibold text-foreground mb-1">Category *</label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value as any)}
-                    className="input-base text-xs font-medium"
-                  >
-                    <option value="MARKETING">Marketing (Promotional / Sales)</option>
-                    <option value="UTILITY">Utility (Order Updates / Alerts)</option>
-                    <option value="AUTHENTICATION">Authentication (OTP Verification)</option>
-                  </select>
-                </div>
-
-                {/* Language */}
-                <div>
-                  <label className="block text-xs font-semibold text-foreground mb-1">Language *</label>
-                  <select
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    className="input-base text-xs font-medium"
-                  >
-                    {META_LANGUAGES.map((lang) => (
-                      <option key={lang.code} value={lang.code}>
-                        {lang.name} ({lang.code})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+        {step === 0 && (
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="tpl-title" className="mb-1 block text-sm font-semibold text-foreground">Name</label>
+              <Input id="tpl-title" placeholder="Welcome offer" value={title} onChange={(e) => setTitle(e.target.value)} />
+              <p className="mt-1 text-xs text-muted-foreground">Only you see this. Use a few words that say what the message is for.</p>
             </div>
+            <div>
+              <p className="mb-2 text-sm font-semibold text-foreground">What kind of message is it</p>
+              <div className="flex flex-wrap gap-2">
+                {(['UTILITY', 'MARKETING', 'AUTHENTICATION'] as Category[]).map((c) => (
+                  <Chip key={c} selected={category === c} onClick={() => setCategory(c)}>
+                    {categoryLabel(c)}
+                  </Chip>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">{CATEGORY_HELP[category]}</p>
+            </div>
+            <div>
+              <label htmlFor="tpl-lang" className="mb-1 block text-sm font-semibold text-foreground">Language</label>
+              <select id="tpl-lang" value={language} onChange={(e) => setLanguage(e.target.value)} className="input-base">
+                {META_LANGUAGES.map((l) => (
+                  <option key={l.code} value={l.code}>{l.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
 
-            {/* Header Configuration */}
-            <div className="p-4 bg-muted rounded-xl border border-border space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
-                  Header (Optional)
-                </label>
-                <div className="flex items-center gap-1">
-                  {(['NONE', 'TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT'] as const).map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => setHeaderType(type)}
-                      className={`px-2 py-1 rounded-md text-2xs font-bold transition-all ${
-                        headerType === type
-                          ? 'bg-primary text-primary-foreground shadow-sm'
-                          : 'bg-white text-muted-foreground border border-border hover:bg-muted'
-                      }`}
-                    >
-                      {type}
-                    </button>
+        {step === 1 && (
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <div className="order-2 space-y-4 lg:order-1">
+              <div>
+                <p className="mb-2 text-sm font-semibold text-foreground">Top of the message (optional)</p>
+                <div className="flex flex-wrap gap-2">
+                  {(Object.keys(HEADER_LABEL) as HeaderType[]).map((t) => (
+                    <Chip key={t} selected={headerType === t} onClick={() => setHeaderType(t)}>{HEADER_LABEL[t]}</Chip>
                   ))}
                 </div>
-              </div>
-
-              {headerType === 'TEXT' && (
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    maxLength={60}
-                    placeholder="e.g. Order #{{1}} Update"
-                    value={headerText}
-                    onChange={(e) => setHeaderText(e.target.value)}
-                    className="input-base text-xs"
-                  />
-                  {detectedHeaderVars.length > 0 && (
-                    <input
-                      type="text"
-                      placeholder="Sample value for Header {{1}} (e.g. 98214)"
-                      value={headerSampleValue}
-                      onChange={(e) => setHeaderSampleValue(e.target.value)}
-                      className="input-base text-xs font-mono bg-card"
-                    />
-                  )}
-                </div>
-              )}
-
-              {headerType === 'IMAGE' && (
-                <input
-                  type="text"
-                  placeholder="Sample Image URL (e.g. https://images.unsplash.com/...)"
-                  value={headerMediaUrl}
-                  onChange={(e) => setHeaderMediaUrl(e.target.value)}
-                  className="input-base text-xs font-mono"
-                />
-              )}
-            </div>
-
-            {/* Body Text & Variable Matrix */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
-                  Body Text *
-                </label>
-                <button
-                  type="button"
-                  onClick={handleInsertBodyVar}
-                  className="inline-flex items-center gap-1 text-xs font-bold text-primary bg-brand-subtle px-2.5 py-1 rounded-lg"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add Variable &#123;&#123;{detectedBodyVars.length + 1}&#125;&#125;</span>
-                </button>
-              </div>
-
-              <textarea
-                rows={4}
-                maxLength={1024}
-                value={bodyText}
-                onChange={(e) => setBodyText(e.target.value)}
-                placeholder="Type your message body here. Use {{1}}, {{2}} for dynamic customer tags."
-                className="input-base text-xs resize-none"
-                required
-              />
-
-              <div className="flex justify-between text-2xs text-muted-foreground">
-                <span>Variables: &#123;&#123;1&#125;&#125;, &#123;&#123;2&#125;&#125;</span>
-                <span>{bodyText.length} / 1024 chars</span>
-              </div>
-
-              {/* Explicit Realistic Sample Variable Inputs */}
-              {detectedBodyVars.length > 0 && (
-                <div className="p-3 bg-warning-subtle border border-warning/20 rounded-xl space-y-2">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-warning-subtle-foreground">
-                    <Sparkles className="w-3.5 h-3.5 text-warning" />
-                    <span>Provide Realistic Sample Values (Required by Meta for Approval)</span>
+                {headerType === 'TEXT' && (
+                  <div className="mt-2 space-y-2">
+                    <Input aria-label="Headline" maxLength={60} value={headerText} onChange={(e) => setHeaderText(e.target.value)} placeholder="Your booking" />
+                    {headerVars.length > 0 && (
+                      <Input aria-label="Example for the headline blank" value={headerSampleValue} onChange={(e) => setHeaderSampleValue(e.target.value)} placeholder="Example, like 98214" />
+                    )}
                   </div>
-                  <p className="text-2xs text-warning-subtle-foreground">
-                    Meta AI requires realistic sample text for every variable to verify policy compliance.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                    {detectedBodyVars.map((v) => (
-                      <div key={v} className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-warning-subtle-foreground bg-warning/20 px-2 py-1 rounded">
-                          &#123;&#123;{v}&#125;&#125;
-                        </span>
-                        <input
-                          type="text"
-                          value={sampleValues[v] || ''}
-                          onChange={(e) => setSampleValues({ ...sampleValues, [v]: e.target.value })}
-                          placeholder={`Realistic sample for {{${v}}}`}
-                          className="input-base text-xs bg-card flex-1"
-                          required
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div>
-              <label className="block text-xs font-semibold text-foreground mb-1">Footer Text (Optional)</label>
-              <input
-                type="text"
-                maxLength={60}
-                value={footerText}
-                onChange={(e) => setFooterText(e.target.value)}
-                placeholder="e.g. Reply STOP to opt out"
-                className="input-base text-xs"
-              />
-            </div>
-
-            {/* Interactive Buttons */}
-            <div className="p-4 bg-muted rounded-xl border border-border space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-foreground uppercase tracking-wider">
-                  Interactive Buttons (Up to 10)
-                </label>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => handleAddButton('QUICK_REPLY')}
-                    disabled={buttons.length >= 10}
-                    className="px-2 py-1 bg-card hover:bg-muted border border-border rounded text-2xs font-bold text-foreground"
-                  >
-                    + Quick Reply
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleAddButton('URL')}
-                    disabled={buttons.length >= 10}
-                    className="px-2 py-1 bg-card hover:bg-muted border border-border rounded text-2xs font-bold text-foreground"
-                  >
-                    + URL Link
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleAddButton('PHONE_NUMBER')}
-                    disabled={buttons.length >= 10}
-                    className="px-2 py-1 bg-card hover:bg-muted border border-border rounded text-2xs font-bold text-foreground"
-                  >
-                    + Phone Call
-                  </button>
-                </div>
+                )}
+                {headerType === 'IMAGE' && (
+                  <Input className="mt-2" aria-label="Example picture address" value={headerMediaUrl} onChange={(e) => setHeaderMediaUrl(e.target.value)} placeholder="Example picture address (optional)" />
+                )}
+                {(headerType === 'VIDEO' || headerType === 'DOCUMENT') && (
+                  <p className="mt-2 text-xs text-muted-foreground">You choose the {headerType === 'VIDEO' ? 'video' : 'document'} each time you send.</p>
+                )}
               </div>
 
-              {buttons.length === 0 ? (
-                <p className="text-xs text-muted-foreground italic">No buttons attached.</p>
-              ) : (
-                <div className="space-y-2">
-                  {buttons.map((btn, idx) => (
-                    <div key={idx} className="p-2.5 bg-card rounded-lg border border-border space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-2xs font-bold uppercase tracking-wider text-primary bg-brand-subtle px-1.5 py-0.5 rounded">
-                          {btn.type.replace('_', ' ')}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveButton(idx)}
-                          className="p-1 text-muted-foreground hover:text-destructive rounded"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+              <div>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <label htmlFor="tpl-body" className="text-sm font-semibold text-foreground">Message</label>
+                  <Chip className="h-8 px-3" onClick={handleAddVariable}>
+                    <Plus className="size-3.5" aria-hidden />
+                    {nextVar === 1 ? 'Add a name' : 'Add a detail'}
+                  </Chip>
+                </div>
+                <Textarea id="tpl-body" ref={bodyRef} rows={5} maxLength={1024} value={bodyText} onChange={(e) => setBodyText(e.target.value)} />
+                <p className="mt-1 text-right text-xs text-muted-foreground">{bodyText.length} / 1024</p>
+              </div>
 
-                      <input
-                        type="text"
-                        maxLength={25}
-                        placeholder="Button Label Text (max 25 chars)"
-                        value={btn.text}
-                        onChange={(e) => {
-                          const copy = [...buttons];
-                          copy[idx].text = e.target.value;
-                          setButtons(copy);
-                        }}
-                        className="input-base text-xs"
-                        required
-                      />
-
-                      {btn.type === 'URL' && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          <input
-                            type="url"
-                            placeholder="https://example.com/orders/{{1}}"
-                            value={btn.url || ''}
-                            onChange={(e) => {
-                              const copy = [...buttons];
-                              copy[idx].url = e.target.value;
-                              setButtons(copy);
-                            }}
-                            className="input-base text-xs font-mono"
-                            required
-                          />
-                          {btn.url?.includes('{{1}}') && (
-                            <input
-                              type="text"
-                              placeholder="Sample slug (e.g. ORD-9812)"
-                              value={btn.urlSample || ''}
-                              onChange={(e) => {
-                                const copy = [...buttons];
-                                copy[idx].urlSample = e.target.value;
-                                setButtons(copy);
-                              }}
-                              className="input-base text-xs font-mono"
-                              required
-                            />
-                          )}
-                        </div>
-                      )}
-
-                      {btn.type === 'PHONE_NUMBER' && (
-                        <input
-                          type="text"
-                          placeholder="+971501234567"
-                          value={btn.phone_number || ''}
-                          onChange={(e) => {
-                            const copy = [...buttons];
-                            copy[idx].phone_number = e.target.value;
-                            setButtons(copy);
-                          }}
-                          className="input-base text-xs font-mono"
-                          required
-                        />
-                      )}
+              {bodyVars.length > 0 && (
+                <div className="space-y-2 rounded-2xl bg-muted p-3">
+                  <p className="text-sm font-semibold text-foreground">Examples for Meta</p>
+                  <p className="text-xs text-muted-foreground">Meta checks the message with a real looking example for each blank.</p>
+                  {bodyVars.map((v) => (
+                    <div key={v}>
+                      <label htmlFor={`tpl-sample-${v}`} className="mb-1 block text-xs text-muted-foreground">{variableLabel(v)}</label>
+                      <Input id={`tpl-sample-${v}`} value={sampleValues[v] ?? ''} onChange={(e) => setSampleValues({ ...sampleValues, [v]: e.target.value })} />
                     </div>
                   ))}
                 </div>
               )}
+
+              <div>
+                <label htmlFor="tpl-footer" className="mb-1 block text-sm font-semibold text-foreground">Small print (optional)</label>
+                <Input id="tpl-footer" maxLength={60} value={footerText} onChange={(e) => setFooterText(e.target.value)} placeholder="Reply STOP to opt out" />
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-foreground">Buttons (optional)</p>
+                {buttons.map((b, i) => (
+                  <div key={i} className="space-y-2 rounded-2xl border border-border p-3">
+                    <div className="flex items-center gap-2">
+                      <Input aria-label="Button label" maxLength={25} value={b.text} onChange={(e) => updateButton(i, { text: e.target.value })} />
+                      <Button type="button" variant="ghost" size="icon" aria-label="Remove button" onClick={() => setButtons(buttons.filter((_, idx) => idx !== i))}>
+                        <Trash2 />
+                      </Button>
+                    </div>
+                    {b.type === 'URL' && (
+                      <>
+                        <Input aria-label="Web address" type="url" value={b.url ?? ''} onChange={(e) => updateButton(i, { url: e.target.value })} />
+                        {b.url?.includes('{{1}}') && (
+                          <Input aria-label="Example ending for the web address" value={b.urlSample ?? ''} onChange={(e) => updateButton(i, { urlSample: e.target.value })} />
+                        )}
+                      </>
+                    )}
+                    {b.type === 'PHONE_NUMBER' && (
+                      <Input aria-label="Phone number" value={b.phone_number ?? ''} onChange={(e) => updateButton(i, { phone_number: e.target.value })} />
+                    )}
+                  </div>
+                ))}
+                <div className="flex flex-wrap gap-2">
+                  <Chip disabled={buttons.length >= 10} onClick={() => addButton('QUICK_REPLY')}>Quick reply</Chip>
+                  <Chip disabled={buttons.length >= 10} onClick={() => addButton('URL')}>Web link</Chip>
+                  <Chip disabled={buttons.length >= 10} onClick={() => addButton('PHONE_NUMBER')}>Call button</Chip>
+                  <Chip disabled={buttons.length >= 10} onClick={() => addButton('COPY_CODE')}>Copy code</Chip>
+                </div>
+              </div>
+
+              {step2Errors.length > 0 && <Alert tone="warning">{step2Errors[0]}</Alert>}
             </div>
 
-        </form>
-
-        {/* Right Live WhatsApp Mockup: 5 cols */}
-        <div className="flex flex-col items-center lg:col-span-5">
-          <div className="sticky top-0 w-full space-y-2">
-            <div className="flex items-center justify-between px-1 text-xs font-bold text-foreground">
-              <span>Real-time WhatsApp handset preview</span>
-              <span className="text-2xs font-semibold text-primary">Live rendering</span>
+            <div className="order-1 lg:sticky lg:top-0 lg:order-2 lg:self-start">
+              <WhatsAppMockupPreview components={previewComponents} sampleVariables={sampleValues} />
             </div>
-            <WhatsAppMockupPreview components={previewComponents} />
           </div>
-        </div>
+        )}
+
+        {step === 2 && (
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <div className="space-y-3">
+              <dl className="space-y-2 text-sm">
+                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Name</dt><dd className="font-medium text-foreground">{plainName(metaName)}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Kind</dt><dd className="font-medium text-foreground">{categoryLabel(category)}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Language</dt><dd className="font-medium text-foreground">{META_LANGUAGES.find((l) => l.code === language)?.name}</dd></div>
+                <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Buttons</dt><dd className="font-medium text-foreground">{buttons.length}</dd></div>
+              </dl>
+              <Alert tone="info">
+                Meta usually reviews a new template within a day. You can send it to customers once it shows as Approved.
+              </Alert>
+            </div>
+            <WhatsAppMockupPreview components={previewComponents} sampleVariables={sampleValues} />
+          </div>
+        )}
       </div>
-    </Modal>
+    </BottomSheet>
   );
 }
+
