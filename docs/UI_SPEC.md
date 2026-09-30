@@ -26,7 +26,7 @@ Status: success `#1F9D55`, warning `#E6A100`, danger `#D64545`, read-tick blue `
 Lime is a fill and an accent in dark mode. Never lime text on a light background (contrast).
 
 ## 3. Type, shape, motion
-- Font: Urbanist (Google Fonts via next/font, variable). Fallback system-ui. Headings 600-700, body 400-500.
+- Font: Manrope (Google Fonts via next/font, variable). Fallback system-ui. Headings 600-700, body 400-500.
 - Sizes: body 15-16px, secondary 13-14px, nothing below 12px. Touch targets at least 44px.
 - Radius: cards 20px, bubbles 18px (tail corner 6px), buttons and chips pill, inputs 14px.
 - Motion: 150-200ms transitions only; respect prefers-reduced-motion.
@@ -38,6 +38,9 @@ Lime is a fill and an accent in dark mode. Never lime text on a light background
 - The bottom bar hides inside an open chat.
 
 ## 5. Shared components (built once by the design-system stream, reused everywhere)
+The component layer is shadcn-style primitives (base-nova, cva variants, `cn`). Add missing primitives with
+`npx shadcn@latest add <name>` and adapt them; never run `shadcn apply` and never hand-write colour variables.
+Colours come only from design-tokens/tokens.ts, which feeds both the web app and the Expo app.
 Button (pill), IconButton, Chip (filter), Badge (unread, count), Avatar (initials fallback), Card,
 BottomSheet (mobile) / Dialog (desktop) using one API, ListRow, SearchField, SegmentedControl,
 Switch, Toast, EmptyState (icon + one sentence + one button), Skeleton, StatPill (value + change arrow).
