@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth/rbac';
-import { dispatchCampaign } from '@/worker/dispatcher';
+import { campaignDispatchEnabled } from '@/lib/feature-gates';
 import { logger } from '@/lib/logger';
 
 export async function POST(
@@ -28,20 +28,25 @@ export async function POST(
     }
 
     if (action === 'START' || action === 'RESUME') {
-      // 2026-09 containment: campaign dispatch is disabled platform-wide. The
-      // dispatcher resolves audiences using only singular groupId/tagId while the
-      // wizard and preview use includeGroups/includeTags, so a campaign previewed
-      // for selected groups/tags would actually be broadcast to EVERY active
-      // contact. START/RESUME return 409 until audience resolution is unified and
-      // regression-tested. PAUSE and CANCEL stay available so already-queued
-      // campaigns can still be stopped.
-      return NextResponse.json(
-        {
-          error:
-            'Campaign dispatch is temporarily disabled: a known audience-resolution defect would send to every active contact instead of the previewed groups/tags. Fix is in progress.',
-        },
-        { status: 409 }
-      );
+      // Sending is held unless CAMPAIGN_DISPATCH=on (src/lib/feature-gates.ts). While held this is a
+      // 409 and nothing changes. When on, the campaign is handed to the worker's scheduler (polls
+      // every 15s) rather than sent from this web request: the worker path re-checks the gate,
+      // resolves the audience through the single resolver and is what Pause/Cancel interrupt.
+      if (!campaignDispatchEnabled()) {
+        return NextResponse.json({ error: 'Sending is switched off for this account.' }, { status: 409 });
+      }
+      const template = await prisma.template.findUnique({ where: { id: campaign.templateId }, select: { status: true } });
+      if (template?.status !== 'APPROVED') {
+        return NextResponse.json({ error: 'This message has not been approved by Meta, so it cannot be sent.' }, { status: 400 });
+      }
+      const queued = await prisma.campaign.updateMany({
+        where: { id, status: { in: ['DRAFT', 'PAUSED', 'SCHEDULED'] } },
+        data: { status: 'SCHEDULED', scheduledAt: new Date() },
+      });
+      if (queued.count === 0) {
+        return NextResponse.json({ error: 'This broadcast cannot be started from its current state.' }, { status: 409 });
+      }
+      return NextResponse.json({ success: true, status: 'SCHEDULED' });
     }
 
     if (action === 'PAUSE') {

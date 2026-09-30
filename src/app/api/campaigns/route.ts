@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { campaignDispatchEnabled } from '@/lib/feature-gates';
 import { getTargetContacts } from '@/worker/dispatcher';
 import { requireAuth, requireRole } from '@/lib/auth/rbac';
 import { logger } from '@/lib/logger';
@@ -53,6 +54,15 @@ export async function POST(request: NextRequest) {
     // Compute matching target contacts
     const targetContacts = await getTargetContacts(filterString);
 
+    const startNow = startImmediately === true && !scheduledAt && campaignDispatchEnabled();
+    if (startNow || scheduledAt) {
+      // Anything that can be sent must use a template Meta has approved.
+      const template = await prisma.template.findUnique({ where: { id: templateId }, select: { status: true } });
+      if (template?.status !== 'APPROVED') {
+        return NextResponse.json({ error: 'Choose a message that Meta has approved.' }, { status: 400 });
+      }
+    }
+
     const campaign = await prisma.campaign.create({
       data: {
         name,
@@ -60,7 +70,7 @@ export async function POST(request: NextRequest) {
         audienceFilter: filterString,
         variableMappings: mappingString,
         headerMediaUrl: headerMediaUrl?.trim() || null,
-        scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+        scheduledAt: scheduledAt ? new Date(scheduledAt) : startNow ? new Date() : null,
         totalContacts: targetContacts.length,
         // 2026-09 containment: campaigns can be created and scheduled, but never
         // auto-dispatched. The dispatcher resolves audiences using only singular
@@ -68,7 +78,7 @@ export async function POST(request: NextRequest) {
         // startImmediately campaign would broadcast to EVERY active contact instead
         // of the previewed audience. Dispatch goes through /api/campaigns/[id]/dispatch,
         // which currently returns 409 until audience resolution is unified.
-        status: scheduledAt ? 'SCHEDULED' : 'DRAFT',
+        status: scheduledAt || startNow ? 'SCHEDULED' : 'DRAFT',
       },
       include: {
         template: true,
@@ -78,8 +88,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       campaign,
-      note:
-        'Dispatch is temporarily disabled pending an audience-resolution fix; the campaign was saved as ' + campaign.status + '.',
+      ...(campaignDispatchEnabled() ? {} : { note: 'Sending is switched off for this account; the broadcast was saved as ' + campaign.status + '.' }),
     });
   } catch (error: any) {
     logger.error({ error }, 'Error creating campaign');
