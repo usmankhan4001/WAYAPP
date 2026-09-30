@@ -5,7 +5,8 @@ import { Plus, Trash2, Tag as TagIcon, Users, X } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { useConfirm } from '@/lib/hooks/use-confirm';
-import { Modal } from '@/components/ui/modal';
+import { BottomSheet } from '@/components/ui/bottom-sheet';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -42,12 +43,12 @@ export function GroupTagModal({ isOpen, onClose, groups, tags, onRefresh }: Grou
         body: JSON.stringify({ name: newGroupName, description: newGroupDesc, color: newGroupColor }),
       });
       const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || 'Failed to create group');
+      if (!res.ok || data.error) throw new Error(data.error || 'We could not create that group. Try again.');
       setNewGroupName('');
       setNewGroupDesc('');
       onRefresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create group');
+      setError(err instanceof Error ? err.message : 'We could not create that group. Try again.');
     } finally {
       setLoading(false);
     }
@@ -64,11 +65,11 @@ export function GroupTagModal({ isOpen, onClose, groups, tags, onRefresh }: Grou
         body: JSON.stringify({ name: newTagName, color: newTagColor }),
       });
       const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || 'Failed to create tag');
+      if (!res.ok || data.error) throw new Error(data.error || 'We could not create that label. Try again.');
       setNewTagName('');
       onRefresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create tag');
+      setError(err instanceof Error ? err.message : 'We could not create that label. Try again.');
     } finally {
       setLoading(false);
     }
@@ -85,7 +86,7 @@ export function GroupTagModal({ isOpen, onClose, groups, tags, onRefresh }: Grou
   };
 
   const removeTag = async (id: string) => {
-    if (!(await confirm({ title: 'Delete this tag?', destructive: true, confirmLabel: 'Delete' }))) return;
+    if (!(await confirm({ title: 'Delete this label?', destructive: true, confirmLabel: 'Delete' }))) return;
     try {
       await fetch(`/api/tags?id=${id}`, { method: 'DELETE' });
       onRefresh();
@@ -111,26 +112,26 @@ export function GroupTagModal({ isOpen, onClose, groups, tags, onRefresh }: Grou
   );
 
   return (
-    <Modal
+    <BottomSheet
       open={isOpen}
       onOpenChange={(o) => !o && onClose()}
       size="lg"
-      title="Manage audience categorization"
-      description="Configure static groups and tag taxonomies"
+      title="Labels and groups"
+      description="Labels are colour tags you put on people. Groups are lists you can message together."
     >
       <div className="-mx-4 mb-4 flex border-b border-border px-4">
-        {tab('GROUPS', Users, `Contact groups (${groups.length})`)}
-        {tab('TAGS', TagIcon, `Tags (${tags.length})`)}
+        {tab('GROUPS', Users, `Groups (${groups.length})`)}
+        {tab('TAGS', TagIcon, `Labels (${tags.length})`)}
       </div>
 
-      {error && <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">{error}</div>}
+      {error && <Alert tone="danger" className="mb-4">{error}</Alert>}
 
       {activeTab === 'GROUPS' ? (
         <div className="space-y-4">
           <form onSubmit={createGroup} className="space-y-3 rounded-lg border border-border bg-muted p-3">
-            <span className="text-xs font-semibold text-foreground">Create new group</span>
+            <span className="text-xs font-semibold text-foreground">Create a group</span>
             <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-              <Input required placeholder="Group name (e.g. VIP clients)" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} />
+              <Input required placeholder="Group name (e.g. Eid customers)" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} />
               <div className="flex gap-2">
                 <input
                   type="color"
@@ -148,7 +149,7 @@ export function GroupTagModal({ isOpen, onClose, groups, tags, onRefresh }: Grou
           </form>
 
           <div className="space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Existing groups</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your groups</span>
             <div className="divide-y divide-border overflow-hidden rounded-lg border border-border">
               {groups.length === 0 ? (
                 <p className="p-4 text-center text-xs text-muted-foreground">No groups created yet</p>
@@ -166,7 +167,7 @@ export function GroupTagModal({ isOpen, onClose, groups, tags, onRefresh }: Grou
                       <span className="rounded-full bg-muted px-2 py-0.5 text-2xs font-semibold text-muted-foreground">
                         {g._count?.contacts || 0} contacts
                       </span>
-                      <Button variant="ghost" size="icon-sm" onClick={() => removeGroup(g.id)}>
+                      <Button variant="ghost" size="icon-sm" aria-label={`Delete group ${g.name}`} onClick={() => removeGroup(g.id)}>
                         <Trash2 />
                       </Button>
                     </div>
@@ -179,7 +180,7 @@ export function GroupTagModal({ isOpen, onClose, groups, tags, onRefresh }: Grou
       ) : (
         <div className="space-y-4">
           <form onSubmit={createTag} className="space-y-3 rounded-lg border border-border bg-muted p-3">
-            <span className="text-xs font-semibold text-foreground">Create new tag</span>
+            <span className="text-xs font-semibold text-foreground">Create a label</span>
             <div className="flex gap-2">
               <input
                 type="color"
@@ -187,7 +188,7 @@ export function GroupTagModal({ isOpen, onClose, groups, tags, onRefresh }: Grou
                 onChange={(e) => setNewTagColor(e.target.value)}
                 className="size-9 cursor-pointer rounded-lg border border-input bg-transparent p-1"
               />
-              <Input required placeholder="Tag name (e.g. #high-intent)" value={newTagName} onChange={(e) => setNewTagName(e.target.value)} className="flex-1" />
+              <Input required placeholder="Label name (e.g. VIP)" value={newTagName} onChange={(e) => setNewTagName(e.target.value)} className="flex-1" />
               <Button type="submit" size="sm" disabled={loading}>
                 <Plus />
                 Add
@@ -196,10 +197,10 @@ export function GroupTagModal({ isOpen, onClose, groups, tags, onRefresh }: Grou
           </form>
 
           <div className="space-y-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Existing tags</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your labels</span>
             <div className="flex flex-wrap gap-2 rounded-lg border border-border bg-muted p-3">
               {tags.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No tags created yet</p>
+                <p className="text-xs text-muted-foreground">No labels yet</p>
               ) : (
                 tags.map((t) => (
                   <span
@@ -209,7 +210,7 @@ export function GroupTagModal({ isOpen, onClose, groups, tags, onRefresh }: Grou
                   >
                     <span>{t.name}</span>
                     <span className="text-2xs text-muted-foreground">({t._count?.contacts || 0})</span>
-                    <button onClick={() => removeTag(t.id)} className="ml-1 text-muted-foreground hover:text-destructive">
+                    <button type="button" aria-label={`Delete label ${t.name}`} onClick={() => removeTag(t.id)} className="ml-1 p-1 text-muted-foreground hover:text-destructive">
                       <X className="size-3" />
                     </button>
                   </span>
@@ -219,6 +220,6 @@ export function GroupTagModal({ isOpen, onClose, groups, tags, onRefresh }: Grou
           </div>
         </div>
       )}
-    </Modal>
+    </BottomSheet>
   );
 }
