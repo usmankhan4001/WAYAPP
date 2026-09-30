@@ -74,3 +74,28 @@ No exclamation marks, no emoji as decoration, no "Enterprise", "Deep", "Engine",
 ## 8. Definition of done for any UI change
 `npx tsc --noEmit -p .`, `npm run lint:design`, tests for any logic, works at 390px with no
 horizontal scroll, visible focus states, both themes correct, plain wording.
+
+---
+# Round 3 additions: feedback layer, templates, broadcasts
+
+## 9. Feedback layer (notifications, banners, alerts, toasts, dialogs)
+One vocabulary, one component each, never hand-made markup:
+- Toast: short confirmation ("Saved", "Message sent"), bottom on phones, top-right on desktop, 4s, never for errors that need action.
+- Alert (`src/components/ui/alert.tsx`, tones info/success/warning/danger): inline in a page or dialog. States what happened and what to do next; one action at most.
+- Banner (same component, `layout="banner"`): full width under the header for things that affect the whole app: WhatsApp not connected, connection lost/offline, install the app, sending is switched off. Dismissible only when harmless; stacks at most two.
+- Dialog / confirm: destructive or irreversible actions only. Title says the action ("Delete this template?"), body says the consequence, the button repeats the verb. Danger tone for delete. Bottom sheet on phones.
+- Notification centre: bell in the header (badge = unread count). Opens a bottom sheet on phones and a popover on desktop. Groups: Today, Earlier. Rows: new customer message, message failed to send, broadcast finished, template approved or rejected, connection problem. Tap opens the right screen; "Mark all as read". Empty state: "You are all caught up".
+- Push-permission prompt: one calm card, not a modal, with "Turn on" and "Not now".
+
+## 10. Templates
+Templates are the messages Meta must approve before you can start a chat. Plain words:
+- List: filter chips (All, Approved, Waiting, Rejected) and category chips; rows show name, first line of the message, category, language and a status pill (Approved = success, Waiting for Meta = warning, Rejected = danger, Paused = muted). Rejected rows say why in one sentence.
+- Preview: a phone-shaped bubble preview (header, body with {{1}} filled with sample values, footer, buttons) beside or above the details.
+- Create/edit: a step-by-step sheet: 1 Name and type, 2 Message (header optional, body, footer, buttons) with a live preview, 3 Review and submit to Meta. Variables inserted with a "Add a name" chip, never typed as {{1}}. Explain approval time in one sentence.
+- Send a test: pick a contact, fill sample values, send.
+
+## 11. Broadcasts
+- List: rows with name, status pill (Draft, Scheduled, Sending, Sent, Paused, Failed), recipient count, sent/delivered/read/replied as a small progress bar, date. Filter chips by status. Empty state with one button "New broadcast".
+- Create: a 4-step flow with a step indicator and a sticky bottom action bar on phones (Back, Next). 1 Name. 2 Message (pick an approved template, live bubble preview, fill variables from contact fields). 3 Audience (everyone / labels / groups, exclusions, live recipient count, consent warning). 4 Review and send (summary card, five masked sample recipients, when to send: now or schedule, confirm; audiences over 50 need typing SEND). While sending is switched off the last step says so and the button reads "Save as draft (not sent)".
+- Detail: header with status and actions (Pause, Resume, Cancel), a live progress card (sent, delivered, read, replied, failed), a per-recipient table with status pills and error reasons in plain words, and the message preview.
+- Every step has a plain-language help line under its title; no jargon.

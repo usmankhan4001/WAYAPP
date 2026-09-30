@@ -55,3 +55,12 @@ inbound for the 24-hour window).
 | G4 Automations | `src/app/automations/**`, `src/app/flows/**`, `src/components/automations/**`, `src/components/flows/**` |
 | G5 Contacts, broadcasts, templates | `src/app/contacts/**`, `src/app/campaigns/**`, `src/app/templates/**`, `src/components/contacts/**`, `src/components/campaigns/**`, `src/components/templates/**` |
 G2-G5 use only semantic tokens and the shared components from `src/components/ui/**`; if one is missing, use the closest existing one and list it under "Needs from others".
+
+---
+## Round 3 (feedback layer, templates, broadcasts). Read docs/UI_SPEC.md sections 9-11.
+Shared `Alert` exists at `src/components/ui/alert.tsx`; use it instead of hand-made banners. No schema edits.
+| Stream | Owns |
+|---|---|
+| H1 Feedback layer | `src/components/notifications/**` (new), `src/app/api/notifications/**` (new), `src/components/common/NotificationProvider.tsx`, `PWAInstallPrompt.tsx`, `DevicePermissionsModal.tsx`, `MetaSetupGuideModal.tsx`, `src/components/layout/AppHeader.tsx`, `src/components/layout/AppShell.tsx`, `src/components/ui/Toast.tsx`, `sonner.tsx`, `confirm-dialog.tsx`, `alert-dialog.tsx`, `alert.tsx`, `src/app/design/page.tsx` |
+| H2 Templates | `src/app/templates/**`, `src/components/templates/**`, `src/app/api/templates/**` |
+| H3 Broadcasts | `src/app/campaigns/**`, `src/components/campaigns/**`, `src/app/api/campaigns/**` (UI-facing behaviour only; do NOT enable sending, the `CAMPAIGN_DISPATCH` gate stays off) |
