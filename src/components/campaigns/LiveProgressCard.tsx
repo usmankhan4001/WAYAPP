@@ -4,71 +4,81 @@ import React from 'react';
 import { Play, Pause, XCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { StatusBadge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import { StatPill } from '@/components/ui/stat-pill';
+import { useConfirm } from '@/lib/hooks/use-confirm';
+import { StatusPill, DeliveryBar } from './CampaignBits';
+import { campaignStatusPill, progressPercents } from '@/lib/campaigns/present';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyRecord = Record<string, any>;
 
+type Action = 'START' | 'PAUSE' | 'RESUME' | 'CANCEL';
+
 interface LiveProgressCardProps {
   campaign: AnyRecord;
   stats: AnyRecord;
-  onAction: (action: 'START' | 'PAUSE' | 'RESUME' | 'CANCEL') => void;
+  onAction: (action: Action) => void;
 }
 
-const STATUS_TONE: Record<string, string> = {
-  COMPLETED: 'success',
-  RUNNING: 'info',
-  QUEUED: 'info',
-  PAUSED: 'warning',
-};
-
 export function LiveProgressCard({ campaign, stats, onAction }: LiveProgressCardProps) {
+  const confirm = useConfirm();
   const isRunning = campaign.status === 'RUNNING' || campaign.status === 'QUEUED';
   const isPaused = campaign.status === 'PAUSED';
-  const isCompleted = campaign.status === 'COMPLETED';
+  const isFinished = ['COMPLETED', 'CANCELLED', 'FAILED'].includes(campaign.status);
+  const p = progressPercents(campaign);
 
-  const progressPct =
-    campaign.totalContacts > 0
-      ? Math.min(100, Math.round(((campaign.sentCount + campaign.failedCount) / campaign.totalContacts) * 100))
-      : 0;
+  const ask = async (action: Action, title: string, description: string, confirmLabel: string, destructive = false) => {
+    if (await confirm({ title, description, confirmLabel, cancelLabel: 'Not now', destructive })) onAction(action);
+  };
 
   const metrics = [
-    { label: 'Sent', value: campaign.sentCount, tone: 'text-foreground' },
-    { label: `Delivered (${stats.deliveryRate}%)`, value: campaign.deliveredCount, tone: 'text-success' },
-    { label: `Read (${stats.readRate}%)`, value: campaign.readCount, tone: 'text-info' },
-    { label: `Replies (${stats.replyRate}%)`, value: campaign.repliedCount, tone: 'text-accent-foreground' },
-    { label: `Failed (${stats.failureRate}%)`, value: campaign.failedCount, tone: 'text-destructive' },
+    { label: 'Sent', value: campaign.sentCount, note: `${p.sent}% of everyone` },
+    { label: 'Delivered', value: campaign.deliveredCount, note: `${stats?.deliveryRate ?? 0}% of sent` },
+    { label: 'Read', value: campaign.readCount, note: `${stats?.readRate ?? 0}% of delivered` },
+    { label: 'Replied', value: campaign.repliedCount, note: `${stats?.replyRate ?? 0}% of delivered` },
+    { label: 'Failed', value: campaign.failedCount, note: `${stats?.failureRate ?? 0}% of everyone` },
   ];
 
   return (
-    <div className="space-y-5 rounded-xl bg-card p-5 ring-1 ring-foreground/10">
+    <div className="space-y-5 rounded-2xl bg-card p-4 ring-1 ring-foreground/10 sm:p-5">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <StatusBadge tone={STATUS_TONE[campaign.status] ?? 'neutral'}>{campaign.status}</StatusBadge>
-            <span className="text-2xs text-muted-foreground">
-              Created {new Date(campaign.createdAt).toLocaleDateString()}
-            </span>
+            <StatusPill pill={campaignStatusPill(campaign.status)} />
+            <span className="text-sm text-muted-foreground">Created {new Date(campaign.createdAt).toLocaleDateString()}</span>
           </div>
-          <h2 className="mt-1 text-lg font-semibold text-foreground">{campaign.name}</h2>
+          <h2 className="mt-1 truncate text-lg font-semibold text-foreground">{campaign.name}</h2>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {isRunning && (
-            <Button variant="outline" size="sm" onClick={() => onAction('PAUSE')}>
+            <Button
+              variant="outline"
+              onClick={() =>
+                ask('PAUSE', 'Pause this broadcast?', 'Messages stop going out now. People who have not received it yet will wait until you resume.', 'Pause broadcast')
+              }
+            >
               <Pause />
               Pause
             </Button>
           )}
           {isPaused && (
-            <Button size="sm" onClick={() => onAction('RESUME')}>
+            <Button
+              onClick={() =>
+                ask('RESUME', 'Resume this broadcast?', 'Messages will start going out again to the people still waiting.', 'Resume broadcast')
+              }
+            >
               <Play />
               Resume
             </Button>
           )}
-          {!isCompleted && campaign.status !== 'CANCELLED' && (
-            <Button variant="outline" size="sm" onClick={() => onAction('CANCEL')} className="text-destructive">
+          {!isFinished && (
+            <Button
+              variant="destructive"
+              onClick={() =>
+                ask('CANCEL', 'Cancel this broadcast?', 'It will stop for good. Anyone who has not received it yet will not get it, and you cannot undo this.', 'Cancel broadcast', true)
+              }
+            >
               <XCircle />
               Cancel
             </Button>
@@ -77,20 +87,20 @@ export function LiveProgressCard({ campaign, stats, onAction }: LiveProgressCard
       </div>
 
       <div className="space-y-1.5">
-        <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>
-            Dispatched {campaign.sentCount + campaign.failedCount} of {campaign.totalContacts} contacts
+            {campaign.sentCount + campaign.failedCount} of {campaign.totalContacts} people handled
           </span>
-          <span className="font-mono font-semibold text-foreground">{progressPct}%</span>
+          <span className="font-semibold text-foreground tabular-nums">{p.done}%</span>
         </div>
-        <Progress value={progressPct} className="w-full" />
+        <DeliveryBar campaign={campaign} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 pt-1 sm:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {metrics.map((m) => (
-          <div key={m.label} className="rounded-lg border border-border bg-muted p-3 text-center">
-            <span className="mb-0.5 block text-2xs font-medium text-muted-foreground">{m.label}</span>
-            <p className={`font-mono text-base font-semibold ${m.tone}`}>{m.value}</p>
+          <div key={m.label} className="space-y-0.5">
+            <StatPill label={m.label} value={m.value ?? 0} invert={m.label === 'Failed'} />
+            <p className="text-xs text-muted-foreground">{m.note}</p>
           </div>
         ))}
       </div>

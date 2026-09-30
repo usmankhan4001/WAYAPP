@@ -1,98 +1,120 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Send,
-  Users,
-  FileText,
-  Sliders,
-  CheckCircle2,
-  AlertCircle,
-  ArrowRight,
-  ArrowLeft,
-  Filter,
-  Eye,
-  Clock,
-} from 'lucide-react';
-import { WhatsAppMockupPreview } from '../templates/WhatsAppMockupPreview';
-import { renderTemplateBody } from '@/lib/whatsapp/template-render';
-import { VariableMapper } from './VariableMapper';
-import { InfoTooltip, Tooltip } from '@/components/ui/Tooltip';
+import { Check, ArrowLeft, ArrowRight, Send } from 'lucide-react';
 
+import { WhatsAppMockupPreview } from '../templates/WhatsAppMockupPreview';
+import { VariableMapper } from './VariableMapper';
+import { useDispatchEnabled } from './CampaignBits';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Chip } from '@/components/ui/chip';
+import { Card } from '@/components/ui/card';
+import {
+  BIG_AUDIENCE,
+  maskPhone,
+  templateInfo,
+  toScheduledIso,
+  validateStep,
+  type WizardState,
+} from '@/lib/campaigns/present';
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
 interface CampaignWizardProps {
   templates: any[];
   groups: any[];
   tags: any[];
 }
 
-const BIG_AUDIENCE = 50;
+const STEPS = [
+  { num: 1, title: 'Name', help: 'Give this broadcast a name only you will see, so you can find it later.' },
+  { num: 2, title: 'Message', help: 'Pick an approved message and choose what fills in the blanks.' },
+  { num: 3, title: 'Audience', help: 'Choose who should get it. The number updates as you choose.' },
+  { num: 4, title: 'Review', help: 'Check everything, then choose when to send.' },
+] as const;
 
-/** Shows just enough of a number to recognise it: +971 •••• 567 */
-function maskPhone(phone: string): string {
-  const p = String(phone || '');
-  if (p.length <= 7) return '•••••';
-  return `${p.slice(0, 4)} ${'•'.repeat(4)} ${p.slice(-3)}`;
-}
+const FIELD_CLASS =
+  'h-11 w-full rounded-[14px] border border-input bg-background px-3 text-base text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50';
+
+const SAMPLE_FOR: Record<string, string> = {
+  firstName: 'Sara',
+  lastName: 'Khan',
+  fullName: 'Sara Khan',
+  phoneNumber: '+971 50 000 0000',
+  email: 'sara@example.com',
+  'custom.company': 'Apex Trading',
+  'custom.city': 'Dubai',
+  'custom.order_id': 'A1042',
+  'custom.spend': '250',
+  'custom.tier': 'Gold',
+};
+
+type AudienceMode = 'all' | 'labels' | 'groups';
 
 export function CampaignWizard({ templates = [], groups = [], tags = [] }: CampaignWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
-  // null until known. When false, sending is switched off for this account and a "launch"
-  // only saves a draft, so the screen has to say that instead of promising a broadcast.
-  const [dispatchOn, setDispatchOn] = useState<boolean | null>(null);
-  useEffect(() => {
-    fetch('/api/settings')
-      .then((res) => res.json())
-      .then((s) => setDispatchOn(s?.campaignDispatchEnabled === true))
-      .catch(() => setDispatchOn(null));
-  }, []);
+  // null until known. When false, sending is switched off and a "launch" only saves a draft.
+  const dispatchOn = useDispatchEnabled();
 
-  // Form State
   const [campaignName, setCampaignName] = useState('');
-  const [sendToAll, setSendToAll] = useState(false);
+  const [mode, setMode] = useState<AudienceMode>('all');
   const [includeGroupIds, setIncludeGroupIds] = useState<string[]>([]);
   const [includeTagIds, setIncludeTagIds] = useState<string[]>([]);
   const [excludeGroupIds, setExcludeGroupIds] = useState<string[]>([]);
   const [excludeTagIds, setExcludeTagIds] = useState<string[]>([]);
+  const sendToAll = mode === 'all';
 
+  const approved = useMemo(() => templates.filter((t) => String(t.status || '').toUpperCase() === 'APPROVED'), [templates]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
-  const [variableMappings, setVariableMappings] = useState<Record<string, string>>({
-    '1': 'firstName',
-    '2': 'custom.company',
-  });
+  const [variableMappings, setVariableMappings] = useState<Record<string, string>>({});
   const [headerMediaUrl, setHeaderMediaUrl] = useState('');
 
-  // Audience Live Calculator State
   const [audienceCount, setAudienceCount] = useState<number | null>(null);
   const [sampleContacts, setSampleContacts] = useState<any[]>([]);
   const [noConsentCount, setNoConsentCount] = useState(0);
   const [sendConfirm, setSendConfirm] = useState('');
   const [isCalculating, setIsCalculating] = useState(false);
 
-  // Submission State
+  const [whenMode, setWhenMode] = useState<'now' | 'later'>('now');
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const selectedTemplate = templates.find((t) => t.id === selectedTemplateId) || templates[0];
+  const selectedTemplate = approved.find((t) => t.id === selectedTemplateId);
+  const info = templateInfo(selectedTemplate);
 
   useEffect(() => {
-    if (templates.length > 0 && !selectedTemplateId) {
-      setSelectedTemplateId(templates[0].id);
-    }
-  }, [templates, selectedTemplateId]);
+    if (approved.length > 0 && !selectedTemplateId) setSelectedTemplateId(approved[0].id);
+  }, [approved, selectedTemplateId]);
 
-  // Live audience calculation trigger
+  // Default each blank to a sensible detail when the message changes: first one is the first name.
+  useEffect(() => {
+    setVariableMappings((prev) => {
+      const next: Record<string, string> = {};
+      info.vars.forEach((v, i) => {
+        next[v] = prev[v] ?? (i === 0 ? 'firstName' : i === 1 ? 'custom.company' : '');
+      });
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTemplateId]);
+
+  const audienceFilter = {
+    sendToAll,
+    includeGroups: mode === 'groups' ? includeGroupIds : [],
+    includeTags: mode === 'labels' ? includeTagIds : [],
+    excludeGroups: excludeGroupIds,
+    excludeTags: excludeTagIds,
+  };
+  const filterKey = JSON.stringify(audienceFilter);
+
+  // Live audience calculation (same endpoint and body as before)
   useEffect(() => {
     setIsCalculating(true);
-    const audienceFilter = {
-      sendToAll,
-      includeGroups: includeGroupIds,
-      includeTags: includeTagIds,
-      excludeGroups: excludeGroupIds,
-      excludeTags: excludeTagIds,
-    };
-
     fetch('/api/campaigns/calculate-audience', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -106,32 +128,44 @@ export function CampaignWizard({ templates = [], groups = [], tags = [] }: Campa
       })
       .catch(() => {})
       .finally(() => setIsCalculating(false));
-  }, [sendToAll, includeGroupIds, includeTagIds, excludeGroupIds, excludeTagIds, selectedTemplateId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterKey, selectedTemplateId]);
+
+  const scheduledAt = whenMode === 'later' ? toScheduledIso(date, time) : null;
+  const wizardState: WizardState = {
+    name: campaignName,
+    templateId: selectedTemplateId,
+    requiredVars: info.vars,
+    mappings: variableMappings,
+    needsHeaderImage: info.needsHeaderImage,
+    headerMediaUrl,
+    sendToAll,
+    includeCount: mode === 'labels' ? includeTagIds.length : mode === 'groups' ? includeGroupIds.length : 0,
+    audienceCount,
+    whenMode,
+    scheduledAt,
+    sendConfirm,
+  };
+
+  const goNext = () => {
+    const problem = validateStep(step, wizardState);
+    setError(problem);
+    if (!problem && step < 4) setStep((step + 1) as 1 | 2 | 3 | 4);
+  };
+  const goBack = () => {
+    setError(null);
+    if (step > 1) setStep((step - 1) as 1 | 2 | 3 | 4);
+  };
 
   const handleLaunchCampaign = async () => {
-    if (!campaignName.trim()) {
-      setError('Please provide a campaign name.');
-      setStep(1);
+    const problem = validateStep(4, wizardState);
+    if (problem) {
+      setError(problem);
       return;
     }
-    if (!selectedTemplateId) {
-      setError('Please select a message template.');
-      setStep(2);
-      return;
-    }
-
     setIsSubmitting(true);
     setError(null);
-
     try {
-      const audienceFilter = {
-        sendToAll,
-        includeGroups: includeGroupIds,
-        includeTags: includeTagIds,
-        excludeGroups: excludeGroupIds,
-        excludeTags: excludeTagIds,
-      };
-
       const res = await fetch('/api/campaigns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -141,565 +175,271 @@ export function CampaignWizard({ templates = [], groups = [], tags = [] }: Campa
           audienceFilter,
           variableMappings,
           headerMediaUrl,
-          startImmediately: true,
+          startImmediately: whenMode === 'now',
+          ...(scheduledAt ? { scheduledAt } : {}),
         }),
       });
-
       const data = await res.json();
-      if (!res.ok || data.error) {
-        throw new Error(data.error || 'Failed to launch campaign');
-      }
-
+      if (!res.ok || data.error) throw new Error(data.error || 'Could not save this broadcast.');
       router.push(`/campaigns/${data.campaign.id}`);
     } catch (err: any) {
-      setError(err.message);
+      setError(err?.message || 'Could not save this broadcast. Please try again.');
       setIsSubmitting(false);
     }
   };
 
-  return (
-    <div className="space-y-6 max-w-5xl">
-      {/* Wizard Step Progress Tracker */}
-      <div className="bg-card p-3 rounded-2xl border border-border shadow-sm">
-        <div className="grid grid-cols-4 gap-2">
-          {[
-            { num: 1, title: 'Audience & Target', icon: Users, tooltip: 'Define audience by selecting groups, tags, and exclusions' },
-            { num: 2, title: 'Select Template', icon: FileText, tooltip: 'Choose approved Meta WhatsApp template' },
-            { num: 3, title: 'Map Variables', icon: Sliders, tooltip: 'Map dynamic placeholders like {{1}} to contact fields' },
-            { num: 4, title: 'Review & Launch', icon: Send, tooltip: 'Pre-flight check and rate-limited dispatch' },
-          ].map((s) => {
-            const Icon = s.icon;
-            const isDone = step > s.num;
-            const isCurrent = step === s.num;
+  const toggle = (list: string[], setList: (v: string[]) => void, id: string) =>
+    setList(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
 
-            return (
-              <Tooltip key={s.num} content={s.tooltip} className="w-full">
-                <button
-                  type="button"
-                  onClick={() => setStep(s.num as any)}
-                  className={`w-full p-2.5 rounded-xl flex items-center gap-2.5 text-left transition-all ${
-                    isCurrent
-                      ? 'bg-primary text-primary-foreground font-bold shadow-sm'
-                      : isDone
-                      ? 'bg-muted text-foreground hover:bg-accent'
-                      : 'text-muted-foreground hover:bg-accent'
-                  }`}
-                >
-                  <div
-                    className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold shrink-0 ${
-                      isCurrent
-                        ? 'bg-primary text-primary-foreground'
-                        : isDone
-                        ? 'bg-brand-subtle text-brand-subtle-foreground'
-                        : 'bg-muted text-muted-foreground'
-                    }`}
-                  >
-                    {isDone ? <CheckCircle2 className="w-3.5 h-3.5" /> : s.num}
-                  </div>
-                  <div className="hidden sm:block min-w-0">
-                    <p className="text-xs truncate">{s.title}</p>
-                  </div>
-                </button>
-              </Tooltip>
-            );
-          })}
-        </div>
+  const sampleVars: Record<string, string> = {};
+  info.vars.forEach((v) => {
+    const m = variableMappings[v] || '';
+    sampleVars[v] = SAMPLE_FOR[m] ?? (m.trim() || 'Sample');
+  });
+
+  const bigAudience = (audienceCount ?? 0) > BIG_AUDIENCE;
+  const draftOnly = dispatchOn === false;
+  const launchDisabled = isSubmitting || (audienceCount ?? 0) === 0 || (bigAudience && sendConfirm.trim() !== 'SEND');
+
+  const preview = selectedTemplate && (
+    <WhatsAppMockupPreview
+      templateName={selectedTemplate.name}
+      category={selectedTemplate.category}
+      components={selectedTemplate.components}
+      headerMediaUrl={headerMediaUrl}
+      sampleVariables={sampleVars}
+    />
+  );
+
+  const listChips = (items: any[], ids: string[], setIds: (v: string[]) => void, empty: string) =>
+    items.length === 0 ? (
+      <p className="text-sm text-muted-foreground">{empty}</p>
+    ) : (
+      <div className="flex flex-wrap gap-2">
+        {items.map((it) => (
+          <Chip key={it.id} selected={ids.includes(it.id)} onClick={() => toggle(ids, setIds, it.id)}>
+            {it.name}
+          </Chip>
+        ))}
+      </div>
+    );
+
+  return (
+    <div className="max-w-4xl space-y-4">
+      {/* Compact step indicator */}
+      <ol className="flex items-center gap-1" aria-label="Steps">
+        {STEPS.map((s) => {
+          const done = step > s.num;
+          const current = step === s.num;
+          return (
+            <li key={s.num} className="flex min-w-0 flex-1 items-center gap-2" aria-current={current ? 'step' : undefined}>
+              <span
+                className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                  current ? 'bg-primary text-primary-foreground' : done ? 'bg-success-subtle text-success-subtle-foreground' : 'bg-raised text-muted-foreground'
+                }`}
+              >
+                {done ? <Check className="size-4" aria-hidden /> : s.num}
+              </span>
+              <span className={`truncate text-sm ${current ? 'font-semibold text-foreground' : 'text-muted-foreground'} ${current ? '' : 'hidden sm:inline'}`}>
+                {s.title}
+              </span>
+              {s.num < 4 && <span className="h-px flex-1 bg-border" aria-hidden />}
+            </li>
+          );
+        })}
+      </ol>
+
+      <div>
+        <h2 className="text-lg font-semibold text-foreground">{STEPS[step - 1].title}</h2>
+        <p className="text-sm text-muted-foreground">{STEPS[step - 1].help}</p>
       </div>
 
       {error && (
-        <div className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0 text-destructive" />
-          <span>{error}</span>
-        </div>
+        <Alert tone="danger" onDismiss={() => setError(null)}>
+          {error}
+        </Alert>
       )}
 
-      {/* STEP 1: Campaign Details & Audience Categorization */}
+      {/* STEP 1: Name */}
       {step === 1 && (
-        <div className="bg-card p-6 rounded-2xl border border-border shadow-sm space-y-6">
-          <div>
-            <h3 className="text-base font-bold text-foreground">Campaign Details & Audience Targeting</h3>
-            <p className="text-xs text-muted-foreground">
-              Define your broadcast name and select which groups and tags to include or exclude.
-            </p>
-          </div>
-
-          <div>
-            <div className="flex items-center gap-1 mb-1">
-              <label className="text-xs font-bold text-foreground">
-                Campaign Name <span className="text-destructive">*</span>
-              </label>
-              <InfoTooltip content="Internal identifier for this broadcast campaign (e.g. 'October VIP Discount Promo')." />
-            </div>
-            <input
-              type="text"
-              required
-              placeholder="e.g. VIP Seasonal Announcement"
-              value={campaignName}
-              onChange={(e) => setCampaignName(e.target.value)}
-              className="w-full px-3.5 py-2 text-xs rounded-xl border border-input outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-
-          {/* Audience Filter Settings */}
-          <div className="space-y-4 pt-2 border-t border-border">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <Filter className="w-3.5 h-3.5 text-primary" />
-                  <span>Target Audience Criteria</span>
-                </span>
-                <InfoTooltip content="Include multiple lists with OR logic, or broadcast to all active contacts while subtracting excluded groups." />
-              </div>
-
-              <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-foreground">
-                <input
-                  type="checkbox"
-                  checked={sendToAll}
-                  onChange={(e) => setSendToAll(e.target.checked)}
-                  className="rounded text-primary focus:ring-ring w-4 h-4"
-                />
-                <span>Broadcast to ALL Active Contacts</span>
-              </label>
-            </div>
-
-            {!sendToAll && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Include Groups & Tags */}
-                <div className="p-4 rounded-xl bg-muted border border-border space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs font-bold text-foreground">Include Groups & Tags (OR)</span>
-                      <InfoTooltip content="Contacts belonging to ANY of these selected groups or tags will receive the broadcast." />
-                    </div>
-                    <span className="text-2xs font-semibold bg-brand-subtle text-brand-subtle-foreground px-2 py-0.5 rounded">
-                      Target Lists
-                    </span>
-                  </div>
-
-                  <div>
-                    <label className="block text-2xs font-semibold text-foreground mb-1">Include Groups</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {groups.length === 0 ? (
-                        <span className="text-xs text-muted-foreground">No groups created yet</span>
-                      ) : (
-                        groups.map((g) => {
-                          const isSelected = includeGroupIds.includes(g.id);
-                          return (
-                            <button
-                              key={g.id}
-                              type="button"
-                              onClick={() => {
-                                if (isSelected) setIncludeGroupIds(includeGroupIds.filter((id) => id !== g.id));
-                                else setIncludeGroupIds([...includeGroupIds, g.id]);
-                              }}
-                              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                                isSelected
-                                  ? 'bg-primary text-primary-foreground shadow-sm'
-                                  : 'bg-card text-foreground border border-input hover:bg-accent'
-                              }`}
-                            >
-                              + {g.name}
-                            </button>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-2xs font-semibold text-foreground mb-1">Include Tags</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {tags.length === 0 ? (
-                        <span className="text-xs text-muted-foreground">No tags created yet</span>
-                      ) : (
-                        tags.map((t) => {
-                          const isSelected = includeTagIds.includes(t.id);
-                          return (
-                            <button
-                              key={t.id}
-                              type="button"
-                              onClick={() => {
-                                if (isSelected) setIncludeTagIds(includeTagIds.filter((id) => id !== t.id));
-                                else setIncludeTagIds([...includeTagIds, t.id]);
-                              }}
-                              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                                isSelected
-                                  ? 'bg-primary text-primary-foreground shadow-sm'
-                                  : 'bg-card text-foreground border border-input hover:bg-accent'
-                              }`}
-                            >
-                              {t.name}
-                            </button>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Exclude Groups & Tags */}
-                <div className="p-4 rounded-xl bg-muted border border-border space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs font-bold text-foreground">Exclude Lists (Subtract)</span>
-                      <InfoTooltip content="Contacts in these excluded lists will NEVER receive this broadcast, even if they matched inclusion rules." />
-                    </div>
-                    <span className="text-2xs text-destructive font-semibold bg-destructive/10 px-2 py-0.5 rounded border border-destructive/30">
-                      Suppression
-                    </span>
-                  </div>
-
-                  <div>
-                    <label className="block text-2xs font-semibold text-foreground mb-1">Exclude Groups</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {groups.length === 0 ? (
-                        <span className="text-xs text-muted-foreground">No groups</span>
-                      ) : (
-                        groups.map((g) => {
-                          const isSelected = excludeGroupIds.includes(g.id);
-                          return (
-                            <button
-                              key={g.id}
-                              type="button"
-                              onClick={() => {
-                                if (isSelected) setExcludeGroupIds(excludeGroupIds.filter((id) => id !== g.id));
-                                else setExcludeGroupIds([...excludeGroupIds, g.id]);
-                              }}
-                              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                                isSelected
-                                  ? 'bg-destructive text-white shadow-sm'
-                                  : 'bg-card text-foreground border border-input hover:bg-destructive/10'
-                              }`}
-                            >
-                              - {g.name}
-                            </button>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-2xs font-semibold text-foreground mb-1">Exclude Tags</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {tags.length === 0 ? (
-                        <span className="text-xs text-muted-foreground">No tags</span>
-                      ) : (
-                        tags.map((t) => {
-                          const isSelected = excludeTagIds.includes(t.id);
-                          return (
-                            <button
-                              key={t.id}
-                              type="button"
-                              onClick={() => {
-                                if (isSelected) setExcludeTagIds(excludeTagIds.filter((id) => id !== t.id));
-                                else setExcludeTagIds([...excludeTagIds, t.id]);
-                              }}
-                              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                                isSelected
-                                  ? 'bg-destructive text-white shadow-sm'
-                                  : 'bg-card text-foreground border border-input hover:bg-destructive/10'
-                              }`}
-                            >
-                              - {t.name}
-                            </button>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Live Deduplicated Audience Counter */}
-            <div className="p-4 rounded-xl bg-primary text-primary-foreground flex items-center justify-between shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-primary/20 text-primary flex items-center justify-center font-bold">
-                  <Users className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                      Deduplicated Audience
-                    </span>
-                    <InfoTooltip content="Calculates unique matching contacts, automatically removing duplicate phone numbers and suppressed recipients." />
-                  </div>
-                  <p className="text-lg font-bold text-white flex items-center gap-2">
-                    <span>{isCalculating ? 'Calculating...' : `${audienceCount ?? 0} Contacts`}</span>
-                    <span className="text-xs font-normal text-primary">Active & E.164 Valid</span>
-                  </p>
-                </div>
-              </div>
-
-              {sampleContacts.length > 0 && (
-                <div className="hidden sm:block text-right">
-                  <p className="text-2xs text-muted-foreground">Sample Recipients:</p>
-                  <p className="text-xs text-muted-foreground font-medium font-mono">
-                    {sampleContacts.map((c) => c.name || c.phone).slice(0, 2).join(', ')}...
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Next Button */}
-          <div className="flex justify-end pt-3 border-t border-border">
-            <button
-              onClick={() => {
-                if (!campaignName.trim()) {
-                  setError('Please provide a campaign name.');
-                  return;
-                }
-                setError(null);
-                setStep(2);
-              }}
-              className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold flex items-center gap-2 shadow-sm transition-all"
-            >
-              <span>Next: Select Template</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+        <Card className="space-y-2 p-4 sm:p-5">
+          <label htmlFor="broadcast-name" className="text-sm font-semibold text-foreground">
+            Broadcast name
+          </label>
+          <input
+            id="broadcast-name"
+            type="text"
+            placeholder="For example: Eid offer for regular customers"
+            value={campaignName}
+            onChange={(e) => setCampaignName(e.target.value)}
+            className={FIELD_CLASS}
+          />
+        </Card>
       )}
 
-      {/* STEP 2: Select Meta Template */}
+      {/* STEP 2: Message */}
       {step === 2 && (
-        <div className="bg-card p-6 rounded-2xl border border-border shadow-sm space-y-6">
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h3 className="text-base font-bold text-foreground">Choose Message Template</h3>
-              <InfoTooltip content="Templates must be approved by Meta before they can be broadcast to customers." />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Select an approved Meta WhatsApp template to broadcast to your audience.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Template Selection List */}
-            <div className="lg:col-span-7 space-y-2.5 max-h-[460px] overflow-y-auto pr-1">
-              {templates.length === 0 ? (
-                <div className="p-8 text-center bg-muted rounded-xl border border-border space-y-2">
-                  <p className="text-xs font-bold text-foreground">No Templates Found</p>
-                  <p className="text-2xs text-muted-foreground">
-                    You need at least one approved template. Go to the Templates tab to create or sync.
-                  </p>
-                </div>
-              ) : (
-                templates.map((tpl) => {
-                  const isSelected = selectedTemplateId === tpl.id;
-                  let components: any[] = [];
-                  try {
-                    components = typeof tpl.components === 'string' ? JSON.parse(tpl.components) : tpl.components;
-                  } catch {}
-
-                  const bodyText = components.find((c) => c.type === 'BODY')?.text || '';
-
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+          <div className="space-y-4 lg:col-span-7">
+            {approved.length === 0 ? (
+              <Alert tone="warning" title="No approved messages yet">
+                Only messages approved by WhatsApp can be sent to many people. Create one under Templates and come back when it is approved.
+              </Alert>
+            ) : (
+              <div className="space-y-2" role="radiogroup" aria-label="Approved messages">
+                {approved.map((tpl) => {
+                  const selected = selectedTemplateId === tpl.id;
                   return (
-                    <div
+                    <button
                       key={tpl.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
                       onClick={() => setSelectedTemplateId(tpl.id)}
-                      className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
-                        isSelected
-                          ? 'border-primary bg-brand-subtle/50 shadow-sm'
-                          : 'border-border hover:border-input bg-card'
+                      className={`w-full rounded-2xl border-2 p-4 text-left outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 ${
+                        selected ? 'border-primary bg-card' : 'border-border bg-card hover:bg-accent'
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
-                              isSelected ? 'border-primary bg-primary' : 'border-input'
-                            }`}
-                          >
-                            {isSelected && <span className="w-1.5 h-1.5 bg-card rounded-full" />}
-                          </span>
-                          <h4 className="text-xs font-bold text-foreground font-mono">{tpl.name}</h4>
-                        </div>
-                        <span className="text-2xs px-2 py-0.5 rounded-full bg-brand-subtle text-brand-subtle-foreground font-bold">
-                          {tpl.status}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{bodyText}</p>
-                      <div className="mt-2 flex items-center gap-3 text-2xs text-muted-foreground font-semibold uppercase">
-                        <span>Category: {tpl.category}</span>
-                        <span>•</span>
-                        <span>Lang: {tpl.language}</span>
-                      </div>
-                    </div>
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="truncate text-base font-semibold text-foreground">{String(tpl.name).replace(/_/g, ' ')}</span>
+                        {selected && <Check className="size-5 shrink-0 text-primary" aria-hidden />}
+                      </span>
+                      <span className="mt-1 line-clamp-2 block text-sm text-muted-foreground">{templateInfo(tpl).bodyText}</span>
+                    </button>
                   );
-                })
-              )}
-            </div>
-
-            {/* Live Mockup */}
-            <div className="lg:col-span-5 flex flex-col items-center justify-center p-4 bg-muted rounded-2xl border border-border">
-              <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3">
-                Selected Template Preview
-              </h4>
-              {selectedTemplate && (
-                <WhatsAppMockupPreview
-                  templateName={selectedTemplate.name}
-                  category={selectedTemplate.category}
-                  components={selectedTemplate.components}
-                  headerMediaUrl={headerMediaUrl}
-                  sampleVariables={{ '1': 'Customer', '2': 'Company', '3': 'PROMO' }}
-                />
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between pt-3 border-t border-border">
-            <button
-              onClick={() => setStep(1)}
-              className="px-4 py-2 rounded-xl border border-input text-foreground text-xs font-semibold hover:bg-accent flex items-center gap-1.5"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Back</span>
-            </button>
-            <button
-              onClick={() => setStep(3)}
-              disabled={!selectedTemplateId}
-              className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold flex items-center gap-2 shadow-sm disabled:opacity-50"
-            >
-              <span>Next: Map Dynamic Variables</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* STEP 3: Map Dynamic Variables */}
-      {step === 3 && (
-        <div className="bg-card p-6 rounded-2xl border border-border shadow-sm space-y-6">
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h3 className="text-base font-bold text-foreground">Map Dynamic Contact Variables</h3>
-              <InfoTooltip content="Each {{1}}, {{2}} placeholder in your template will be replaced dynamically with the corresponding contact field." />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Personalize each outgoing message for every recipient in your audience.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-7">
+                })}
+              </div>
+            )}
+            {selectedTemplate && (
               <VariableMapper
                 template={selectedTemplate}
                 mappings={variableMappings}
                 headerMediaUrl={headerMediaUrl}
                 onChangeMapping={(k, v) => setVariableMappings({ ...variableMappings, [k]: v })}
-                onChangeHeaderUrl={(url) => setHeaderMediaUrl(url)}
+                onChangeHeaderUrl={setHeaderMediaUrl}
               />
-            </div>
-
-            <div className="lg:col-span-5 flex flex-col items-center justify-center p-4 bg-muted rounded-2xl border border-border">
-              <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3">
-                Personalized Preview
-              </h4>
-              {selectedTemplate && (
-                <WhatsAppMockupPreview
-                  templateName={selectedTemplate.name}
-                  category={selectedTemplate.category}
-                  components={selectedTemplate.components}
-                  headerMediaUrl={headerMediaUrl}
-                  sampleVariables={{ '1': 'Rashid', '2': 'Apex Enterprise', '3': 'PROMO' }}
-                />
-              )}
-            </div>
+            )}
           </div>
-
-          <div className="flex items-center justify-between pt-3 border-t border-border">
-            <button
-              onClick={() => setStep(2)}
-              className="px-4 py-2 rounded-xl border border-input text-foreground text-xs font-semibold hover:bg-accent flex items-center gap-1.5"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Back</span>
-            </button>
-            <button
-              onClick={() => setStep(4)}
-              className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold flex items-center gap-2 shadow-sm"
-            >
-              <span>Next: Review & Launch</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+          <div className="flex flex-col items-center rounded-2xl bg-muted p-4 lg:col-span-5">
+            <p className="mb-3 self-start text-sm font-semibold text-foreground">How it will look</p>
+            {preview}
           </div>
         </div>
       )}
 
-      {/* STEP 4: Review & Pre-Flight Check */}
-      {step === 4 && (
-        <div className="bg-card p-6 rounded-2xl border border-border shadow-sm space-y-6">
-          <div>
-            <h3 className="text-base font-bold text-foreground">Pre-Flight Review & Launch Broadcast</h3>
-            <p className="text-xs text-muted-foreground">
-              Please review all parameters before dispatching your WhatsApp broadcast campaign.
-            </p>
+      {/* STEP 3: Audience */}
+      {step === 3 && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Who gets it">
+            <Chip selected={mode === 'all'} onClick={() => setMode('all')}>Everyone</Chip>
+            <Chip selected={mode === 'labels'} onClick={() => setMode('labels')}>By label</Chip>
+            <Chip selected={mode === 'groups'} onClick={() => setMode('groups')}>By group</Chip>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="p-4 rounded-xl bg-muted border border-border">
-              <span className="text-2xs font-bold text-muted-foreground uppercase tracking-wider">Campaign</span>
-              <p className="text-sm font-bold text-foreground mt-1 truncate">{campaignName}</p>
-              <p className="text-xs text-muted-foreground mt-0.5 font-mono truncate">Template: {selectedTemplate?.name}</p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-muted border border-border">
-              <span className="text-2xs font-bold text-muted-foreground uppercase tracking-wider">Recipients</span>
-              <p className="text-lg font-bold text-foreground mt-1">{audienceCount ?? 0} Contacts</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Deduplicated & Active</p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-muted border border-border">
-              <span className="text-2xs font-bold text-muted-foreground uppercase tracking-wider">Est. Duration</span>
-              <p className="text-sm font-bold text-foreground mt-1">~ {Math.max(1, Math.ceil((audienceCount || 1) / 20))}s</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Rate: 20 msgs/sec</p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-success-subtle border border-success/20">
-              <span className="text-2xs font-bold text-success-subtle-foreground uppercase tracking-wider">0% Markup Meta Cost</span>
-              <p className="text-lg font-bold text-success-subtle-foreground mt-1 font-mono">
-                ${((audienceCount || 0) * 0.045).toFixed(2)} USD
-              </p>
-              <p className="text-2xs text-primary mt-0.5">Official Meta Rate (0% Surcharge)</p>
-            </div>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-muted border border-border text-xs text-foreground space-y-1">
-            <p className="font-bold text-foreground">Compliance & Rate Limiting:</p>
-            <p className="text-2xs text-muted-foreground leading-relaxed">
-              Messages will be dispatched with asynchronous throttling (default: 20 messages/second) to stay within Meta WhatsApp messaging limits and protect your phone number quality rating.
-            </p>
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-muted border border-border space-y-2">
-            <p className="text-xs font-bold text-foreground">Exactly {audienceCount ?? 0} {audienceCount === 1 ? 'person' : 'people'} will receive this message</p>
-            {sampleContacts.length > 0 && (
-              <ul className="text-2xs text-muted-foreground space-y-0.5">
-                {sampleContacts.slice(0, 5).map((c) => (
-                  <li key={c.id}>{c.name} - <span className="font-mono">{maskPhone(c.phone)}</span></li>
-                ))}
-              </ul>
-            )}
-            <p className="text-2xs font-bold text-muted-foreground uppercase tracking-wider pt-1">The message they will see</p>
-            <p className="text-xs text-foreground whitespace-pre-wrap rounded-lg bg-card border border-border p-2.5">
-              {renderTemplateBody(selectedTemplate?.components, [], selectedTemplate?.name)}
-            </p>
-            <p className="text-2xs text-muted-foreground">Anything shown as {'{{1}}'} is replaced with each person&apos;s own details.</p>
-          </div>
-
-          {noConsentCount > 0 && (
-            <div role="alert" className="rounded-xl border border-border bg-muted p-3 text-xs text-foreground">
-              <strong>{noConsentCount} of these {noConsentCount === 1 ? 'person has' : 'people have'} no record of agreeing to receive WhatsApp messages.</strong>{' '}
-              Only send to people who have said yes. Sending to people who did not can get your number restricted.
-            </div>
+          {mode === 'all' && <p className="text-sm text-muted-foreground">Everyone in your contacts who can be messaged.</p>}
+          {mode === 'labels' && (
+            <Card className="space-y-2 p-4">
+              <p className="text-sm font-semibold text-foreground">People with any of these labels</p>
+              {listChips(tags, includeTagIds, setIncludeTagIds, 'You have not made any labels yet.')}
+            </Card>
+          )}
+          {mode === 'groups' && (
+            <Card className="space-y-2 p-4">
+              <p className="text-sm font-semibold text-foreground">People in any of these groups</p>
+              {listChips(groups, includeGroupIds, setIncludeGroupIds, 'You have not made any groups yet.')}
+            </Card>
           )}
 
-          {(audienceCount ?? 0) > BIG_AUDIENCE && (
+          {(groups.length > 0 || tags.length > 0) && (
+            <Card className="space-y-3 p-4">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Leave out</p>
+                <p className="text-sm text-muted-foreground">These people will not get it, even if they match above.</p>
+              </div>
+              {tags.length > 0 && listChips(tags, excludeTagIds, setExcludeTagIds, '')}
+              {groups.length > 0 && listChips(groups, excludeGroupIds, setExcludeGroupIds, '')}
+            </Card>
+          )}
+
+          <Card className="flex items-center justify-between gap-3 p-4">
+            <span className="text-sm text-muted-foreground">Will receive this</span>
+            <span className="text-2xl font-semibold tabular-nums text-foreground" aria-live="polite">
+              {isCalculating ? '...' : audienceCount ?? 0}
+              <span className="ml-1.5 text-sm font-normal text-muted-foreground">{audienceCount === 1 ? 'person' : 'people'}</span>
+            </span>
+          </Card>
+
+          {noConsentCount > 0 && (
+            <Alert tone="warning" title={`${noConsentCount} ${noConsentCount === 1 ? 'person has' : 'people have'} not agreed to get WhatsApp messages`}>
+              Only send to people who have said yes. Sending to people who did not can get your number restricted.
+            </Alert>
+          )}
+        </div>
+      )}
+
+      {/* STEP 4: Review */}
+      {step === 4 && (
+        <div className="space-y-4">
+          <Card className="space-y-3 p-4 sm:p-5">
+            <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+              <div>
+                <dt className="text-muted-foreground">Name</dt>
+                <dd className="truncate font-semibold text-foreground">{campaignName}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Message</dt>
+                <dd className="truncate font-semibold text-foreground">{String(selectedTemplate?.name || '').replace(/_/g, ' ')}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Will receive this</dt>
+                <dd className="font-semibold text-foreground">
+                  {audienceCount ?? 0} {audienceCount === 1 ? 'person' : 'people'}
+                </dd>
+              </div>
+            </dl>
+            {sampleContacts.length > 0 && (
+              <div className="border-t border-border pt-3">
+                <p className="text-sm text-muted-foreground">A few of them</p>
+                <ul className="mt-1 space-y-0.5 text-sm text-foreground">
+                  {sampleContacts.slice(0, 5).map((c) => (
+                    <li key={c.id}>
+                      {c.name} <span className="text-muted-foreground">{maskPhone(c.phone)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </Card>
+
+          {noConsentCount > 0 && (
+            <Alert tone="warning" title={`${noConsentCount} ${noConsentCount === 1 ? 'person has' : 'people have'} not agreed to get WhatsApp messages`}>
+              Only send to people who have said yes. Sending to people who did not can get your number restricted.
+            </Alert>
+          )}
+
+          <Card className="space-y-3 p-4 sm:p-5">
+            <p className="text-sm font-semibold text-foreground">When to send</p>
+            <div className="flex gap-2" role="group" aria-label="When to send">
+              <Chip selected={whenMode === 'now'} onClick={() => setWhenMode('now')}>Now</Chip>
+              <Chip selected={whenMode === 'later'} onClick={() => setWhenMode('later')}>Schedule</Chip>
+            </div>
+            {whenMode === 'later' && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label htmlFor="send-date" className="text-sm text-muted-foreground">Date</label>
+                  <input id="send-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className={FIELD_CLASS} />
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor="send-time" className="text-sm text-muted-foreground">Time</label>
+                  <input id="send-time" type="time" value={time} onChange={(e) => setTime(e.target.value)} className={FIELD_CLASS} />
+                </div>
+              </div>
+            )}
+          </Card>
+
+          {bigAudience && (
             <div className="space-y-1">
-              <label htmlFor="send-confirm" className="text-xs font-semibold text-foreground">
+              <label htmlFor="send-confirm" className="text-sm font-semibold text-foreground">
                 This is a large audience. Type SEND to confirm.
               </label>
               <input
@@ -707,40 +447,41 @@ export function CampaignWizard({ templates = [], groups = [], tags = [] }: Campa
                 value={sendConfirm}
                 onChange={(e) => setSendConfirm(e.target.value)}
                 autoComplete="off"
-                className="w-full max-w-xs px-3 py-2 rounded-xl border border-input bg-card text-sm text-foreground"
+                className={`${FIELD_CLASS} max-w-xs`}
               />
             </div>
           )}
 
-          {dispatchOn === false && (
-            <div role="alert" className="rounded-xl border border-border bg-muted p-3 text-xs text-foreground">
-              Sending is switched off on this account right now. This will save your broadcast as a draft and
-              <strong> nothing will be sent</strong>. Ask your administrator when sending will be turned back on.
-            </div>
+          {draftOnly && (
+            <Alert tone="warning" title="Sending is switched off">
+              This will be saved as a draft and <strong>nothing will be sent</strong>. Ask your administrator when sending will be turned back on.
+            </Alert>
           )}
-          <div className="flex items-center justify-between pt-3 border-t border-border">
-            <button
-              onClick={() => setStep(3)}
-              className="px-4 py-2 rounded-xl border border-input text-foreground text-xs font-semibold hover:bg-accent flex items-center gap-1.5"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Back</span>
-            </button>
-            <button
-              onClick={handleLaunchCampaign}
-              disabled={isSubmitting || (audienceCount ?? 0) === 0 || ((audienceCount ?? 0) > BIG_AUDIENCE && sendConfirm.trim() !== 'SEND')}
-              className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold shadow-sm flex items-center gap-2 transition-all disabled:opacity-50"
-            >
-              <Send className="w-4 h-4" />
-              <span>
-                {dispatchOn === false
-                  ? isSubmitting ? 'Saving...' : 'Save as draft (not sent)'
-                  : isSubmitting ? 'Starting...' : 'Launch WhatsApp Broadcast'}
-              </span>
-            </button>
-          </div>
         </div>
       )}
+
+      {/* Action bar: sticky above the phone tab bar, normal row on wide screens */}
+      <div className="sticky bottom-16 z-30 -mx-3.5 flex items-center justify-between gap-3 border-t border-border bg-background/95 px-3.5 py-3 backdrop-blur sm:-mx-5 sm:px-5 md:static md:mx-0 md:border-0 md:bg-transparent md:px-0 md:backdrop-blur-none">
+        <Button variant="outline" size="lg" onClick={goBack} disabled={step === 1 || isSubmitting}>
+          <ArrowLeft />
+          Back
+        </Button>
+        {step < 4 ? (
+          <Button size="lg" onClick={goNext}>
+            Next
+            <ArrowRight />
+          </Button>
+        ) : (
+          <Button size="lg" variant={draftOnly ? 'outline' : 'wa'} onClick={handleLaunchCampaign} disabled={launchDisabled}>
+            <Send />
+            {draftOnly
+              ? isSubmitting ? 'Saving...' : 'Save as draft (not sent)'
+              : whenMode === 'later'
+              ? isSubmitting ? 'Scheduling...' : 'Schedule broadcast'
+              : isSubmitting ? 'Sending...' : 'Send broadcast'}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, useCallback, use } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 import { LiveProgressCard } from '@/components/campaigns/LiveProgressCard';
-import { MessageLogTable } from '@/components/analytics/MessageLogTable';
+import { RecipientList } from '@/components/campaigns/RecipientList';
+import { useDispatchEnabled } from '@/components/campaigns/CampaignBits';
 import { WhatsAppMockupPreview } from '@/components/templates/WhatsAppMockupPreview';
 import { SkeletonCard, SkeletonChart } from '@/components/ui/Skeleton';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -15,25 +17,28 @@ type AnyRecord = Record<string, any>;
 
 export default function CampaignDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const dispatchOn = useDispatchEnabled();
   const [data, setData] = useState<AnyRecord | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  const fetchCampaign = () => {
+  const fetchCampaign = useCallback(() => {
     fetch(`/api/campaigns/${id}`)
       .then((res) => res.json())
-      .then((json) => setData(json))
-      .catch(() => {})
+      .then((json) => {
+        setData(json);
+        setLoadFailed(false);
+      })
+      .catch(() => setLoadFailed(true))
       .finally(() => setLoading(false));
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchCampaign();
     const interval = setInterval(fetchCampaign, 3000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
-  const [actionError, setActionError] = useState<string | null>(null);
+  }, [fetchCampaign]);
 
   const handleAction = async (action: 'START' | 'PAUSE' | 'RESUME' | 'CANCEL') => {
     setActionError(null);
@@ -44,8 +49,8 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
         body: JSON.stringify({ action }),
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setActionError(data?.error || 'That action could not be completed.');
+        const body = await res.json().catch(() => ({}));
+        setActionError(body?.error || 'That could not be done. Please try again.');
       }
       fetchCampaign();
     } catch {
@@ -68,11 +73,24 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
 
   if (!data?.campaign) {
     return (
-      <div className="rounded-xl bg-card p-8 text-center ring-1 ring-foreground/10">
-        <p className="text-sm font-semibold text-foreground">Campaign not found</p>
-        <Link href="/campaigns" className="mt-2 inline-block text-xs font-semibold text-primary">
-          Back to campaigns
-        </Link>
+      <div className="space-y-4">
+        <Alert
+          tone={loadFailed ? 'danger' : 'info'}
+          title={loadFailed ? 'This broadcast did not load' : 'Broadcast not found'}
+          action={
+            loadFailed ? (
+              <Button variant="outline" onClick={fetchCampaign}>
+                Try again
+              </Button>
+            ) : (
+              <Button variant="outline" render={<Link href="/campaigns" />}>
+                Back to broadcasts
+              </Button>
+            )
+          }
+        >
+          {loadFailed ? 'Check your connection and try again.' : 'It may have been deleted.'}
+        </Alert>
       </div>
     );
   }
@@ -80,45 +98,42 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
   const { campaign, stats } = data;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="icon" render={<Link href="/campaigns" />} aria-label="Back to campaigns">
-            <ArrowLeft />
-          </Button>
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight text-foreground">{campaign.name}</h1>
-            <p className="text-xs text-muted-foreground">
-              Template: <span className="font-mono text-foreground">{campaign.template?.name}</span>
-            </p>
-          </div>
-        </div>
-        <Button variant="outline" size="sm" onClick={fetchCampaign}>
-          <RefreshCw />
-          Refresh
+    <div className="space-y-5">
+      <div className="flex items-center gap-3">
+        <Button variant="outline" size="icon" render={<Link href="/campaigns" />} aria-label="Back to broadcasts">
+          <ArrowLeft />
         </Button>
+        <div className="min-w-0">
+          <h1 className="truncate text-xl font-semibold tracking-tight text-foreground">Broadcast results</h1>
+          <p className="text-sm text-muted-foreground">Updates by itself every few seconds.</p>
+        </div>
       </div>
 
       {campaign.status === 'DRAFT' && (
-        <div role="status" className="rounded-xl border border-border bg-muted p-3 text-xs text-foreground">
-          This broadcast is saved as a draft and has <strong>not been sent</strong>.
-        </div>
+        <Alert tone="info" title="Saved as a draft">
+          This broadcast has <strong>not been sent</strong>.
+          {dispatchOn === false ? ' Sending is switched off right now.' : ''}
+        </Alert>
+      )}
+      {loadFailed && (
+        <Alert tone="warning" title="Could not refresh">
+          Showing the last numbers we loaded. We will keep trying.
+        </Alert>
       )}
       {actionError && (
-        <div role="alert" className="rounded-xl border border-destructive/40 bg-card p-3 text-xs text-destructive">
+        <Alert tone="danger" title="That did not work" onDismiss={() => setActionError(null)}>
           {actionError}
-        </div>
+        </Alert>
       )}
+
       <LiveProgressCard campaign={campaign} stats={stats} onAction={handleAction} />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         <div className="lg:col-span-8">
-          <MessageLogTable messages={campaign.messages || []} />
+          <RecipientList messages={campaign.messages || []} />
         </div>
-        <div className="flex flex-col items-center rounded-xl bg-card p-5 ring-1 ring-foreground/10 lg:col-span-4">
-          <h3 className="mb-4 self-start text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Broadcast template
-          </h3>
+        <div className="flex flex-col items-center rounded-2xl bg-card p-4 ring-1 ring-foreground/10 sm:p-5 lg:col-span-4">
+          <h3 className="mb-4 self-start text-base font-semibold text-foreground">The message</h3>
           <WhatsAppMockupPreview
             templateName={campaign.template?.name}
             category={campaign.template?.category}
