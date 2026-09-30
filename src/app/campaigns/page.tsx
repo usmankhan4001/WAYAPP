@@ -1,197 +1,171 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Plus, Trash2, ExternalLink } from 'lucide-react';
+import { Plus, Trash2, Send } from 'lucide-react';
 
 import { formatDateTime } from '@/lib/utils';
 import { useConfirm } from '@/lib/hooks/use-confirm';
-import { EmptyCampaigns } from '@/components/ui/EmptyState';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { PageHeader } from '@/components/ui/page-header';
-import { FilterTabs } from '@/components/ui/filter-tabs';
-import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
-import { StatusBadge } from '@/components/ui/badge';
+import { Chip } from '@/components/ui/chip';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { StatusPill, DeliveryBar, useDispatchEnabled } from '@/components/campaigns/CampaignBits';
+import { campaignStatusPill, countByFilter, matchesFilter, STATUS_FILTERS } from '@/lib/campaigns/present';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Campaign = Record<string, any>;
 
-const FILTERS = [
-  { value: 'ALL', label: 'All' },
-  { value: 'RUNNING', label: 'Running' },
-  { value: 'COMPLETED', label: 'Completed' },
-  { value: 'QUEUED', label: 'Queued' },
-  { value: 'DRAFT', label: 'Draft' },
-  { value: 'PAUSED', label: 'Paused' },
-] as const;
-
-const STATUS_TONE: Record<string, string> = {
-  COMPLETED: 'success',
-  RUNNING: 'info',
-  PAUSED: 'warning',
-};
-
-const readRateOf = (c: Campaign) =>
-  c.deliveredCount > 0 ? Math.round((c.readCount / c.deliveredCount) * 100) : 0;
-
 export default function CampaignsPage() {
   const confirm = useConfirm();
+  const dispatchOn = useDispatchEnabled();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
   const [filter, setFilter] = useState<string>('ALL');
 
-  const fetchCampaigns = () => {
+  const fetchCampaigns = useCallback(() => {
     fetch('/api/campaigns')
-      .then((res) => res.json())
-      .then((data) => setCampaigns(Array.isArray(data) ? data : []))
-      .catch(() => {})
+      .then((res) => {
+        if (!res.ok) throw new Error('bad response');
+        return res.json();
+      })
+      .then((data) => {
+        setCampaigns(Array.isArray(data) ? data : []);
+        setFailed(false);
+      })
+      .catch(() => setFailed(true))
       .finally(() => setLoading(false));
-  };
+  }, []);
 
   useEffect(() => {
     fetchCampaigns();
     const interval = setInterval(fetchCampaigns, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchCampaigns]);
 
-  const filtered = campaigns.filter((c) => filter === 'ALL' || c.status === filter);
+  const counts = countByFilter(campaigns as { status: string }[]);
+  const filtered = campaigns.filter((c) => matchesFilter(c.status, filter));
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (c: Campaign) => {
     const ok = await confirm({
-      title: 'Delete this campaign?',
-      description: 'Analytics and dispatch history for this broadcast will be removed. This cannot be undone.',
-      confirmLabel: 'Delete',
+      title: `Delete "${c.name}"?`,
+      description: 'Its results and history will be removed. This cannot be undone.',
+      confirmLabel: 'Delete broadcast',
       destructive: true,
     });
     if (!ok) return;
     try {
-      await fetch(`/api/campaigns/${id}`, { method: 'DELETE' });
+      await fetch(`/api/campaigns/${c.id}`, { method: 'DELETE' });
       fetchCampaigns();
     } catch {
-      /* noop */
+      setFailed(true);
     }
-  };
-
-  const columns: DataTableColumn<Campaign>[] = [
-    {
-      id: 'name',
-      header: 'Campaign & template',
-      primary: true,
-      cell: (c) => (
-        <>
-          <Link href={`/campaigns/${c.id}`} className="block font-semibold text-foreground hover:text-primary">
-            {c.name}
-          </Link>
-          <span className="font-mono text-2xs text-muted-foreground">{c.template?.name}</span>
-        </>
-      ),
-    },
-    { id: 'status', header: 'Status', cell: (c) => <StatusBadge tone={STATUS_TONE[c.status] ?? 'neutral'}>{c.status}</StatusBadge> },
-    { id: 'recipients', header: 'Recipients', className: 'text-center font-mono font-semibold text-foreground', headerClassName: 'text-center', cell: (c) => c.totalContacts },
-    { id: 'sent', header: 'Sent', className: 'text-center font-mono', headerClassName: 'text-center', cell: (c) => c.sentCount },
-    { id: 'delivered', header: 'Delivered', className: 'text-center font-mono font-semibold text-success', headerClassName: 'text-center', cell: (c) => c.deliveredCount },
-    { id: 'read', header: 'Read rate', className: 'text-center font-mono font-semibold text-info', headerClassName: 'text-center', cell: (c) => `${readRateOf(c)}% (${c.readCount})` },
-    { id: 'replies', header: 'Replies', className: 'text-center font-mono font-semibold', headerClassName: 'text-center', cell: (c) => c.repliedCount },
-    { id: 'created', header: 'Created', className: 'text-2xs text-muted-foreground', cell: (c) => formatDateTime(c.createdAt) },
-    {
-      id: 'actions',
-      header: '',
-      hideOnMobile: true,
-      className: 'text-right',
-      cell: (c) => (
-        <div className="flex items-center justify-end gap-1">
-          <Button variant="ghost" size="icon-sm" render={<Link href={`/campaigns/${c.id}`} />} title="View details">
-            <ExternalLink />
-          </Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(c.id)} title="Delete campaign">
-            <Trash2 />
-          </Button>
-        </div>
-      ),
-    },
-  ];
-
-  const renderMobileCard = (c: Campaign) => {
-    const progressPct = c.totalContacts > 0 ? Math.round((c.sentCount / c.totalContacts) * 100) : 0;
-    return (
-      <div className="space-y-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <Link href={`/campaigns/${c.id}`} className="block truncate text-sm font-semibold text-foreground hover:text-primary">
-              {c.name}
-            </Link>
-            <span className="font-mono text-2xs text-muted-foreground">{c.template?.name}</span>
-          </div>
-          <StatusBadge tone={STATUS_TONE[c.status] ?? 'neutral'} className="shrink-0">
-            {c.status}
-          </StatusBadge>
-        </div>
-
-        <div className="space-y-1">
-          <div className="flex items-center justify-between text-2xs text-muted-foreground">
-            <span>Progress ({progressPct}%)</span>
-            <span className="font-mono">{c.sentCount} / {c.totalContacts}</span>
-          </div>
-          <Progress value={progressPct} className="w-full" />
-        </div>
-
-        <div className="grid grid-cols-3 gap-2 text-center">
-          {[
-            { label: 'Delivered', value: c.deliveredCount, tone: 'text-success' },
-            { label: 'Read rate', value: `${readRateOf(c)}%`, tone: 'text-info' },
-            { label: 'Replies', value: c.repliedCount, tone: 'text-foreground' },
-          ].map((m) => (
-            <div key={m.label} className="rounded-lg bg-muted p-2">
-              <span className="block text-2xs text-muted-foreground">{m.label}</span>
-              <span className={`font-mono text-xs font-bold ${m.tone}`}>{m.value}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex items-center justify-between border-t border-border pt-2 text-xs">
-          <span className="text-2xs text-muted-foreground">{formatDateTime(c.createdAt)}</span>
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(c.id)}>
-              <Trash2 />
-            </Button>
-            <Button variant="secondary" size="sm" render={<Link href={`/campaigns/${c.id}`} />}>
-              Details <ExternalLink />
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
   };
 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Broadcast campaigns"
-        description="Launch, schedule and track rate-limited WhatsApp template broadcasts."
+        title="Broadcasts"
+        description="Send one approved message to many people and see how it went."
         actions={
           <Button variant="wa" render={<Link href="/campaigns/new" />}>
             <Plus />
-            New Broadcast
+            New broadcast
           </Button>
         }
       />
 
-      <FilterTabs options={FILTERS} value={filter} onValueChange={setFilter} className="border-b border-border pb-2" />
+      {dispatchOn === false && (
+        <Alert tone="warning" title="Sending is switched off">
+          You can create and save broadcasts, but nothing will be sent until sending is turned back on.
+        </Alert>
+      )}
 
-      {!loading && filtered.length === 0 ? (
-        <div className="rounded-xl bg-card ring-1 ring-foreground/10">
-          <EmptyCampaigns />
+      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="group" aria-label="Filter by status">
+        {STATUS_FILTERS.map((f) => (
+          <Chip key={f.value} selected={filter === f.value} count={counts[f.value]} onClick={() => setFilter(f.value)}>
+            {f.label}
+          </Chip>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="space-y-3" aria-busy="true">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="space-y-3 rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
+              <Skeleton width={180} height={16} />
+              <Skeleton width="100%" height={6} />
+            </div>
+          ))}
         </div>
+      ) : failed && campaigns.length === 0 ? (
+        <Alert
+          tone="danger"
+          title="Your broadcasts did not load"
+          action={
+            <Button variant="outline" onClick={fetchCampaigns}>
+              Try again
+            </Button>
+          }
+        >
+          Check your connection and try again.
+        </Alert>
+      ) : campaigns.length === 0 ? (
+        <div className="rounded-2xl bg-card ring-1 ring-foreground/10">
+          <EmptyState
+            icon={Send}
+            title="No broadcasts yet"
+            description="Send one message to many people at once."
+            actionLabel="New broadcast"
+            actionHref="/campaigns/new"
+          />
+        </div>
+      ) : filtered.length === 0 ? (
+        <p className="rounded-2xl bg-card p-8 text-center text-sm text-muted-foreground ring-1 ring-foreground/10">
+          No broadcasts with this status.
+        </p>
       ) : (
-        <DataTable
-          columns={columns}
-          rows={filtered}
-          getRowId={(c) => c.id}
-          loading={loading}
-          renderMobileCard={renderMobileCard}
-          emptyTitle="No campaigns match this filter"
-        />
+        <ul className="divide-y divide-border overflow-hidden rounded-2xl bg-card ring-1 ring-foreground/10">
+          {failed && (
+            <li className="p-3">
+              <Alert tone="warning" title="Could not refresh" action={<Button variant="outline" onClick={fetchCampaigns}>Try again</Button>}>
+                Showing the last list we loaded.
+              </Alert>
+            </li>
+          )}
+          {filtered.map((c) => (
+            <li key={c.id} className="flex items-center gap-2 pr-2">
+              <Link
+                href={`/campaigns/${c.id}`}
+                className="grid min-w-0 flex-1 gap-2 p-4 outline-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50 md:grid-cols-[minmax(0,2fr)_auto_minmax(0,1.5fr)_auto] md:items-center md:gap-6"
+              >
+                <div className="flex items-start justify-between gap-2 md:block">
+                  <div className="min-w-0">
+                    <p className="truncate text-base font-semibold text-foreground">{c.name}</p>
+                    <p className="truncate text-sm text-muted-foreground">
+                      {c.totalContacts ?? 0} {c.totalContacts === 1 ? 'person' : 'people'} · {formatDateTime(c.scheduledAt || c.createdAt)}
+                    </p>
+                  </div>
+                  <StatusPill pill={campaignStatusPill(c.status)} className="shrink-0 md:hidden" />
+                </div>
+                <StatusPill pill={campaignStatusPill(c.status)} className="hidden md:inline-flex" />
+                <div className="space-y-1">
+                  <DeliveryBar campaign={c} />
+                  <p className="text-xs text-muted-foreground tabular-nums">
+                    {c.sentCount ?? 0} sent · {c.deliveredCount ?? 0} delivered · {c.readCount ?? 0} read · {c.repliedCount ?? 0} replied
+                  </p>
+                </div>
+                <span className="hidden text-sm text-muted-foreground md:block">{formatDateTime(c.createdAt)}</span>
+              </Link>
+              <Button variant="ghost" size="icon" onClick={() => handleDelete(c)} aria-label={`Delete ${c.name}`}>
+                <Trash2 />
+              </Button>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
