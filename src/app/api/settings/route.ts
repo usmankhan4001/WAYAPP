@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
-import { campaignDispatchEnabled } from '@/lib/feature-gates';
+import { campaignDispatchEnabled, inboundAutomationsEnabled } from '@/lib/feature-gates';
 import { requireAuth, requireRole } from '@/lib/auth/rbac';
 import { WhatsAppClient } from '@/lib/whatsapp/client';
 import { encryptString, decryptString, maskSecret } from '@/lib/crypto';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { ensureDatabaseSchema } from '@/lib/db-init';
 import { writeAuditLog } from '@/lib/audit-log';
-import { inboundAutomationsEnabled } from '@/worker/inbound-events';
 
 export async function GET(request: NextRequest) {
   await ensureDatabaseSchema();

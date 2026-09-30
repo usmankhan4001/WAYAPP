@@ -15,3 +15,11 @@
 export function campaignDispatchEnabled(): boolean {
   return process.env.CAMPAIGN_DISPATCH?.trim().toLowerCase() === 'on'
 }
+
+/**
+ * INBOUND_AUTOMATIONS — WayApp's own automatic replies (Visual Flows, Bots, keyword Automations).
+ * HELD unless the environment says "on". See src/worker/inbound-events.ts for why.
+ */
+export function inboundAutomationsEnabled(): boolean {
+  return process.env.INBOUND_AUTOMATIONS?.trim().toLowerCase() === 'on'
+}

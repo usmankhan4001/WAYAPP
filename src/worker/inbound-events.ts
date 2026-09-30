@@ -4,6 +4,7 @@ import { processInboundAutomation } from '@/lib/whatsapp/automation';
 import { enqueueOutboundWebhook } from './outbound-webhooks';
 import { InboundConversationEvent } from '@/lib/whatsapp/types';
 import { logger } from '@/lib/logger';
+import { inboundAutomationsEnabled } from '@/lib/feature-gates';
 import { isModuleEnabled } from '@/lib/modules';
 
 /**
@@ -17,9 +18,7 @@ import { isModuleEnabled } from '@/lib/modules';
  * inbound is still stored, still shown in the inbox, still pushed, and still emitted
  * as a `message.received` webhook. Only the auto-replies are paused.
  */
-export function inboundAutomationsEnabled(): boolean {
-  return process.env.INBOUND_AUTOMATIONS?.trim().toLowerCase() === 'on'
-}
+export { inboundAutomationsEnabled };
 
 export async function processInboundEvent(event: InboundConversationEvent): Promise<void> {
   const { contactId, conversationId, phoneNumber, bodyText, messageType } = event;
