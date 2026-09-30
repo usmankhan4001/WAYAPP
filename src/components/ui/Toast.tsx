@@ -13,16 +13,22 @@ import { Toaster } from "@/components/ui/sonner";
 
 type ToastType = "success" | "error" | "warning" | "info";
 
-interface ToastContextValue {
-  toast: (type: ToastType, title: string, message?: string, duration?: number) => void;
-  success: (title: string, message?: string) => void;
-  error: (title: string, message?: string) => void;
-  warning: (title: string, message?: string) => void;
-  info: (title: string, message?: string) => void;
+/** Optional button on the toast, for example Undo or View. */
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
 }
 
-function emit(type: ToastType, title: string, message?: string, duration?: number) {
-  const opts = { description: message, duration };
+interface ToastContextValue {
+  toast: (type: ToastType, title: string, message?: string, duration?: number, action?: ToastAction) => void;
+  success: (title: string, message?: string, action?: ToastAction) => void;
+  error: (title: string, message?: string, action?: ToastAction) => void;
+  warning: (title: string, message?: string, action?: ToastAction) => void;
+  info: (title: string, message?: string, action?: ToastAction) => void;
+}
+
+function emit(type: ToastType, title: string, message?: string, duration?: number, action?: ToastAction) {
+  const opts = { description: message, duration, action };
   if (type === "success") sonnerToast.success(title, opts);
   else if (type === "error") sonnerToast.error(title, opts);
   else if (type === "warning") sonnerToast.warning(title, opts);
@@ -31,10 +37,10 @@ function emit(type: ToastType, title: string, message?: string, duration?: numbe
 
 const value: ToastContextValue = {
   toast: emit,
-  success: (title, message) => emit("success", title, message),
-  error: (title, message) => emit("error", title, message),
-  warning: (title, message) => emit("warning", title, message),
-  info: (title, message) => emit("info", title, message),
+  success: (title, message, action) => emit("success", title, message, undefined, action),
+  error: (title, message, action) => emit("error", title, message, undefined, action),
+  warning: (title, message, action) => emit("warning", title, message, undefined, action),
+  info: (title, message, action) => emit("info", title, message, undefined, action),
 };
 
 export function useToast(): ToastContextValue {
@@ -45,7 +51,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
-      <Toaster position="top-right" />
+      <Toaster />
     </>
   );
 }

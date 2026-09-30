@@ -27,6 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { DevicePermissionsModal } from '@/components/common/DevicePermissionsModal';
 
 const ROLE_LABEL: Record<string, string> = {
@@ -122,6 +123,8 @@ export function AppHeader({ onToggleMobileMenu, onOpenMetaGuide }: AppHeaderProp
         )}
 
         <ThemeToggle className="hidden sm:inline-flex" />
+
+        <NotificationBell />
 
         <Button
           variant="outline"

@@ -12,6 +12,7 @@ import {
   Sparkles,
   RefreshCw,
 } from 'lucide-react';
+import { Alert } from '@/components/ui/alert';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 
@@ -243,12 +244,7 @@ export function DevicePermissionsModal({ isOpen, onClose }: DevicePermissionsMod
       }
     >
       <div className="space-y-4">
-        {errorMessage && (
-          <div className="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
-            <AlertCircle className="mt-0.5 size-4 shrink-0" />
-            <span className="leading-snug">{errorMessage}</span>
-          </div>
-        )}
+        {errorMessage && <Alert tone="danger">{errorMessage}</Alert>}
 
         <div className="space-y-2.5">
           {/* 1. Notifications */}
