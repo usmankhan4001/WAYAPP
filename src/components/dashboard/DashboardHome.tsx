@@ -251,8 +251,8 @@ function RepliesCard({ data, range }: { data: Summary; range: Range }) {
                     fontSize: 13,
                   }}
                 />
-                <Line type="monotone" dataKey="previous" name="Before" stroke="var(--chart-2)" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="current" name="Replies" stroke="var(--chart-1)" strokeWidth={2.5} dot={false} />
+                <Line type="monotone" dataKey="previous" name="Before" stroke="var(--chart-2)" strokeWidth={2} dot={false} isAnimationActive={false} />
+                <Line type="monotone" dataKey="current" name="Replies" stroke="var(--chart-1)" strokeWidth={2.5} dot={false} isAnimationActive={false} />
                 {last && (
                   <ReferenceDot
                     x={last.label}
