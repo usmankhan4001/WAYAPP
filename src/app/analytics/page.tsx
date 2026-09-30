@@ -12,6 +12,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { SegmentedControl } from '@/components/ui/filter-tabs';
 import { Stat, StatGrid } from '@/components/ui/stat';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyRecord = Record<string, any>;
@@ -131,7 +132,7 @@ export default function AnalyticsPage() {
           </StatGrid>
 
           {/* Category breakdown */}
-          <div className="rounded-xl bg-card p-4 ring-1 ring-foreground/10">
+          <Card className="p-4">
             <div className="flex items-center gap-2 border-b border-border pb-3">
               <Layers className="size-4 text-primary" />
               <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground">
@@ -147,7 +148,7 @@ export default function AnalyticsPage() {
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
             <div className="lg:col-span-6">
@@ -159,7 +160,7 @@ export default function AnalyticsPage() {
           </div>
 
           {data?.errorBreakdown && data.errorBreakdown.length > 0 && (
-            <div className="space-y-3 rounded-xl bg-card p-5 ring-1 ring-foreground/10">
+            <Card className="space-y-3 p-5">
               <div className="flex items-center gap-1.5 border-b border-border pb-2">
                 <h3 className="text-sm font-semibold text-foreground">Meta WhatsApp failure diagnoser</h3>
                 <InfoTooltip content="Breakdown of error codes returned by Meta Graph API and webhooks." />
@@ -175,7 +176,7 @@ export default function AnalyticsPage() {
                   </div>
                 ))}
               </div>
-            </div>
+            </Card>
           )}
 
           <MessageLogTable messages={recentLogs} />

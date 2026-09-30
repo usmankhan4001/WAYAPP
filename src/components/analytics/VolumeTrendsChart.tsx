@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Card } from '@/components/ui/card';
 import { InfoTooltip, Tooltip } from '@/components/ui/Tooltip';
 
 interface VolumeTrendsProps {
@@ -24,7 +25,7 @@ export function VolumeTrendsChart({ data = [] }: VolumeTrendsProps) {
   const maxVal = Math.max(...data.map((d) => d.sent || 0), 10);
 
   return (
-    <div className="space-y-4 rounded-xl bg-card p-5 ring-1 ring-foreground/10">
+    <Card className="space-y-4 p-5">
       <div className="flex items-center justify-between border-b border-border pb-2">
         <div>
           <div className="flex items-center gap-1.5">
@@ -69,6 +70,6 @@ export function VolumeTrendsChart({ data = [] }: VolumeTrendsProps) {
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }
