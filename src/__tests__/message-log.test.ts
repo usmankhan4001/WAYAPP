@@ -80,5 +80,8 @@ describe('POST /api/v1/messages/log', () => {
   it('rejects an invalid phone number and an invalid payload', async () => {
     expect((await call({ to: '123abc', text: 'x' })).status).toBe(400);
     expect((await call({ text: 'x' })).status).toBe(400);
+    // a failed send has no wamid and must not be recorded
+    expect((await call({ to: '+923186294023', text: 'x' })).status).toBe(400);
+    expect(prismaMock.chatMessage.create).not.toHaveBeenCalled();
   });
 });

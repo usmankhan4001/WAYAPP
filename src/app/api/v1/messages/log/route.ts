@@ -22,7 +22,9 @@ import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
  */
 const LogSchema = z.object({
   to: z.string().min(6),
-  wamid: z.string().min(5).max(200).optional(),
+  // Required: Meta returns a wamid only for a send that was accepted, so a caller whose
+  // send failed has nothing to log and this rejects instead of recording a phantom message.
+  wamid: z.string().min(5).max(200),
   type: z.enum(['text', 'template', 'image', 'video', 'document', 'audio']).default('text'),
   text: z.string().max(4096).optional(),
   templateName: z.string().optional(),
@@ -52,10 +54,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Recipient phone number is invalid E.164' }, { status: 400 });
     }
 
-    if (wamid) {
-      const existing = await prisma.chatMessage.findUnique({ where: { wamid }, select: { id: true } });
-      if (existing) return NextResponse.json({ success: true, messageId: existing.id, duplicate: true });
-    }
+    const existing = await prisma.chatMessage.findUnique({ where: { wamid }, select: { id: true } });
+    if (existing) return NextResponse.json({ success: true, messageId: existing.id, duplicate: true });
 
     let body = text?.trim() || '';
     if (templateName && !body) {
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
         conversationId: conversation.id,
         phoneNumber: phone.e164,
         direction: 'OUTBOUND',
-        wamid: wamid || null,
+        wamid,
         messageType: templateName ? 'template' : type,
         body,
         status,
