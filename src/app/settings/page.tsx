@@ -38,6 +38,8 @@ import { Skeleton, SkeletonTableRow } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useConfirm } from '@/lib/hooks/use-confirm';
 import { Modal } from '@/components/ui/modal';
+import { Switch } from '@/components/ui/switch';
+import { useDeveloperMode, useSession } from '@/components/providers/SessionProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -56,7 +58,10 @@ const MODULE_ICONS: Record<string, any> = {
 
 export default function SettingsPage() {
   const confirm = useConfirm();
-  const [activeTab, setActiveTab] = useState<'gateway' | 'snippets' | 'billing' | 'api-keys' | 'audit-log'>('gateway');
+  const [activeTab, setActiveTab] = useState<'connection' | 'team' | 'snippets' | 'preferences' | 'billing' | 'api-keys' | 'audit-log'>('connection');
+  const { developerMode, setDeveloperMode } = useDeveloperMode();
+  const { user: sessionUser } = useSession();
+  const [savingPref, setSavingPref] = useState(false);
 
   // Gateway Settings
   const [settings, setSettings] = useState<any>({
@@ -188,10 +193,27 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'api-keys') fetchApiKeys();
-    if (activeTab === 'audit-log') fetchAuditLog(1);
+    if (activeTab === 'api-keys' && developerMode) fetchApiKeys();
+    if (activeTab === 'audit-log' && developerMode) fetchAuditLog(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, [activeTab, developerMode]);
+
+  // Developer-only tabs vanish when Developer mode is switched off.
+  useEffect(() => {
+    if (!developerMode && (activeTab === 'api-keys' || activeTab === 'audit-log')) setActiveTab('preferences');
+  }, [developerMode, activeTab]);
+
+  const handleToggleDeveloperMode = async (on: boolean) => {
+    setSavingPref(true);
+    try {
+      await setDeveloperMode(on);
+    } catch (err: any) {
+      setNotice({ text: err.message, success: false });
+      setTimeout(() => setNotice(null), 5000);
+    } finally {
+      setSavingPref(false);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -207,7 +229,7 @@ export default function SettingsPage() {
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || 'Failed to save configuration');
 
-      setNotice({ text: 'Configuration saved successfully!', success: true });
+      setNotice({ text: 'Your changes are saved.', success: true });
       fetchSettings();
     } catch (err: any) {
       setNotice({ text: err.message, success: false });
@@ -402,35 +424,35 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-normal text-foreground tracking-tight">Settings & App Switchboard</h1>
-          <p className="text-xs text-muted-foreground">
-            Configure official Meta Cloud API credentials, toggle modular apps on/off, and manage sales tools
+          <h1 className="text-2xl font-semibold text-foreground tracking-tight">Settings</h1>
+          <p className="text-sm text-muted-foreground">
+            Connect your WhatsApp number, choose which features are on, and manage saved replies.
           </p>
         </div>
 
         <div className="flex items-center gap-2 self-start">
           <button
             onClick={() => setIsGuideOpen(true)}
-            className="px-3 py-1.5 rounded-xl border border-border bg-card hover:bg-black/5 text-xs font-normal text-foreground flex items-center gap-1.5 shadow-2xs"
+            className="px-3 py-1.5 rounded-xl border border-border bg-card hover:bg-black/5 text-sm font-normal text-foreground flex items-center gap-1.5 shadow-2xs"
           >
             <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
-            <span>Meta Setup Guide</span>
+            <span>Setup help</span>
           </button>
 
           <button
             onClick={handleDisconnect}
-            className="px-3 py-1.5 rounded-xl border border-rose-200 bg-card text-rose-700 hover:bg-rose-50 text-xs font-normal flex items-center gap-1.5 shadow-2xs"
+            className="px-3 py-1.5 rounded-xl border border-rose-200 bg-card text-rose-700 hover:bg-rose-50 text-sm font-normal flex items-center gap-1.5 shadow-2xs"
             title="Disconnect and re-enter setup"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span>Disconnect</span>
+            <span>Disconnect WhatsApp</span>
           </button>
         </div>
       </div>
 
       {notice && (
         <div
-          className={`p-3 rounded-xl text-xs flex items-center gap-2 shadow-2xs ${
+          className={`p-3 rounded-xl text-sm flex items-center gap-2 shadow-2xs ${
             notice.success
               ? 'bg-black/5 text-brand-subtle-foreground border border-transparent'
               : 'bg-rose-50 text-rose-800 border border-rose-200'
@@ -448,107 +470,186 @@ export default function SettingsPage() {
       {/* Main Tabs Navigation */}
       <div className="flex items-center gap-2 border-b border-border pb-1 overflow-x-auto">
         <button
-          onClick={() => setActiveTab('gateway')}
-          className={`px-4 py-2 rounded-xl text-xs font-normal transition-all flex items-center gap-1.5 shrink-0 ${
-            activeTab === 'gateway'
-              ? 'bg-foreground text-white '
+          onClick={() => setActiveTab('connection')}
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 shrink-0 ${
+            activeTab === 'connection'
+              ? 'bg-foreground text-background'
               : 'text-muted-foreground hover:bg-accent'
           }`}
         >
-          <Key className="w-3.5 h-3.5" />
-          <span>Meta Cloud API & Gateway</span>
+          <Key className="w-4 h-4" />
+          <span>Connection</span>
         </button>
-
+        <button
+          onClick={() => setActiveTab('team')}
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 shrink-0 ${
+            activeTab === 'team'
+              ? 'bg-foreground text-background'
+              : 'text-muted-foreground hover:bg-accent'
+          }`}
+        >
+          <UserCheck className="w-4 h-4" />
+          <span>Team and access</span>
+        </button>
         <button
           onClick={() => setActiveTab('snippets')}
-          className={`px-4 py-2 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 shrink-0 ${
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 shrink-0 ${
             activeTab === 'snippets'
-              ? 'bg-foreground text-white shadow-2xs font-semibold'
+              ? 'bg-foreground text-background'
               : 'text-muted-foreground hover:bg-accent'
           }`}
         >
-          <Zap className="w-3.5 h-3.5 text-amber-500" />
-          <span>Canned Snippets ({snippets.length})</span>
+          <Zap className="w-4 h-4" />
+          <span>{`Saved replies (${snippets.length})`}</span>
         </button>
-
+        <button
+          onClick={() => setActiveTab('preferences')}
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 shrink-0 ${
+            activeTab === 'preferences'
+              ? 'bg-foreground text-background'
+              : 'text-muted-foreground hover:bg-accent'
+          }`}
+        >
+          <Sliders className="w-4 h-4" />
+          <span>Preferences</span>
+        </button>
         <button
           onClick={() => setActiveTab('billing')}
-          className={`px-4 py-2 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 shrink-0 ${
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 shrink-0 ${
             activeTab === 'billing'
-              ? 'bg-foreground text-white shadow-2xs font-semibold'
+              ? 'bg-foreground text-background'
               : 'text-muted-foreground hover:bg-accent'
           }`}
         >
-          <CreditCard className="w-3.5 h-3.5 text-primary" />
-          <span>Billing & Meta Rates</span>
+          <CreditCard className="w-4 h-4" />
+          <span>Billing</span>
         </button>
-
+        {developerMode && (
         <button
           onClick={() => setActiveTab('api-keys')}
-          className={`px-4 py-2 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 shrink-0 ${
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 shrink-0 ${
             activeTab === 'api-keys'
-              ? 'bg-foreground text-white shadow-2xs font-semibold'
+              ? 'bg-foreground text-background'
               : 'text-muted-foreground hover:bg-accent'
           }`}
         >
-          <KeyRound className="w-3.5 h-3.5 text-primary" />
-          <span>API Keys ({apiKeys.length})</span>
+          <KeyRound className="w-4 h-4" />
+          <span>{`Developer API keys (${apiKeys.length})`}</span>
         </button>
-
+        )}
+        {developerMode && (
         <button
           onClick={() => setActiveTab('audit-log')}
-          className={`px-4 py-2 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 shrink-0 ${
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 shrink-0 ${
             activeTab === 'audit-log'
-              ? 'bg-foreground text-white shadow-2xs font-semibold'
+              ? 'bg-foreground text-background'
               : 'text-muted-foreground hover:bg-accent'
           }`}
         >
-          <History className="w-3.5 h-3.5 text-primary" />
-          <span>Audit Log</span>
+          <History className="w-4 h-4" />
+          <span>Audit log</span>
         </button>
+        )}
       </div>
 
-      {/* TAB 1: META CLOUD API & GATEWAY */}
-      {activeTab === 'gateway' && (
+      {/* TAB 1: CONNECTION */}
+      {activeTab === 'connection' && (
         <div className="space-y-4">
           {/* Connection Status Card */}
-          <div className="p-4 rounded-2xl bg-foreground text-background flex flex-col sm:flex-row sm:items-center justify-between gap-3 ">
+          <div className="p-4 rounded-2xl bg-foreground text-background flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${settings.isConnected ? 'bg-primary animate-pulse' : 'bg-amber-400'}`} />
-                <span className="text-2xs font-normal text-muted-foreground uppercase tracking-wider">
-                  Direct Gateway Connection Status
+                <span className={`w-2 h-2 rounded-full ${settings.isConnected ? 'bg-primary' : 'bg-amber-400'}`} />
+                <span className="text-sm font-semibold">
+                  {settings.isConnected ? 'Connected' : 'Not connected yet'}
                 </span>
               </div>
-              <h3 className="text-xs font-normal text-white">
-                {settings.isConnected ? 'Meta Cloud API Live & Connected' : 'Meta Cloud API Gateway'}
-              </h3>
-              <p className="text-2xs text-muted-foreground">
-                Direct first-party connection to Meta Graph API v21.0 with 0% markup and zero proxy hops.
+              <p className="text-sm opacity-80">
+                {settings.isConnected
+                  ? 'Your WhatsApp number is linked and ready to send and receive messages.'
+                  : 'Open "Advanced connection details" below and enter the details from your Meta account.'}
               </p>
             </div>
 
-            <div className="flex items-center gap-2 self-start sm:self-auto">
-              <span className={`px-2.5 py-1 rounded-full text-2xs font-semibold ${settings.isConnected ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-amber-950 text-amber-300 border border-amber-800'}`}>
-                {settings.isConnected ? 'CONNECTED' : 'STANDBY'}
-              </span>
-            </div>
+            <button
+              type="button"
+              onClick={handleTestConnection}
+              disabled={testing}
+              className="px-3.5 py-2 rounded-xl bg-background text-foreground text-sm font-medium flex items-center gap-1.5 self-start sm:self-auto disabled:opacity-60"
+            >
+              <RefreshCw className={`w-4 h-4 ${testing ? 'animate-spin' : ''}`} />
+              <span>{testing ? 'Checking...' : 'Check my connection'}</span>
+            </button>
           </div>
 
           <form onSubmit={handleSave} className="space-y-4">
+            {/* Section 3: Business Profile & Throttling */}
+            <div className="p-5 rounded-2xl bg-card border border-border shadow-xs space-y-3.5">
+              <div className="flex items-center gap-2 pb-2 border-b border-border">
+                <Sliders className="w-4 h-4 text-primary" />
+                <h3 className="text-base font-semibold text-foreground">
+                  Business basics
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-sm font-normal text-foreground mb-1">Business name</label>
+                  <input
+                    type="text"
+                    value={settings.businessName || ''}
+                    onChange={(e) => setSettings({ ...settings, businessName: e.target.value })}
+                    className="w-full px-3 py-2 text-sm rounded-xl border border-input"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-normal text-foreground mb-1">Default Country Code</label>
+                  <input
+                    type="text"
+                    value={settings.defaultCountryCode || '+1'}
+                    onChange={(e) => setSettings({ ...settings, defaultCountryCode: e.target.value })}
+                    placeholder="+1 or +971"
+                    className="w-full px-3 py-2 text-sm rounded-xl border border-input font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-normal text-foreground mb-1">Messages per second (sending speed)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="80"
+                    value={settings.rateLimitPerSecond || 20}
+                    onChange={(e) => setSettings({ ...settings, rateLimitPerSecond: parseInt(e.target.value, 10) || 20 })}
+                    className="w-full px-3 py-2 text-sm rounded-xl border border-input font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Advanced connection details: credentials, webhook, diagnostics */}
+            <details className="group rounded-2xl border border-border bg-card" open={!settings.isConnected}>
+              <summary className="cursor-pointer select-none px-5 py-4 text-base font-semibold text-foreground">
+                Advanced connection details
+                <span className="block text-sm font-normal text-muted-foreground">
+                  Phone Number ID, account ID, access token, webhook and connection check results.
+                </span>
+              </summary>
+              <div className="px-5 pb-5 space-y-4">
             {/* Section 1: Meta Cloud API Credentials */}
             <div className="p-5 rounded-2xl bg-card border border-border shadow-xs space-y-3.5">
               <div className="flex items-center gap-2 pb-2 border-b border-border">
                 <Key className="w-4 h-4 text-primary" />
-                <h3 className="text-xs font-normal text-foreground uppercase tracking-wider">
-                  Meta WhatsApp Cloud API Credentials
+                <h3 className="text-base font-semibold text-foreground">
+                  Meta account details
                 </h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <div className="flex items-center gap-1 mb-1">
-                    <label className="text-xs font-normal text-foreground">
+                    <label className="text-sm font-normal text-foreground">
                       Phone Number ID <span className="text-rose-500">*</span>
                     </label>
                     <InfoTooltip content="Found in Meta for Developers > WhatsApp > API Setup." />
@@ -558,14 +659,14 @@ export default function SettingsPage() {
                     placeholder="e.g. 100654321987654"
                     value={settings.phoneNumberId || ''}
                     onChange={(e) => setSettings({ ...settings, phoneNumberId: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-input font-mono"
+                    className="w-full px-3 py-2 text-sm rounded-xl border border-input font-mono"
                   />
                 </div>
 
                 <div>
                   <div className="flex items-center gap-1 mb-1">
-                    <label className="text-xs font-normal text-foreground">
-                      WhatsApp Business Account ID (WABA ID) <span className="text-rose-500">*</span>
+                    <label className="text-sm font-normal text-foreground">
+                      WhatsApp Business Account ID <span className="text-rose-500">*</span>
                     </label>
                     <InfoTooltip content="Found in Meta Business Manager > WhatsApp Accounts." />
                   </div>
@@ -574,15 +675,15 @@ export default function SettingsPage() {
                     placeholder="e.g. 100987654321098"
                     value={settings.wabaId || ''}
                     onChange={(e) => setSettings({ ...settings, wabaId: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-input font-mono"
+                    className="w-full px-3 py-2 text-sm rounded-xl border border-input font-mono"
                   />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center gap-1 mb-1">
-                  <label className="text-xs font-normal text-foreground">
-                    Permanent System User Access Token <span className="text-rose-500">*</span>
+                  <label className="text-sm font-normal text-foreground">
+                    Access token <span className="text-rose-500">*</span>
                   </label>
                   <InfoTooltip content="Permanent Token with whatsapp_business_messaging and whatsapp_business_management permissions." />
                 </div>
@@ -591,7 +692,7 @@ export default function SettingsPage() {
                   placeholder="EAAG..."
                   value={settings.accessToken || ''}
                   onChange={(e) => setSettings({ ...settings, accessToken: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-input font-mono"
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-input font-mono"
                 />
               </div>
 
@@ -603,23 +704,23 @@ export default function SettingsPage() {
                       type="button"
                       onClick={handleTestConnection}
                       disabled={testing}
-                      className="px-3.5 py-1.5 rounded-xl border border-border bg-card hover:bg-black/5 text-foreground text-xs font-normal flex items-center gap-1.5 shadow-2xs"
+                      className="px-3.5 py-1.5 rounded-xl border border-border bg-card hover:bg-black/5 text-foreground text-sm font-normal flex items-center gap-1.5 shadow-2xs"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${testing ? 'animate-spin text-primary' : 'text-muted-foreground'}`} />
-                      <span>{testing ? 'Scanning Diagnostics...' : 'Deep Connection Diagnostics'}</span>
+                      <span>{testing ? 'Checking...' : 'Check again and show details'}</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setIsPinModalOpen(true)}
-                      className="px-3 py-1.5 rounded-xl border border-border text-foreground hover:bg-black/5 text-xs font-normal shadow-2xs"
+                      className="px-3 py-1.5 rounded-xl border border-border text-foreground hover:bg-black/5 text-sm font-normal shadow-2xs"
                     >
-                      1-Click Register Phone (2FA)
+                      Register this phone number
                     </button>
                   </div>
 
                   {testDetails?.phoneDetails && (
-                    <div className="text-xs text-foreground font-normal flex items-center gap-1.5">
+                    <div className="text-sm text-foreground font-normal flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
                       <span>Verified: {testDetails.phoneDetails.verified_name || 'Account Active'}</span>
                     </div>
@@ -627,27 +728,27 @@ export default function SettingsPage() {
                 </div>
 
                 {testDetails?.phoneDetails && (
-                  <div className="p-3 rounded-xl bg-black/5 border border-border grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+                  <div className="p-3 rounded-xl bg-black/5 border border-border grid grid-cols-2 sm:grid-cols-5 gap-2 text-sm">
                     <div>
-                      <span className="text-2xs text-muted-foreground uppercase font-normal">Display Phone</span>
+                      <span className="text-xs text-muted-foreground uppercase font-normal">Display Phone</span>
                       <p className="font-normal font-mono text-foreground">{testDetails.phoneDetails.display_phone_number || 'N/A'}</p>
                     </div>
                     <div>
-                      <span className="text-2xs text-muted-foreground uppercase font-normal">Display Name</span>
+                      <span className="text-xs text-muted-foreground uppercase font-normal">Display Name</span>
                       <p className={`font-normal ${testDetails.phoneDetails.name_status === 'APPROVED' ? 'text-foreground' : 'text-amber-700'}`}>
                         {testDetails.phoneDetails.name_status || (testDetails.phoneDetails.verified_name ? 'APPROVED' : 'PENDING')}
                       </p>
                     </div>
                     <div>
-                      <span className="text-2xs text-muted-foreground uppercase font-normal">Quality Rating</span>
+                      <span className="text-xs text-muted-foreground uppercase font-normal">Quality Rating</span>
                       <p className="font-normal text-foreground">{testDetails.phoneDetails.quality_rating || 'GREEN'}</p>
                     </div>
                     <div>
-                      <span className="text-2xs text-muted-foreground uppercase font-normal">Messaging Tier</span>
+                      <span className="text-xs text-muted-foreground uppercase font-normal">Messaging Tier</span>
                       <p className="font-normal text-foreground">{testDetails.phoneDetails.messaging_tier || 'STANDARD'}</p>
                     </div>
                     <div>
-                      <span className="text-2xs text-muted-foreground uppercase font-normal">Registration Status</span>
+                      <span className="text-xs text-muted-foreground uppercase font-normal">Registration Status</span>
                       <p className="font-normal text-foreground">{testDetails.phoneDetails.code_verification_status || 'VERIFIED'}</p>
                     </div>
                   </div>
@@ -659,15 +760,15 @@ export default function SettingsPage() {
             <div className="p-5 rounded-2xl bg-card border border-border shadow-xs space-y-3.5">
               <div className="flex items-center gap-2 pb-2 border-b border-border">
                 <Webhook className="w-4 h-4 text-primary" />
-                <h3 className="text-xs font-normal text-foreground uppercase tracking-wider">
-                  Meta Webhook Configuration
+                <h3 className="text-base font-semibold text-foreground">
+                  Webhook (incoming messages)
                 </h3>
               </div>
 
               <div className="space-y-3">
                 <div>
                   <div className="flex items-center gap-1 mb-1">
-                    <label className="text-xs font-normal text-foreground">Webhook Callback URL</label>
+                    <label className="text-sm font-normal text-foreground">Webhook URL</label>
                     <InfoTooltip content="Paste this Callback URL in Meta Developer Portal > WhatsApp > Configuration." />
                   </div>
                   <div className="flex gap-2">
@@ -675,12 +776,12 @@ export default function SettingsPage() {
                       type="text"
                       readOnly
                       value={webhookUrl}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-input font-mono bg-black/5 text-muted-foreground"
+                      className="w-full px-3 py-2 text-sm rounded-xl border border-input font-mono bg-black/5 text-muted-foreground"
                     />
                     <button
                       type="button"
                       onClick={handleCopyWebhook}
-                      className="px-3.5 py-2 rounded-xl border border-border bg-card hover:bg-black/5 text-foreground text-xs font-normal flex items-center gap-1 shadow-2xs"
+                      className="px-3.5 py-2 rounded-xl border border-border bg-card hover:bg-black/5 text-foreground text-sm font-normal flex items-center gap-1 shadow-2xs"
                     >
                       {copied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
                       <span>{copied ? 'Copied' : 'Copy'}</span>
@@ -691,20 +792,20 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <div className="flex items-center gap-1 mb-1">
-                      <label className="text-xs font-normal text-foreground">Verify Token</label>
+                      <label className="text-sm font-normal text-foreground">Verify token</label>
                       <InfoTooltip content="Verification token for the hub.challenge handshake." />
                     </div>
                     <input
                       type="text"
                       value={settings.webhookVerifyToken || ''}
                       onChange={(e) => setSettings({ ...settings, webhookVerifyToken: e.target.value })}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-input font-mono"
+                      className="w-full px-3 py-2 text-sm rounded-xl border border-input font-mono"
                     />
                   </div>
 
                   <div>
                     <div className="flex items-center gap-1 mb-1">
-                      <label className="text-xs font-normal text-foreground">App Secret (HMAC SHA-256)</label>
+                      <label className="text-sm font-normal text-foreground">App secret</label>
                       <InfoTooltip content="App Secret from Meta App Settings > Basic for cryptographic signature verification." />
                     </div>
                     <input
@@ -712,123 +813,151 @@ export default function SettingsPage() {
                       placeholder="App Secret"
                       value={settings.appSecret || ''}
                       onChange={(e) => setSettings({ ...settings, appSecret: e.target.value })}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-input font-mono"
+                      className="w-full px-3 py-2 text-sm rounded-xl border border-input font-mono"
                     />
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Section 3: Business Profile & Throttling */}
-            <div className="p-5 rounded-2xl bg-card border border-border shadow-xs space-y-3.5">
-              <div className="flex items-center gap-2 pb-2 border-b border-border">
-                <Sliders className="w-4 h-4 text-primary" />
-                <h3 className="text-xs font-normal text-foreground uppercase tracking-wider">
-                  Broadcast Defaults & Throttling
-                </h3>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-normal text-foreground mb-1">Business Display Name</label>
-                  <input
-                    type="text"
-                    value={settings.businessName || ''}
-                    onChange={(e) => setSettings({ ...settings, businessName: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-input"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-normal text-foreground mb-1">Default Country Code</label>
-                  <input
-                    type="text"
-                    value={settings.defaultCountryCode || '+1'}
-                    onChange={(e) => setSettings({ ...settings, defaultCountryCode: e.target.value })}
-                    placeholder="+1 or +971"
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-input font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-normal text-foreground mb-1">Rate Limit (Msgs / Sec)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="80"
-                    value={settings.rateLimitPerSecond || 20}
-                    onChange={(e) => setSettings({ ...settings, rateLimitPerSecond: parseInt(e.target.value, 10) || 20 })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-input font-mono"
-                  />
-                </div>
-              </div>
-            </div>
+            </details>
 
             {/* Save Button */}
             <div className="flex justify-end pt-1">
               <button
                 type="submit"
                 disabled={saving}
-                className="px-5 py-2.5 rounded-xl bg-foreground hover:bg-foreground/90 text-white text-xs font-normal  transition-all disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl bg-foreground hover:bg-foreground/90 text-white text-sm font-normal  transition-all disabled:opacity-50"
               >
-                {saving ? 'Saving...' : 'Save Configuration'}
+                {saving ? 'Saving...' : 'Save changes'}
               </button>
             </div>
           </form>
         </div>
       )}
 
-      {/* TAB 2: CANNED SNIPPETS MANAGER */}
+      {/* TEAM AND ACCESS */}
+      {activeTab === 'team' && (
+        <div className="space-y-4">
+          <div className="p-5 rounded-2xl bg-card border border-border space-y-1">
+            <h3 className="text-base font-semibold text-foreground">You are signed in as</h3>
+            <p className="text-sm text-foreground">{sessionUser?.name || sessionUser?.email || 'Unknown user'}</p>
+            <p className="text-sm text-muted-foreground">
+              {sessionUser?.email}{sessionUser?.role ? ` - ${sessionUser.role.replace('_', ' ').toLowerCase()}` : ''}
+            </p>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-card border border-border space-y-3">
+            <div>
+              <h3 className="text-base font-semibold text-foreground">Features</h3>
+              <p className="text-sm text-muted-foreground">Switch features on or off for everyone on your team.</p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {['ALL', ...Array.from(new Set(modules.map((m) => m.category).filter(Boolean)))].map((c: any) => (
+                <button
+                  key={c}
+                  onClick={() => setModuleCategoryFilter(c)}
+                  className={`px-3 py-1 rounded-full text-sm ${moduleCategoryFilter === c ? 'bg-foreground text-background' : 'bg-accent text-muted-foreground'}`}
+                >
+                  {c === 'ALL' ? 'All' : String(c).replace(/_/g, ' ').toLowerCase()}
+                </button>
+              ))}
+            </div>
+            {filteredModules.length === 0 && (
+              <p className="text-sm text-muted-foreground">No features to show yet.</p>
+            )}
+            <ul className="divide-y divide-border">
+              {filteredModules.map((m) => (
+                <li key={m.id} className="py-3 flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{m.name}</p>
+                    <p className="text-sm text-muted-foreground">{m.description}</p>
+                  </div>
+                  <Switch
+                    checked={Boolean(m.isEnabled)}
+                    disabled={togglingModule === m.id || m.isCore}
+                    onCheckedChange={() => handleToggleModule(m.id, Boolean(m.isEnabled))}
+                    aria-label={`Turn ${m.name} on or off`}
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* PREFERENCES */}
+      {activeTab === 'preferences' && (
+        <div className="p-5 rounded-2xl bg-card border border-border">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-base font-semibold text-foreground">Developer mode</h3>
+              <p className="text-sm text-muted-foreground">
+                Shows technical tools such as API keys, webhooks and the audit log. Leave this off unless a developer asked you to turn it on.
+              </p>
+            </div>
+            <Switch
+              checked={developerMode}
+              disabled={savingPref}
+              onCheckedChange={(on: boolean) => handleToggleDeveloperMode(on)}
+              aria-label="Developer mode"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: SAVED REPLIES */}
       {activeTab === 'snippets' && (
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="font-normal text-sm text-foreground">Canned Sales Snippets & Shortcuts</h3>
-              <p className="text-xs text-muted-foreground">
-                Sales agents can type "/" in live chat to insert these pre-saved messages instantly.
+              <h3 className="font-semibold text-base text-foreground">Saved replies</h3>
+              <p className="text-sm text-muted-foreground">
+                Type "/" in a chat to insert one of these saved messages instantly.
               </p>
             </div>
 
             <button
               onClick={() => setIsAddingSnippet(!isAddingSnippet)}
-              className="px-3.5 py-1.5 rounded-xl bg-whatsapp-green hover:bg-primary/90 text-white text-xs font-normal flex items-center gap-1.5  transition-all self-start sm:self-auto"
+              className="px-3.5 py-1.5 rounded-xl bg-whatsapp-green hover:bg-primary/90 text-white text-sm font-normal flex items-center gap-1.5  transition-all self-start sm:self-auto"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>{isAddingSnippet ? 'Cancel' : 'New Snippet'}</span>
+              <span>{isAddingSnippet ? 'Cancel' : 'New saved reply'}</span>
             </button>
           </div>
 
           {/* Add Snippet Form Drawer */}
           {isAddingSnippet && (
             <form onSubmit={handleCreateSnippet} className="p-4 rounded-2xl bg-card border border-border  space-y-3 animate-in fade-in duration-150">
-              <h4 className="font-normal text-xs text-foreground uppercase tracking-wider">Create New Sales Shortcut</h4>
+              <h4 className="font-normal text-sm text-foreground uppercase tracking-wider">Create New Sales Shortcut</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-normal text-foreground mb-1">Shortcut Trigger (Starts with /)</label>
+                  <label className="block text-sm font-normal text-foreground mb-1">Shortcut Trigger (Starts with /)</label>
                   <input
                     type="text"
                     placeholder="/pricing or /brochure"
                     value={newShortcut}
                     onChange={(e) => setNewShortcut(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-input font-mono"
+                    className="w-full px-3 py-1.5 text-sm rounded-xl border border-input font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-normal text-foreground mb-1">Snippet Title</label>
+                  <label className="block text-sm font-normal text-foreground mb-1">Snippet Title</label>
                   <input
                     type="text"
                     placeholder="e.g. Standard Pricing List"
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-input"
+                    className="w-full px-3 py-1.5 text-sm rounded-xl border border-input"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-normal text-foreground mb-1">Category</label>
+                  <label className="block text-sm font-normal text-foreground mb-1">Category</label>
                   <select
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-input bg-card"
+                    className="w-full px-3 py-1.5 text-sm rounded-xl border border-input bg-card"
                   >
                     <option value="GENERAL">General</option>
                     <option value="PRICING">Pricing & Plans</option>
@@ -839,13 +968,13 @@ export default function SettingsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-normal text-foreground mb-1">Message Content to Insert</label>
+                <label className="block text-sm font-normal text-foreground mb-1">Message Content to Insert</label>
                 <textarea
                   rows={3}
                   placeholder="Type the full WhatsApp text message..."
                   value={newContent}
                   onChange={(e) => setNewContent(e.target.value)}
-                  className="w-full p-2.5 text-xs rounded-xl border border-input focus:outline-hidden focus:ring-2 focus:ring-ring"
+                  className="w-full p-2.5 text-sm rounded-xl border border-input focus:outline-hidden focus:ring-2 focus:ring-ring"
                 />
               </div>
 
@@ -853,13 +982,13 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setIsAddingSnippet(false)}
-                  className="px-3.5 py-1.5 text-xs font-normal rounded-xl bg-muted text-muted-foreground"
+                  className="px-3.5 py-1.5 text-sm font-normal rounded-xl bg-muted text-muted-foreground"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 text-xs font-normal rounded-xl bg-whatsapp-green text-white shadow-xs"
+                  className="px-4 py-1.5 text-sm font-normal rounded-xl bg-whatsapp-green text-white shadow-xs"
                 >
                   Save Shortcut
                 </button>
@@ -875,7 +1004,7 @@ export default function SettingsPage() {
               placeholder="Search shortcuts or message content..."
               value={snippetSearch}
               onChange={(e) => setSnippetSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-input bg-card"
+              className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-input bg-card"
             />
           </div>
 
@@ -888,16 +1017,16 @@ export default function SettingsPage() {
               >
                 <div className="space-y-1 min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono font-normal text-xs text-brand-subtle-foreground bg-wa-bubble-out px-2 py-0.5 rounded-full">
+                    <span className="font-mono font-normal text-sm text-brand-subtle-foreground bg-wa-bubble-out px-2 py-0.5 rounded-full">
                       {s.shortcut}
                     </span>
-                    <h4 className="font-normal text-xs text-foreground truncate">{s.title}</h4>
-                    <span className="text-2xs font-normal px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                    <h4 className="font-normal text-sm text-foreground truncate">{s.title}</h4>
+                    <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
                       {s.category}
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed font-sans whitespace-pre-wrap">{s.content}</p>
-                  <span className="text-2xs text-muted-foreground block pt-1">
+                  <p className="text-sm text-muted-foreground leading-relaxed font-sans whitespace-pre-wrap">{s.content}</p>
+                  <span className="text-xs text-muted-foreground block pt-1">
                     Used in chat {s.usageCount || 0} times
                   </span>
                 </div>
@@ -914,7 +1043,7 @@ export default function SettingsPage() {
             ))}
 
             {filteredSnippets.length === 0 && (
-              <div className="p-8 text-center bg-card rounded-2xl border border-border text-muted-foreground text-xs">
+              <div className="p-8 text-center bg-card rounded-2xl border border-border text-muted-foreground text-sm">
                 No canned snippets found. Click "New Snippet" above to add your first sales shortcut!
               </div>
             )}
@@ -926,19 +1055,19 @@ export default function SettingsPage() {
       {activeTab === 'billing' && <MetaBillingSection />}
 
       {/* TAB 5: API KEY MANAGEMENT */}
-      {activeTab === 'api-keys' && (
+      {developerMode && activeTab === 'api-keys' && (
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="font-normal text-sm text-foreground">Developer API Keys</h3>
-              <p className="text-xs text-muted-foreground">
-                Keys authenticate requests to the Public REST API (<code className="font-mono text-2xs">/api/v1/*</code>) via the <code className="font-mono text-2xs">X-API-Key</code> header.
+              <h3 className="font-semibold text-base text-foreground">Developer API Keys</h3>
+              <p className="text-sm text-muted-foreground">
+                Keys authenticate requests to the Public REST API (<code className="font-mono text-xs">/api/v1/*</code>) via the <code className="font-mono text-xs">X-API-Key</code> header.
               </p>
             </div>
 
             <button
               onClick={() => setIsCreatingKey(!isCreatingKey)}
-              className="px-3.5 py-1.5 rounded-xl bg-whatsapp-green hover:bg-primary/90 text-white text-xs font-normal flex items-center gap-1.5 transition-all self-start sm:self-auto"
+              className="px-3.5 py-1.5 rounded-xl bg-whatsapp-green hover:bg-primary/90 text-white text-sm font-normal flex items-center gap-1.5 transition-all self-start sm:self-auto"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{isCreatingKey ? 'Cancel' : 'New API Key'}</span>
@@ -948,28 +1077,28 @@ export default function SettingsPage() {
           {/* Create Key Form */}
           {isCreatingKey && (
             <form onSubmit={handleCreateApiKey} className="p-4 rounded-2xl bg-card border border-border space-y-3 animate-in fade-in duration-150">
-              <h4 className="font-normal text-xs text-foreground uppercase tracking-wider">Generate New API Key</h4>
+              <h4 className="font-normal text-sm text-foreground uppercase tracking-wider">Generate New API Key</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-normal text-foreground mb-1">Key Name</label>
+                  <label className="block text-sm font-normal text-foreground mb-1">Key Name</label>
                   <input
                     type="text"
                     placeholder="e.g. Zapier Integration"
                     value={newKeyName}
                     onChange={(e) => setNewKeyName(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-input"
+                    className="w-full px-3 py-1.5 text-sm rounded-xl border border-input"
                   />
                 </div>
                 <div>
                   <div className="flex items-center gap-1 mb-1">
-                    <label className="text-xs font-normal text-foreground">Scopes (comma-separated)</label>
+                    <label className="text-sm font-normal text-foreground">Scopes (comma-separated)</label>
                     <InfoTooltip content="e.g. read, write, messages:send, contacts:write. Use '*' for full access." />
                   </div>
                   <input
                     type="text"
                     value={newKeyScopes}
                     onChange={(e) => setNewKeyScopes(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs rounded-xl border border-input font-mono"
+                    className="w-full px-3 py-1.5 text-sm rounded-xl border border-input font-mono"
                   />
                 </div>
               </div>
@@ -977,14 +1106,14 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setIsCreatingKey(false)}
-                  className="px-3.5 py-1.5 text-xs font-normal rounded-xl bg-muted text-muted-foreground"
+                  className="px-3.5 py-1.5 text-sm font-normal rounded-xl bg-muted text-muted-foreground"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creatingKey || !newKeyName.trim()}
-                  className="px-4 py-1.5 text-xs font-normal rounded-xl bg-whatsapp-green text-white shadow-xs disabled:opacity-50"
+                  className="px-4 py-1.5 text-sm font-normal rounded-xl bg-whatsapp-green text-white shadow-xs disabled:opacity-50"
                 >
                   {creatingKey ? 'Generating...' : 'Generate Key'}
                 </button>
@@ -996,26 +1125,26 @@ export default function SettingsPage() {
           {revealedKey && (
             <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-2">
               <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-amber-900">
+                <h4 className="text-sm font-bold text-amber-900">
                   "{revealedKey.name}" created — copy this key now
                 </h4>
                 <button onClick={() => setRevealedKey(null)} className="text-amber-500 hover:text-amber-700">
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <p className="text-2xs text-amber-800">
+              <p className="text-xs text-amber-800">
                 This is the only time the full key is shown. It cannot be retrieved again — store it somewhere safe.
               </p>
               <div className="flex gap-2">
                 <input
                   readOnly
                   value={revealedKey.rawKey}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-amber-300 font-mono bg-card text-foreground"
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-amber-300 font-mono bg-card text-foreground"
                 />
                 <button
                   type="button"
                   onClick={handleCopyRawKey}
-                  className="px-3.5 py-2 rounded-xl border border-amber-300 bg-card hover:bg-amber-100 text-amber-800 text-xs font-normal flex items-center gap-1 shrink-0"
+                  className="px-3.5 py-2 rounded-xl border border-amber-300 bg-card hover:bg-amber-100 text-amber-800 text-sm font-normal flex items-center gap-1 shrink-0"
                 >
                   {rawKeyCopied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{rawKeyCopied ? 'Copied' : 'Copy'}</span>
@@ -1051,15 +1180,15 @@ export default function SettingsPage() {
                 >
                   <div className="space-y-1 min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-normal text-xs text-foreground">{k.name}</h4>
-                      <span className="font-mono font-normal text-2xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                      <h4 className="font-normal text-sm text-foreground">{k.name}</h4>
+                      <span className="font-mono font-normal text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                         {k.keyPrefix}••••••••
                       </span>
                     </div>
-                    <p className="text-2xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       Scopes: <span className="font-mono">{k.scopes}</span>
                     </p>
-                    <p className="text-2xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       Created {new Date(k.createdAt).toLocaleDateString()}
                       {k.lastUsedAt ? ` • Last used ${new Date(k.lastUsedAt).toLocaleDateString()}` : ' • Never used'}
                       {k.user?.email ? ` • by ${k.user.email}` : ''}
@@ -1082,11 +1211,11 @@ export default function SettingsPage() {
       )}
 
       {/* TAB 6: AUDIT LOG */}
-      {activeTab === 'audit-log' && (
+      {developerMode && activeTab === 'audit-log' && (
         <div className="space-y-4">
           <div>
-            <h3 className="font-normal text-sm text-foreground">Security & Admin Audit Log</h3>
-            <p className="text-xs text-muted-foreground">Track logins, settings changes, module toggles, and API key activity.</p>
+            <h3 className="font-semibold text-base text-foreground">Audit log</h3>
+            <p className="text-sm text-muted-foreground">Track logins, settings changes, module toggles, and API key activity.</p>
           </div>
 
           {/* Filters */}
@@ -1094,7 +1223,7 @@ export default function SettingsPage() {
             <select
               value={auditActionFilter}
               onChange={(e) => setAuditActionFilter(e.target.value)}
-              className="px-3 py-2 text-xs rounded-xl border border-input bg-card"
+              className="px-3 py-2 text-sm rounded-xl border border-input bg-card"
             >
               <option value="">All Actions</option>
               <option value="LOGIN_SUCCESS">Login Success</option>
@@ -1111,11 +1240,11 @@ export default function SettingsPage() {
               placeholder="Filter by actor email..."
               value={auditActorFilter}
               onChange={(e) => setAuditActorFilter(e.target.value)}
-              className="flex-1 px-3 py-2 text-xs rounded-xl border border-input"
+              className="flex-1 px-3 py-2 text-sm rounded-xl border border-input"
             />
             <button
               onClick={() => fetchAuditLog(1)}
-              className="px-3.5 py-2 rounded-xl border border-border bg-card hover:bg-black/5 text-foreground text-xs font-normal flex items-center gap-1.5 shadow-2xs"
+              className="px-3.5 py-2 rounded-xl border border-border bg-card hover:bg-black/5 text-foreground text-sm font-normal flex items-center gap-1.5 shadow-2xs"
             >
               <Search className="w-3.5 h-3.5" />
               <span>Filter</span>
@@ -1125,7 +1254,7 @@ export default function SettingsPage() {
           {/* Entries Table */}
           <div className="card-base overflow-hidden">
             {auditLoading ? (
-              <table className="w-full text-left border-collapse text-xs">
+              <table className="w-full text-left border-collapse text-sm">
                 <tbody>
                   {Array.from({ length: 6 }).map((_, i) => (
                     <SkeletonTableRow key={i} columns={5} />
@@ -1140,9 +1269,9 @@ export default function SettingsPage() {
               />
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
+                <table className="w-full text-left border-collapse text-sm">
                   <thead>
-                    <tr className="bg-muted border-b border-border text-muted-foreground uppercase text-2xs font-semibold tracking-wider">
+                    <tr className="bg-muted border-b border-border text-muted-foreground uppercase text-xs font-semibold tracking-wider">
                       <th className="py-2.5 px-4">Action</th>
                       <th className="py-2.5 px-4">Actor</th>
                       <th className="py-2.5 px-4">Target</th>
@@ -1155,7 +1284,7 @@ export default function SettingsPage() {
                       <tr key={entry.id} className="border-b border-border last:border-0">
                         <td className="py-2.5 px-4">
                           <span
-                            className={`px-2 py-0.5 rounded-full text-2xs font-bold ${
+                            className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                               entry.action.includes('FAILED')
                                 ? 'bg-rose-50 text-rose-700'
                                 : entry.action.includes('SUCCESS') || entry.action.includes('CREATED')
@@ -1170,7 +1299,7 @@ export default function SettingsPage() {
                         <td className="py-2.5 px-4 text-muted-foreground">
                           {entry.targetType ? `${entry.targetType}${entry.targetId ? ` (${entry.targetId.slice(0, 8)}…)` : ''}` : '—'}
                         </td>
-                        <td className="py-2.5 px-4 text-muted-foreground font-mono text-2xs">{entry.ipAddress || '—'}</td>
+                        <td className="py-2.5 px-4 text-muted-foreground font-mono text-xs">{entry.ipAddress || '—'}</td>
                         <td className="py-2.5 px-4 text-muted-foreground">{new Date(entry.createdAt).toLocaleString()}</td>
                       </tr>
                     ))}
@@ -1186,15 +1315,15 @@ export default function SettingsPage() {
               <button
                 onClick={() => fetchAuditLog(auditPage - 1)}
                 disabled={auditPage <= 1}
-                className="px-3 py-1.5 rounded-xl border border-border bg-card text-xs disabled:opacity-40"
+                className="px-3 py-1.5 rounded-xl border border-border bg-card text-sm disabled:opacity-40"
               >
                 Previous
               </button>
-              <span className="text-xs text-muted-foreground">Page {auditPage} of {auditTotalPages}</span>
+              <span className="text-sm text-muted-foreground">Page {auditPage} of {auditTotalPages}</span>
               <button
                 onClick={() => fetchAuditLog(auditPage + 1)}
                 disabled={auditPage >= auditTotalPages}
-                className="px-3 py-1.5 rounded-xl border border-border bg-card text-xs disabled:opacity-40"
+                className="px-3 py-1.5 rounded-xl border border-border bg-card text-sm disabled:opacity-40"
               >
                 Next
               </button>
@@ -1230,7 +1359,7 @@ export default function SettingsPage() {
         }
       >
         <div>
-          <label className="mb-1 block text-xs font-medium text-foreground">6-digit 2FA PIN</label>
+          <label className="mb-1 block text-sm font-medium text-foreground">6-digit 2FA PIN</label>
           <Input
             maxLength={6}
             value={pinInput}
@@ -1238,7 +1367,7 @@ export default function SettingsPage() {
             placeholder="123456"
             className="text-center font-mono tracking-widest"
           />
-          <p className="mt-1 text-2xs text-muted-foreground">
+          <p className="mt-1 text-xs text-muted-foreground">
             Choose any 6-digit PIN to secure your WhatsApp Cloud number.
           </p>
         </div>

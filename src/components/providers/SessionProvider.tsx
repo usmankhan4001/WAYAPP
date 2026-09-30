@@ -28,6 +28,8 @@ interface SessionContextValue {
   settings: AppSettings | null;
   modules: AppModule[];
   enabledModules: Record<string, boolean>;
+  developerMode: boolean;
+  setDeveloperMode: (on: boolean) => Promise<void>;
   loading: boolean;
   refresh: () => Promise<void>;
   setSettings: (s: AppSettings) => void;
@@ -46,14 +48,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [authenticated, setAuthenticated] = React.useState(false);
   const [settings, setSettingsState] = React.useState<AppSettings | null>(null);
   const [modules, setModules] = React.useState<AppModule[]>([]);
+  const [developerMode, setDeveloperModeState] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
 
   const refresh = React.useCallback(async () => {
     try {
-      const [authRes, settingsRes, modulesRes] = await Promise.allSettled([
+      const [authRes, settingsRes, modulesRes, prefsRes] = await Promise.allSettled([
         fetch("/api/auth/me"),
         fetch("/api/settings"),
         fetch("/api/modules"),
+        fetch("/api/me/preferences"),
       ]);
 
       if (authRes.status === "fulfilled" && authRes.value.ok) {
@@ -67,6 +71,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       if (modulesRes.status === "fulfilled" && modulesRes.value.ok) {
         const data = await modulesRes.value.json();
         if (Array.isArray(data?.modules)) setModules(data.modules);
+      }
+      if (prefsRes.status === "fulfilled" && prefsRes.value.ok) {
+        const data = await prefsRes.value.json();
+        setDeveloperModeState(Boolean(data?.developerMode));
+      } else if (prefsRes.status === "fulfilled" && prefsRes.value.status === 401) {
+        setDeveloperModeState(false);
       }
     } catch (err) {
       console.warn("[SessionProvider] load failed:", err);
@@ -86,12 +96,24 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     return map;
   }, [modules]);
 
+  const setDeveloperMode = React.useCallback(async (on: boolean) => {
+    const res = await fetch("/api/me/preferences", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ developerMode: on }),
+    });
+    if (!res.ok) throw new Error("Could not save this preference");
+    setDeveloperModeState(on);
+  }, []);
+
   const value: SessionContextValue = {
     user,
     authenticated,
     settings,
     modules,
     enabledModules,
+    developerMode,
+    setDeveloperMode,
     loading,
     refresh,
     setSettings: setSettingsState,
@@ -119,4 +141,16 @@ export function useSettings() {
 export function useModules() {
   const { modules, enabledModules, refresh } = useSessionContext();
   return { modules, enabledModules, refresh };
+}
+
+/** Developer tools (API keys, webhooks, audit log) are hidden unless this is on. */
+export function useDeveloperMode() {
+  const { developerMode, setDeveloperMode } = useSessionContext();
+  return { developerMode, setDeveloperMode };
+}
+
+/** Renders children only when the signed-in user has Developer mode on. */
+export function AdvancedOnly({ children }: { children: React.ReactNode }) {
+  const { developerMode } = useSessionContext();
+  return developerMode ? <>{children}</> : null;
 }

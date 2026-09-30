@@ -7,7 +7,7 @@ import { ShieldCheck, X, LogOut } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { getVisibleNav, isActiveHref } from '@/lib/navigation';
-import { useSession, useModules } from '@/components/providers/SessionProvider';
+import { useSession, useModules, useDeveloperMode } from '@/components/providers/SessionProvider';
 import { useNotifications } from '@/components/common/NotificationProvider';
 import { PWAInstallPrompt } from '@/components/common/PWAInstallPrompt';
 import { DevicePermissionsModal } from '@/components/common/DevicePermissionsModal';
@@ -29,10 +29,11 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   const router = useRouter();
   const { user } = useSession();
   const { enabledModules } = useModules();
+  const { developerMode } = useDeveloperMode();
   const { unreadCount } = useNotifications();
   const [isPermissionsOpen, setIsPermissionsOpen] = useState(false);
 
-  const navItems = getVisibleNav(enabledModules);
+  const navItems = getVisibleNav(enabledModules, developerMode);
 
   const handleLogout = async () => {
     try {

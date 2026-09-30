@@ -7,6 +7,7 @@ import {
   Users,
   BarChart3,
   Settings,
+  Code2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -23,6 +24,8 @@ export interface NavItem {
   badge?: "unread";
   /** hidden unless at least one of these modules is enabled */
   moduleIds?: string[];
+  /** hidden unless the user has turned on Developer mode */
+  developerOnly?: boolean;
 }
 
 /**
@@ -40,21 +43,27 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { id: "templates", label: "Templates", shortLabel: "Templates", href: "/templates", icon: FileText },
   { id: "analytics", label: "Analytics", shortLabel: "Analytics", href: "/analytics", icon: BarChart3 },
   { id: "settings", label: "Settings", shortLabel: "Settings", href: "/settings", icon: Settings },
+  { id: "developer", label: "Developer", shortLabel: "Developer", href: "/settings/developer", icon: Code2, developerOnly: true },
 ] as const;
 
-/** True if a nav item should be visible given the enabled-modules map. */
-export function isNavItemVisible(item: NavItem, enabledModules?: Record<string, boolean>): boolean {
+/** True if a nav item should be visible given the enabled-modules map and Developer mode. */
+export function isNavItemVisible(
+  item: NavItem,
+  enabledModules?: Record<string, boolean>,
+  developerMode = false,
+): boolean {
+  if (item.developerOnly && !developerMode) return false;
   if (!item.moduleIds || !enabledModules) return true;
   return item.moduleIds.some((id) => enabledModules[id] !== false);
 }
 
-export function getVisibleNav(enabledModules: Record<string, boolean>): NavItem[] {
-  return NAV_ITEMS.filter((item) => isNavItemVisible(item, enabledModules));
+export function getVisibleNav(enabledModules: Record<string, boolean>, developerMode = false): NavItem[] {
+  return NAV_ITEMS.filter((item) => isNavItemVisible(item, enabledModules, developerMode));
 }
 
 /** Primary items for the mobile tab bar (capped at 5; last slot is "More"). */
-export function getPrimaryNav(enabledModules: Record<string, boolean>): NavItem[] {
-  return getVisibleNav(enabledModules).filter((i) => i.primary).slice(0, 5);
+export function getPrimaryNav(enabledModules: Record<string, boolean>, developerMode = false): NavItem[] {
+  return getVisibleNav(enabledModules, developerMode).filter((i) => i.primary).slice(0, 5);
 }
 
 export function isActiveHref(pathname: string, href: string): boolean {

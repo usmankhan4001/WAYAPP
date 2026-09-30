@@ -7,20 +7,21 @@ import { MoreHorizontal } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { getPrimaryNav, isActiveHref } from '@/lib/navigation';
-import { useModules } from '@/components/providers/SessionProvider';
+import { useModules, useDeveloperMode } from '@/components/providers/SessionProvider';
 import { useNotifications } from '@/components/common/NotificationProvider';
 
 function MobileTabBarInner({ onOpenMore }: { onOpenMore?: () => void }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { enabledModules } = useModules();
+  const { developerMode } = useDeveloperMode();
   const { unreadCount } = useNotifications();
 
   if (pathname === '/login' || pathname === '/register') return null;
   // On the inbox, hide the bar once a chat is open (full-screen stacked view).
   if (pathname.startsWith('/inbox') && searchParams.get('contactId')) return null;
 
-  const items = getPrimaryNav(enabledModules);
+  const items = getPrimaryNav(enabledModules, developerMode);
 
   return (
     <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-border bg-card/95 px-2 py-1 backdrop-blur-md md:hidden">
