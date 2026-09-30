@@ -60,7 +60,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </HideHeaderInOpenChat>
 
           <AppBanners />
-          {!isInboxPage && <PushPermissionPrompt />}
+          {pathname === '/' && <PushPermissionPrompt />}
 
           <main
             className={cn(

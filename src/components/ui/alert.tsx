@@ -11,13 +11,13 @@ import { cn } from "@/lib/utils"
  *   layout="banner"  a full-width strip under the header (connection lost, install the app...)
  * danger and warning are announced to screen readers immediately; info and success politely.
  */
-const alertVariants = cva("relative flex w-full items-start gap-3 border text-sm", {
+const alertVariants = cva("relative flex w-full items-start gap-3 border text-sm text-foreground", {
   variants: {
     tone: {
-      info: "border-info/30 bg-info-subtle text-info-subtle-foreground",
-      success: "border-success/30 bg-success-subtle text-success-subtle-foreground",
-      warning: "border-warning/30 bg-warning-subtle text-warning-subtle-foreground",
-      danger: "border-danger/30 bg-danger/10 text-foreground",
+      info: "border-info/30 bg-info-subtle",
+      success: "border-success/30 bg-success-subtle",
+      warning: "border-warning/30 bg-warning-subtle",
+      danger: "border-danger/30 bg-danger/10",
     },
     layout: {
       inline: "rounded-2xl p-4",
@@ -53,7 +53,7 @@ export function Alert({ tone = "info", layout = "inline", title, action, onDismi
       {Icon && <Icon className={cn("mt-0.5 size-5 shrink-0", ICON_TONE[t])} aria-hidden />}
       <div className="min-w-0 flex-1 space-y-0.5">
         {title && <p className="font-semibold leading-snug text-foreground">{title}</p>}
-        {children && <div className="leading-relaxed">{children}</div>}
+        {children && <div className="leading-relaxed text-foreground/80">{children}</div>}
       </div>
       {action && <div className="ml-auto flex shrink-0 items-center self-center">{action}</div>}
       {onDismiss && (

@@ -85,8 +85,6 @@ export function AppBanners() {
   const { settings } = useSettings();
   const online = useOnline();
   const { canInstall, install, dismiss: dismissInstall } = useInstall();
-  const [sendingHidden, setSendingHidden] = useState(false);
-  useEffect(() => setSendingHidden(getFlag('session', 'wayapp:sending-banner-dismissed')), []);
 
   const banners: React.ReactNode[] = [];
 
@@ -112,23 +110,6 @@ export function AppBanners() {
         }
       >
         Connect your number to send and receive messages.
-      </Alert>
-    );
-  }
-  if (settings && settings.campaignDispatchEnabled === false && !sendingHidden) {
-    banners.push(
-      <Alert
-        key="sending"
-        layout="banner"
-        tone="info"
-        icon={PauseCircle}
-        title="Sending is switched off"
-        onDismiss={() => {
-          setFlag('session', 'wayapp:sending-banner-dismissed');
-          setSendingHidden(true);
-        }}
-      >
-        Broadcasts are saved but will not go out yet. Chats still work as normal.
       </Alert>
     );
   }
