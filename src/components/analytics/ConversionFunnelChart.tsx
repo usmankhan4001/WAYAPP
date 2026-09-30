@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Send, CheckCheck, Eye, MessageSquare, ArrowDown } from 'lucide-react';
+import { Card } from '@/components/ui/card';
 import { InfoTooltip } from '@/components/ui/Tooltip';
 
 interface FunnelStep {
@@ -35,7 +36,7 @@ export function ConversionFunnelChart({ funnel = [] }: ConversionFunnelProps) {
   const hasData = funnel.some((f) => f.count > 0);
 
   return (
-    <div className="space-y-4 rounded-xl bg-card p-5 ring-1 ring-foreground/10">
+    <Card className="space-y-4 p-5">
       <div className="flex items-center justify-between border-b border-border pb-2">
         <div>
           <div className="flex items-center gap-1.5">
@@ -103,6 +104,6 @@ export function ConversionFunnelChart({ funnel = [] }: ConversionFunnelProps) {
           })}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

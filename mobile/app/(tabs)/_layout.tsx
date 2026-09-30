@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { MessageSquare, Users, Send, Settings } from 'lucide-react-native';
+import { Home, MessageSquare, Users, Send, Settings } from 'lucide-react-native';
 
 import { theme } from '../../lib/theme';
 
@@ -24,6 +24,13 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: t['muted-foreground'],
       }}
     >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
+        }}
+      />
       <Tabs.Screen
         name="inbox"
         options={{
