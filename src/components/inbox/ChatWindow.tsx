@@ -55,6 +55,7 @@ import { AudioVoicePlayer } from './AudioVoicePlayer';
 import { VoiceNoteRecorder } from './VoiceNoteRecorder';
 import { MediaLightbox } from './MediaLightbox';
 import { playOutgoingPop } from '@/lib/notifications/sound';
+import { useLiveRefresh, ReconnectingBanner } from './useLiveRefresh';
 
 interface ChatWindowProps {
   contact: any;
@@ -145,10 +146,15 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
   const isAtBottomRef = useRef(true);
   const prevMessagesCountRef = useRef(0);
 
-  // 24h Window Calculation
-  const lastInteraction = contact?.lastInteractionAt ? new Date(contact.lastInteractionAt).getTime() : null;
-  const msSinceLast = lastInteraction ? Date.now() - lastInteraction : Infinity;
-  const msRemaining = Math.max(0, 24 * 60 * 60 * 1000 - msSinceLast);
+  // 24h window: the server works out the expiry from the customer's latest inbound message
+  // (GET /api/chat sends it in X-Reply-Window-Expires-At). We only count down to it here.
+  const [windowExpiresAt, setWindowExpiresAt] = useState<number | null>(null);
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNowTick(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  const msRemaining = windowExpiresAt ? Math.max(0, windowExpiresAt - nowTick) : 0;
   const hoursRemaining = Math.floor(msRemaining / (1000 * 60 * 60));
   const minutesRemaining = Math.floor((msRemaining % (1000 * 60 * 60)) / (1000 * 60));
   const isWindowActive = msRemaining > 0;
@@ -270,13 +276,21 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
     }
   };
 
-  const fetchMessages = () => {
+  // Rejects on failure so useLiveRefresh can back off and show the "Reconnecting..." banner.
+  const loadMessages = async () => {
     if (!contact?.id) return;
-    fetch(`/api/chat?contactId=${contact.id}`)
-      .then((res) => res.json())
-      .then((data) => setMessages(Array.isArray(data) ? data : []))
-      .catch(() => {});
+    const res = await fetch(`/api/chat?contactId=${contact.id}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    setMessages(Array.isArray(data) ? data : []);
+    const exp = res.headers.get('X-Reply-Window-Expires-At');
+    setWindowExpiresAt(exp ? new Date(exp).getTime() : null);
+    setNowTick(Date.now());
   };
+  const fetchMessages = () => {
+    loadMessages().catch(() => {});
+  };
+  const { offline } = useLiveRefresh(loadMessages, { contactId: contact?.id });
 
   const fetchTemplates = () => {
     fetch('/api/templates')
@@ -330,17 +344,12 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
 
   useEffect(() => {
     fetchSettings();
-    fetchMessages();
+    setWindowExpiresAt(null);
     fetchTemplates();
     fetchSnippets();
     fetchCrmData();
     setAiSuggestions([]);
     setSummaryText(null);
-
-    const interval = setInterval(() => {
-      if (!document.hidden) fetchMessages();
-    }, 2500);
-    return () => clearInterval(interval);
   }, [contact?.id]);
 
   useEffect(() => {
@@ -726,7 +735,8 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
   const currentStage = getLeadStage(leadStage);
 
   return (
-    <div className="flex-1 h-full w-full flex bg-chat-canvas overflow-hidden min-w-0">
+    <div className="relative flex-1 h-full w-full flex bg-chat-canvas overflow-hidden min-w-0">
+      <ReconnectingBanner show={offline} />
       {/* Hidden Global File Input */}
       <input
         type="file"

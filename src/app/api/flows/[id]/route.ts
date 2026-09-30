@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth/rbac';
+import { moduleOffResponse } from '@/lib/modules';
 import { logger } from '@/lib/logger';
 
 export async function GET(
@@ -9,6 +10,9 @@ export async function GET(
 ) {
   const authResult = await requireAuth(request);
   if ('response' in authResult) return authResult.response;
+
+  const moduleOff = await moduleOffResponse('flows', 'Flows');
+  if (moduleOff) return moduleOff;
 
   try {
     const { id } = await params;
@@ -41,6 +45,9 @@ export async function PUT(
   const authResult = await requireAuth(request);
   if ('response' in authResult) return authResult.response;
 
+  const moduleOff = await moduleOffResponse('flows', 'Flows');
+  if (moduleOff) return moduleOff;
+
   try {
     const { id } = await params;
     const body = await request.json();
@@ -72,6 +79,9 @@ export async function DELETE(
 ) {
   const authResult = await requireAuth(request);
   if ('response' in authResult) return authResult.response;
+
+  const moduleOff = await moduleOffResponse('flows', 'Flows');
+  if (moduleOff) return moduleOff;
 
   try {
     const { id } = await params;

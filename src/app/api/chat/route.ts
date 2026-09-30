@@ -5,6 +5,7 @@ import { requireAuth } from '@/lib/auth/rbac';
 import { WhatsAppClient } from '@/lib/whatsapp/client';
 import { interpretMetaError } from '@/lib/whatsapp/errors';
 import { sanitizePhoneNumber } from '@/lib/whatsapp/phone';
+import { getReplyWindow } from '@/lib/whatsapp/window';
 import { logger } from '@/lib/logger';
 import { readFile } from 'fs/promises';
 import path from 'path';
@@ -70,7 +71,17 @@ export async function GET(request: NextRequest) {
         }).catch(() => {});
       }
 
-      return NextResponse.json(messages);
+      // The body stays a plain array (existing clients depend on it); the reply window rides
+      // in headers so the inbox needs no second request.
+      const res = NextResponse.json(messages);
+      if (targetContact?.id) {
+        const win = await getReplyWindow(targetContact.id).catch(() => null);
+        if (win) {
+          res.headers.set('X-Reply-Window-Open', String(win.isOpen));
+          res.headers.set('X-Reply-Window-Expires-At', win.windowExpiresAt || '');
+        }
+      }
+      return res;
     }
 
     // 2. Build conversation filter query
@@ -245,6 +256,18 @@ export async function POST(request: NextRequest) {
         { error: 'Cannot send message: Contact has unsubscribed or opted out.' },
         { status: 400 }
       );
+    }
+
+    // Free-form text and media are only allowed inside the 24-hour window that opens when the
+    // customer last wrote to us. Outside it, WhatsApp requires an approved template.
+    if (!templateName) {
+      const win = await getReplyWindow(contact.id);
+      if (!win.isOpen) {
+        return NextResponse.json(
+          { error: 'This customer has not written in the last 24 hours, so you can only send an approved template message.', code: 'WINDOW_CLOSED' },
+          { status: 400 }
+        );
+      }
     }
 
     const client = await WhatsAppClient.createFromSettings();
