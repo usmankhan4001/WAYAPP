@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth/rbac';
 import { logger } from '@/lib/logger';
+import { checkWebhookUrl } from '@/lib/api/ssrf';
 
 export async function POST(
   request: NextRequest,
@@ -18,6 +19,9 @@ export async function POST(
     if (!endpoint) {
       return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 });
     }
+
+    const safe = await checkWebhookUrl(endpoint.url);
+    if (!safe.ok) return NextResponse.json({ success: false, error: safe.reason }, { status: 400 });
 
     const payload = JSON.stringify({
       event: 'ping.test',
@@ -52,6 +56,7 @@ export async function POST(
         },
         body: payload,
         signal: controller.signal,
+        redirect: 'manual',
       });
 
       clearTimeout(timeoutId);

@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { authenticateApiRequest } from '@/lib/api/auth';
+import { apiError } from '@/lib/api/errors';
 import { sanitizePhoneNumber } from '@/lib/whatsapp/phone';
 import { logger } from '@/lib/logger';
+import { emitWebhook } from '@/worker/outbound-webhooks';
 
 const ContactCreateSchema = z.object({
   phoneNumber: z.string().min(6),
@@ -43,7 +45,7 @@ export async function GET(request: NextRequest) {
         tags: { include: { tag: true } },
         groups: { include: { group: true } },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     });
 
     let nextCursor: string | null = null;
@@ -52,16 +54,10 @@ export async function GET(request: NextRequest) {
       nextCursor = nextItem?.id || null;
     }
 
-    return NextResponse.json({
-      data: contacts,
-      pagination: {
-        nextCursor,
-        limit,
-      },
-    });
+    return NextResponse.json({ data: contacts, pagination: { nextCursor, limit } });
   } catch (error: any) {
     logger.error({ error }, 'Error in v1 contacts list');
-    return NextResponse.json({ error: 'Failed to retrieve contacts' }, { status: 500 });
+    return apiError('Failed to retrieve contacts', 'internal_error', 500);
   }
 }
 
@@ -73,17 +69,19 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const parsed = ContactCreateSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.issues[0]?.message || 'Invalid contact payload' },
-        { status: 400 }
-      );
+      return apiError(parsed.error.issues[0]?.message || 'Invalid contact payload', 'invalid_request', 400);
     }
 
     const { phoneNumber, firstName, lastName, email, customAttributes, tags, groupIds } = parsed.data;
     const phoneResult = sanitizePhoneNumber(phoneNumber);
     if (!phoneResult.isValid) {
-      return NextResponse.json({ error: 'Invalid E.164 phone number format' }, { status: 400 });
+      return apiError('Invalid E.164 phone number format', 'invalid_request', 400);
     }
+
+    const existing = await prisma.contact.findUnique({
+      where: { phoneNumber: phoneResult.e164 },
+      select: { id: true },
+    });
 
     const contact = await prisma.contact.upsert({
       where: { phoneNumber: phoneResult.e164 },
@@ -130,9 +128,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true, contact }, { status: 201 });
+    if (existing) {
+      const changed = (['firstName', 'lastName', 'email', 'customAttributes'] as const).filter(
+        (k) => parsed.data[k] !== undefined
+      );
+      void emitWebhook('contact.updated', { contactId: contact.id, changed });
+    } else {
+      void emitWebhook('contact.created', {
+        contactId: contact.id,
+        phoneNumber: contact.phoneNumber,
+        firstName: contact.firstName,
+        lastName: contact.lastName,
+        source: 'api',
+      });
+    }
+
+    return NextResponse.json({ success: true, contact }, { status: existing ? 200 : 201 });
   } catch (error: any) {
     logger.error({ error }, 'Error in v1 contact create');
-    return NextResponse.json({ error: 'Failed to create contact' }, { status: 500 });
+    return apiError('Failed to create contact', 'internal_error', 500);
   }
 }

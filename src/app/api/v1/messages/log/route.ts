@@ -6,6 +6,7 @@ import { sanitizePhoneNumber } from '@/lib/whatsapp/phone';
 import { renderTemplateBody } from '@/lib/whatsapp/template-render';
 import { logger } from '@/lib/logger';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
+import { emitWebhook } from '@/worker/outbound-webhooks';
 
 /**
  * Records an OUTBOUND message that something else already sent (n8n, a script, another
@@ -39,19 +40,19 @@ export async function POST(request: NextRequest) {
 
   const rateKey = authResult.auth.type === 'API_KEY' ? `v1log:${authResult.auth.keyId}` : `v1log:${getClientIp(request)}`;
   if (!checkRateLimit(rateKey, { limit: 300, windowSeconds: 60 }).success) {
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    return NextResponse.json({ error: 'Too many requests', code: 'rate_limited' }, { status: 429 });
   }
 
   try {
     const parsed = LogSchema.safeParse(await request.json().catch(() => ({})));
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.issues[0]?.message || 'Invalid payload' }, { status: 400 });
+      return NextResponse.json({ error: parsed.error.issues[0]?.message || 'Invalid payload', code: 'invalid_request' }, { status: 400 });
     }
     const { to, wamid, type, text, templateName, bodyVariables, status, sentAt } = parsed.data;
 
     const phone = sanitizePhoneNumber(to);
     if (!phone.isValid) {
-      return NextResponse.json({ error: 'Recipient phone number is invalid E.164' }, { status: 400 });
+      return NextResponse.json({ error: 'Recipient phone number is invalid E.164', code: 'invalid_request' }, { status: 400 });
     }
 
     const existing = await prisma.chatMessage.findUnique({ where: { wamid }, select: { id: true } });
@@ -93,9 +94,19 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    void emitWebhook('message.sent', {
+      contactId: contact.id,
+      conversationId: conversation.id,
+      phoneNumber: phone.e164,
+      messageType: message.messageType,
+      body,
+      wamid,
+      source: 'log',
+    });
+
     return NextResponse.json({ success: true, messageId: message.id, duplicate: false });
   } catch (error: any) {
     logger.error({ error }, '[v1/messages/log] failed to record message');
-    return NextResponse.json({ error: 'Failed to record message' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to record message', code: 'internal_error' }, { status: 500 });
   }
 }

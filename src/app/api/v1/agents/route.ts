@@ -25,6 +25,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(agents);
   } catch (error: any) {
     logger.error({ error }, 'Error in v1 agents list');
-    return NextResponse.json({ error: 'Failed to retrieve agents' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to retrieve agents', code: 'internal_error' }, { status: 500 });
   }
 }

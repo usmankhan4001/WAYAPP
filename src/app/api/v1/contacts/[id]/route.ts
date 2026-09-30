@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { authenticateApiRequest } from '@/lib/api/auth';
+import { apiError } from '@/lib/api/errors';
 import { logger } from '@/lib/logger';
+import { emitWebhook } from '@/worker/outbound-webhooks';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+type Ctx = { params: Promise<{ id: string }> };
+
+export async function GET(request: NextRequest, { params }: Ctx) {
   const authResult = await authenticateApiRequest(request, 'contacts:read');
   if ('response' in authResult) return authResult.response;
 
@@ -21,21 +22,15 @@ export async function GET(
       },
     });
 
-    if (!contact) {
-      return NextResponse.json({ error: 'Contact not found' }, { status: 404 });
-    }
-
+    if (!contact) return apiError('Contact not found', 'not_found', 404);
     return NextResponse.json(contact);
   } catch (error: any) {
     logger.error({ error }, 'Error in v1 contact get');
-    return NextResponse.json({ error: 'Failed to fetch contact' }, { status: 500 });
+    return apiError('Failed to fetch contact', 'internal_error', 500);
   }
 }
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+async function update(request: NextRequest, { params }: Ctx) {
   const authResult = await authenticateApiRequest(request, 'contacts:write');
   if ('response' in authResult) return authResult.response;
 
@@ -43,6 +38,16 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json().catch(() => ({}));
     const { firstName, lastName, email, customAttributes, status } = body;
+
+    if (status !== undefined && !['ACTIVE', 'UNSUBSCRIBED', 'BOUNCED', 'BLOCKED'].includes(status)) {
+      return apiError('status must be ACTIVE, UNSUBSCRIBED, BOUNCED or BLOCKED', 'invalid_request', 400);
+    }
+    if (email !== undefined && email !== null && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email))) {
+      return apiError('email is not a valid address', 'invalid_request', 400);
+    }
+
+    const existing = await prisma.contact.findUnique({ where: { id }, select: { id: true } });
+    if (!existing) return apiError('Contact not found', 'not_found', 404);
 
     const updated = await prisma.contact.update({
       where: { id },
@@ -55,26 +60,33 @@ export async function PUT(
       },
     });
 
+    const changed = Object.entries({ firstName, lastName, email, customAttributes, status })
+      .filter(([, v]) => v !== undefined)
+      .map(([k]) => k);
+    void emitWebhook('contact.updated', { contactId: id, changed });
+
     return NextResponse.json({ success: true, contact: updated });
   } catch (error: any) {
     logger.error({ error }, 'Error in v1 contact update');
-    return NextResponse.json({ error: 'Failed to update contact' }, { status: 500 });
+    return apiError('Failed to update contact', 'internal_error', 500);
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const PUT = update;
+export const PATCH = update;
+
+export async function DELETE(request: NextRequest, { params }: Ctx) {
   const authResult = await authenticateApiRequest(request, 'contacts:write');
   if ('response' in authResult) return authResult.response;
 
   try {
     const { id } = await params;
+    const existing = await prisma.contact.findUnique({ where: { id }, select: { id: true } });
+    if (!existing) return apiError('Contact not found', 'not_found', 404);
     await prisma.contact.delete({ where: { id } });
     return NextResponse.json({ success: true, message: 'Contact deleted successfully' });
   } catch (error: any) {
     logger.error({ error }, 'Error in v1 contact delete');
-    return NextResponse.json({ error: 'Failed to delete contact' }, { status: 500 });
+    return apiError('Failed to delete contact', 'internal_error', 500);
   }
 }

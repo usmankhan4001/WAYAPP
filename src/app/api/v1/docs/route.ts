@@ -20,7 +20,7 @@ export async function GET() {
   <script>
     window.onload = () => {
       window.ui = SwaggerUIBundle({
-        url: '/openapi.json',
+        url: '/api/v1/openapi.json',
         dom_id: '#swagger-ui',
         deepLinking: true,
         presets: [
