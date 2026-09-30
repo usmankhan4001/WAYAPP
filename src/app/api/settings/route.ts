@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { campaignDispatchEnabled } from '@/lib/feature-gates';
-import { requireRole } from '@/lib/auth/rbac';
+import { requireAuth, requireRole } from '@/lib/auth/rbac';
 import { WhatsAppClient } from '@/lib/whatsapp/client';
 import { encryptString, decryptString, maskSecret } from '@/lib/crypto';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
@@ -11,11 +11,13 @@ import { writeAuditLog } from '@/lib/audit-log';
 
 export async function GET(request: NextRequest) {
   await ensureDatabaseSchema();
-  // 1. RBAC: Only Admins can view settings
-  const authResult = await requireRole(request, ['SUPER_ADMIN', 'ADMIN']);
+  // Any signed-in user may read whether WhatsApp is connected (the first-run checklist needs
+  // it); everything else in this response is admin-only and is returned below the check.
+  const authResult = await requireAuth(request);
   if ('response' in authResult) {
     return authResult.response;
   }
+  const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(authResult.session.role);
 
   let settings = await prisma.settings.findUnique({
     where: { id: 'default' },
@@ -61,6 +63,14 @@ export async function GET(request: NextRequest) {
     settings.isConnected ||
     Boolean(effectivePhoneNumberId && effectiveAccessToken) ||
     settings.isMockMode === true;
+
+  if (!isAdmin) {
+    return NextResponse.json({
+      isConnected: isActuallyConnected,
+      businessName: settings.businessName,
+      campaignDispatchEnabled: campaignDispatchEnabled(),
+    });
+  }
 
   // Return strictly sanitized fields (NO secret leaks)
   const safeSettings = {

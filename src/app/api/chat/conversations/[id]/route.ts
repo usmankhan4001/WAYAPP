@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth/rbac';
 import { logger } from '@/lib/logger';
+import { emitWebhook } from '@/worker/outbound-webhooks';
 
 export async function GET(
   request: NextRequest,
@@ -110,6 +111,14 @@ export async function PATCH(
     if (eventsToCreate.length > 0) {
       await prisma.conversationEvent.createMany({
         data: eventsToCreate,
+      });
+    }
+
+    if (assignedToId !== undefined) {
+      void emitWebhook('conversation.assigned', {
+        conversationId: updated.id,
+        contactId: updated.contactId,
+        assignedToId: updated.assignedToId ?? null,
       });
     }
 

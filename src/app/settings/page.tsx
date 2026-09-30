@@ -287,6 +287,28 @@ export default function SettingsPage() {
     }
   };
 
+  // Whether new people can create their own account. Admin-only; null until loaded.
+  const [allowRegistration, setAllowRegistration] = useState<boolean | null>(null);
+  const isAdminUser = sessionUser?.role === 'ADMIN' || sessionUser?.role === 'SUPER_ADMIN';
+  useEffect(() => {
+    if (activeTab !== 'team' || !isAdminUser) return;
+    fetch('/api/auth/registration')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setAllowRegistration(typeof d?.allowRegistration === 'boolean' ? d.allowRegistration : null))
+      .catch(() => setAllowRegistration(null));
+  }, [activeTab, isAdminUser]);
+  const handleToggleRegistration = async () => {
+    if (allowRegistration === null) return;
+    const next = !allowRegistration;
+    setAllowRegistration(next);
+    const res = await fetch('/api/auth/registration', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ allowRegistration: next }),
+    }).catch(() => null);
+    if (!res || !res.ok) setAllowRegistration(!next);
+  };
+
   const handleToggleModule = async (moduleId: string, currentEnabled: boolean) => {
     setTogglingModule(moduleId);
     try {
@@ -847,6 +869,18 @@ export default function SettingsPage() {
               {sessionUser?.email}{sessionUser?.role ? ` - ${sessionUser.role.replace('_', ' ').toLowerCase()}` : ''}
             </p>
           </div>
+
+          {isAdminUser && allowRegistration !== null && (
+            <div className="p-5 rounded-2xl bg-card border border-border flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <h3 className="text-base font-semibold text-foreground">Let new people sign up</h3>
+                <p className="text-sm text-muted-foreground">
+                  When this is off, nobody new can create an account. Turn it off once your team has joined.
+                </p>
+              </div>
+              <Switch checked={allowRegistration} onCheckedChange={handleToggleRegistration} />
+            </div>
+          )}
 
           <div className="p-5 rounded-2xl bg-card border border-border space-y-3">
             <div>
