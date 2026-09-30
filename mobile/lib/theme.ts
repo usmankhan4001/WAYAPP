@@ -230,5 +230,7 @@ export const theme = {
   },
 } as const;
 
+export const fontFamily = "Manrope";
+
 export type ThemeMode = keyof typeof theme;
 export type ThemeColors = typeof theme.light;

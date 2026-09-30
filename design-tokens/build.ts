@@ -20,6 +20,7 @@ import {
   motion,
   zIndex,
   nativeScale,
+  fontFamily,
   primitives,
 } from "./tokens.ts";
 
@@ -85,6 +86,8 @@ ${tsObject(semantic.dark)}
   },
   scale: ${JSON.stringify(nativeScale, null, 2).replace(/\n/g, "\n  ")},
 } as const;
+
+export const fontFamily = ${JSON.stringify(fontFamily)};
 
 export type ThemeMode = keyof typeof theme;
 export type ThemeColors = typeof theme.light;
