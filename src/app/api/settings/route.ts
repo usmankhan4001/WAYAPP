@@ -8,6 +8,7 @@ import { encryptString, decryptString, maskSecret } from '@/lib/crypto';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { ensureDatabaseSchema } from '@/lib/db-init';
 import { writeAuditLog } from '@/lib/audit-log';
+import { inboundAutomationsEnabled } from '@/worker/inbound-events';
 
 export async function GET(request: NextRequest) {
   await ensureDatabaseSchema();
@@ -69,6 +70,7 @@ export async function GET(request: NextRequest) {
       isConnected: isActuallyConnected,
       businessName: settings.businessName,
       campaignDispatchEnabled: campaignDispatchEnabled(),
+      inboundAutomationsEnabled: inboundAutomationsEnabled(),
     });
   }
 
@@ -96,6 +98,7 @@ export async function GET(request: NextRequest) {
     allowedEmails: authConfig?.allowedEmails || '',
     requireAuth: authConfig?.requireAuth ?? true,
     campaignDispatchEnabled: campaignDispatchEnabled(),
+    inboundAutomationsEnabled: inboundAutomationsEnabled(),
     updatedAt: settings.updatedAt,
   };
 
