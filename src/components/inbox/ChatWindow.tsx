@@ -882,7 +882,9 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-semibold text-foreground truncate">{contactName}</h3>
                 {modules.lead_crm && (
-                  <StatusBadge tone={currentStage.tone}>{currentStage.label}</StatusBadge>
+                  <span className="hidden md:inline-flex">
+                    <StatusBadge tone={currentStage.tone}>{currentStage.label}</StatusBadge>
+                  </span>
                 )}
               </div>
               <p className="truncate text-sm text-muted-foreground">{replyStatusLine(effectiveWindowActive)}</p>
@@ -897,7 +899,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
             <button
               type="button"
               onClick={() => setIsTemplatePickerOpen(!isTemplatePickerOpen)}
-              className="px-3 py-1.5 rounded-xl border border-border bg-card hover:bg-accent text-foreground text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-all active:scale-95"
+              className="hidden md:flex px-3 py-1.5 rounded-xl border border-border bg-card hover:bg-accent text-foreground text-xs font-semibold items-center gap-1.5 shadow-2xs transition-all active:scale-95"
             >
               <FileText className="w-3.5 h-3.5 text-muted-foreground" />
               <span>Templates</span>
@@ -1028,11 +1030,11 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                       }`}
                     >
                       {m.replyToWamid && (
-                        <div className="rounded-lg border-l-4 border-primary bg-foreground/5 px-2.5 py-1.5">
-                          <p className="text-xs font-semibold text-foreground">
+                        <div className="rounded-lg border-l-4 border-current/40 bg-black/5 px-2.5 py-1.5">
+                          <p className="text-xs font-semibold">
                             {quoted ? (quoted.direction === 'OUTBOUND' ? 'You' : contactName) : 'Original message'}
                           </p>
-                          <p className="truncate text-sm text-muted-foreground">{messagePreview(quoted)}</p>
+                          <p className="truncate text-sm opacity-70">{messagePreview(quoted)}</p>
                         </div>
                       )}
                       {/* Media Type: Image */}
@@ -1150,16 +1152,16 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
                         (msgType !== 'video' || m.body !== 'Video') &&
                         (msgType !== 'document' || !hasMedia) &&
                         msgType !== 'location' && (
-                          <p className="text-sm whitespace-pre-wrap leading-relaxed font-sans text-foreground">
+                          <p className="text-sm whitespace-pre-wrap leading-relaxed font-sans">
                             {m.body}
                           </p>
                         )
                       )}
 
                       {/* Message Timestamp & Status */}
-                      <div className="flex items-center justify-end gap-1 pt-0.5 text-xs text-muted-foreground select-none">
+                      <div className="flex items-center justify-end gap-1 pt-0.5 text-xs opacity-70 select-none">
                         {m.starred && <Star className="size-3 fill-current" aria-label="Starred" />}
-                        <span>{timeLabel(when)}</span>
+                        <span className="whitespace-nowrap">{timeLabel(when)}</span>
                         {isOutbound &&
                           (tickState(m.status) === 'sent' ? (
                             <Check className="size-3.5" aria-label="Sent" />
@@ -1243,7 +1245,7 @@ export function ChatWindow({ contact, onRefreshList, onBackMobile }: ChatWindowP
         )}
 
         {/* Sales Action Bar & AI Co-Pilot Toolbar */}
-        <div className="px-4 py-1.5 bg-muted border-t border-border flex items-center justify-between gap-2 overflow-x-auto">
+        <div className="hidden md:flex px-4 py-1.5 bg-muted border-t border-border items-center justify-between gap-2 overflow-x-auto">
           {/* Left: 1-Click Sales Actions */}
           <div className="flex items-center gap-1.5 shrink-0">
             {modules.canned_snippets && (

@@ -14,7 +14,7 @@ import {
   VolumeX,
 } from 'lucide-react';
 
-import { useSession, useSettings } from '@/components/providers/SessionProvider';
+import { useSession, useSettings, useDeveloperMode } from '@/components/providers/SessionProvider';
 import { useNotifications } from '@/components/common/NotificationProvider';
 import { useToast } from '@/components/ui/Toast';
 import { ThemeToggle } from '@/components/providers/ThemeProvider';
@@ -42,6 +42,7 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ onToggleMobileMenu, onOpenMetaGuide }: AppHeaderProps) {
+  const { developerMode } = useDeveloperMode();
   const router = useRouter();
   const { user } = useSession();
   const { settings } = useSettings();
@@ -107,16 +108,18 @@ export function AppHeader({ onToggleMobileMenu, onOpenMetaGuide }: AppHeaderProp
       </div>
 
       <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleTestConnection}
-          disabled={isTesting}
-          className="hidden sm:inline-flex"
-        >
-          <RefreshCw className={isTesting ? 'animate-spin text-primary' : ''} />
-          <span>{isTesting ? 'Testing…' : 'Test API'}</span>
-        </Button>
+        {developerMode && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleTestConnection}
+            disabled={isTesting}
+            className="hidden sm:inline-flex"
+          >
+            <RefreshCw className={isTesting ? 'animate-spin text-primary' : ''} />
+            <span>{isTesting ? 'Testing…' : 'Test API'}</span>
+          </Button>
+        )}
 
         <ThemeToggle className="hidden sm:inline-flex" />
 

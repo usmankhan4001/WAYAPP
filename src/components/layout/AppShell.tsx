@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { usePathname } from 'next/navigation';
+import React, { Suspense, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/components/providers/SessionProvider';
@@ -51,10 +51,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Sidebar isMobileOpen={isMobileMenuOpen} onCloseMobile={() => setIsMobileMenuOpen(false)} />
 
         <div className="relative flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-          <AppHeader
-            onToggleMobileMenu={() => setIsMobileMenuOpen((v) => !v)}
-            onOpenMetaGuide={() => setIsGuideOpen(true)}
-          />
+          <HideHeaderInOpenChat>
+            <AppHeader
+              onToggleMobileMenu={() => setIsMobileMenuOpen((v) => !v)}
+              onOpenMetaGuide={() => setIsGuideOpen(true)}
+            />
+          </HideHeaderInOpenChat>
 
           <main
             className={cn(
@@ -75,5 +77,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <MetaSetupGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
       </div>
     </NotificationProvider>
+  );
+}
+
+/** On a phone an open chat is full screen with its own back arrow, so the global top bar steps aside. */
+function OpenChatGate({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const chatOpen = pathname.startsWith('/inbox') && Boolean(params.get('contactId'));
+  return <div className={chatOpen ? 'max-md:hidden' : undefined}>{children}</div>;
+}
+
+function HideHeaderInOpenChat({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div>{children}</div>}>
+      <OpenChatGate>{children}</OpenChatGate>
+    </Suspense>
   );
 }

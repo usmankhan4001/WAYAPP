@@ -48,7 +48,7 @@ const QUICK_ACTIONS = [
 ];
 
 export function DashboardHome() {
-  const [range, setRange] = useState<Range>('today');
+  const [range, setRange] = useState<Range>('7d');
   const [data, setData] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -279,21 +279,21 @@ function NeedsAttentionCard({ data }: { data: Summary }) {
     {
       key: 'unanswered',
       icon: MessageCircle,
-      title: 'Chats waiting for a reply',
+      title: 'Waiting for a reply',
       item: n.unansweredChats,
       href: '/inbox?filter=unread',
     },
     {
       key: 'closing',
       icon: Clock,
-      title: 'Replies closing soon',
+      title: 'Closing soon',
       item: n.repliesClosingSoon,
       href: '/inbox?filter=closing',
     },
     {
       key: 'failed',
       icon: AlertCircle,
-      title: 'Messages that failed',
+      title: 'Failed to send',
       item: n.failedMessages,
       href: '/inbox?filter=failed',
     },
