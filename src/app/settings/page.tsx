@@ -101,6 +101,33 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  // Are incoming messages actually reaching this app? Checked with Meta on demand.
+  const [inbound, setInbound] = useState<{ state: 'working' | 'broken' | 'unknown'; message: string } | null>(null);
+  const [inboundBusy, setInboundBusy] = useState(false);
+  const checkInbound = async () => {
+    setInboundBusy(true);
+    try {
+      const res = await fetch('/api/settings/webhook');
+      const d = await res.json().catch(() => null);
+      setInbound(d?.state ? { state: d.state, message: d.message } : { state: 'unknown', message: 'Could not check right now.' });
+    } catch {
+      setInbound({ state: 'unknown', message: 'Could not check right now.' });
+    } finally {
+      setInboundBusy(false);
+    }
+  };
+  const fixInbound = async () => {
+    setInboundBusy(true);
+    try {
+      const res = await fetch('/api/settings/webhook', { method: 'POST' });
+      const d = await res.json().catch(() => null);
+      setInbound({ state: res.ok ? 'working' : 'broken', message: d?.message || (res.ok ? 'Done.' : 'That did not work.') });
+    } catch {
+      setInbound({ state: 'broken', message: 'Could not reach the server. Try again.' });
+    } finally {
+      setInboundBusy(false);
+    }
+  };
   const [copied, setCopied] = useState(false);
   const [notice, setNotice] = useState<{ text: string; success: boolean } | null>(null);
   const [testDetails, setTestDetails] = useState<any | null>(null);
@@ -577,6 +604,26 @@ export default function SettingsPage() {
       {/* TAB 1: CONNECTION */}
       {activeTab === 'connection' && (
         <div className="space-y-4">
+          {/* Incoming messages check: the one thing that silently breaks if something else re-registers Meta's callback */}
+          <div className="p-4 rounded-2xl bg-card border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <h3 className="text-base font-semibold text-foreground">Incoming messages</h3>
+              <p className="text-sm text-muted-foreground" role="status">
+                {inbound ? inbound.message : 'Check that customer messages are reaching this app.'}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={checkInbound} disabled={inboundBusy}>
+                {inboundBusy ? 'Checking...' : 'Check'}
+              </Button>
+              {inbound && inbound.state !== 'working' && (
+                <Button size="sm" onClick={fixInbound} disabled={inboundBusy}>
+                  Fix incoming messages
+                </Button>
+              )}
+            </div>
+          </div>
+
           {/* Connection Status Card */}
           <div className="p-4 rounded-2xl bg-foreground text-background flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-0.5">
