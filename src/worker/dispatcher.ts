@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { WhatsAppClient } from '@/lib/whatsapp/client';
 import { sanitizePhoneNumber } from '@/lib/whatsapp/phone';
 import { logger } from '@/lib/logger';
+import { campaignDispatchEnabled } from '@/lib/feature-gates';
 
 // In-memory token bucket for campaign pacing
 class TokenBucket {
@@ -103,6 +104,12 @@ export async function getTargetContacts(audienceFilterJson: string) {
  * Executes or resumes a campaign dispatch job
  */
 export async function dispatchCampaign(campaignId: string): Promise<{ success: boolean; error?: string }> {
+  // Checked before the state-machine lock so a held campaign is left exactly as it was.
+  if (!campaignDispatchEnabled()) {
+    logger.warn({ campaignId }, '[Dispatcher] Campaign dispatch is held (CAMPAIGN_DISPATCH is not "on") - nothing sent')
+    return { success: false, error: 'Campaign dispatch is disabled' }
+  }
+
   logger.info({ campaignId }, '[Dispatcher] Starting campaign dispatch');
 
   // 1. Atomic state machine lock: transition from DRAFT/QUEUED/PAUSED/SCHEDULED to RUNNING.
