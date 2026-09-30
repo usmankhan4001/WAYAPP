@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { TriangleAlert } from "lucide-react";
 
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,9 @@ export interface ConfirmDialogProps {
 /**
  * Controlled confirmation dialog for call sites that manage their own open
  * state. For the imperative `await confirm({...})` form use `useConfirm()`.
+ * Wording rule: the title states the action ("Delete this template?"), the description states the
+ * consequence, and confirmLabel repeats the verb ("Delete template"). destructive gives the danger tone.
+ * It renders inside Modal, so it is a bottom sheet on phones.
  */
 export function ConfirmDialog({
   open,
@@ -50,7 +54,18 @@ export function ConfirmDialog({
       open={open}
       onOpenChange={onOpenChange}
       size="sm"
-      title={title}
+      title={
+        destructive ? (
+          <span className="inline-flex items-center gap-2">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-danger/10 text-danger">
+              <TriangleAlert className="size-4" aria-hidden />
+            </span>
+            {title}
+          </span>
+        ) : (
+          title
+        )
+      }
       description={description}
       footer={
         <>

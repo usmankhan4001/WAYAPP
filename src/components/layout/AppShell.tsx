@@ -10,6 +10,7 @@ import { AppHeader } from './AppHeader';
 import { MobileTabBar } from './MobileTabBar';
 import { NotificationProvider } from '@/components/common/NotificationProvider';
 import { MetaSetupGuideModal } from '@/components/common/MetaSetupGuideModal';
+import { AppBanners, PushPermissionPrompt } from '@/components/notifications/AppBanners';
 import { InitialSetupGatekeeper } from '@/components/common/InitialSetupGatekeeper';
 
 const BARE_ROUTES = ['/login', '/register', '/setup', '/design'];
@@ -57,6 +58,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               onOpenMetaGuide={() => setIsGuideOpen(true)}
             />
           </HideHeaderInOpenChat>
+
+          <AppBanners />
+          {!isInboxPage && <PushPermissionPrompt />}
 
           <main
             className={cn(

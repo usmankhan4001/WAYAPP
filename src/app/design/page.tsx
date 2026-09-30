@@ -30,6 +30,11 @@ import { ListRow } from '@/components/ui/list-row';
 import { SearchField } from '@/components/ui/search-field';
 import { StatPill } from '@/components/ui/stat-pill';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
+import { Alert } from '@/components/ui/alert';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { NotificationPanel } from '@/components/notifications/NotificationPanel';
+import { PushPermissionCard } from '@/components/notifications/AppBanners';
+import { groupNotifications, type NotificationItem } from '@/lib/notifications/build';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -46,6 +51,76 @@ const SWATCHES = [
   'chat-canvas', 'success', 'warning', 'info', 'chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5',
   'raised', 'lime', 'link', 'read-tick', 'danger', 'chart-highlight', 'wa-bubble-in',
 ];
+
+const SAMPLE_NOW = new Date();
+const sampleAgo = (min: number) => new Date(SAMPLE_NOW.getTime() - min * 60000).toISOString();
+const SAMPLE_ITEMS: NotificationItem[] = [
+  { id: 's1', kind: 'message', text: 'Sara Khan sent you 2 new messages.', at: sampleAgo(4), href: '#' },
+  { id: 's2', kind: 'failed', text: 'Your message to Omar could not be sent.', at: sampleAgo(50), href: '#' },
+  { id: 's3', kind: 'broadcast', text: 'Your broadcast "Eid offer" has finished sending.', at: sampleAgo(60 * 30), href: '#' },
+  { id: 's4', kind: 'template_approved', text: 'Your template "order_ready" was approved.', at: sampleAgo(60 * 40), href: '#' },
+  { id: 's5', kind: 'template_rejected', text: 'Your template "promo_2" was rejected. Open it to see why.', at: sampleAgo(60 * 60), href: '#' },
+  { id: 's6', kind: 'connection', text: 'WhatsApp is not connected. Connect your number to send and receive messages.', at: sampleAgo(60 * 80), href: '#' },
+];
+
+/** Feedback layer: alerts, banners, toasts, confirm dialogs, push card, notification centre. */
+function FeedbackShowcase() {
+  const toast = useToast();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [dangerOpen, setDangerOpen] = useState(false);
+  const groups = groupNotifications(SAMPLE_ITEMS, SAMPLE_NOW, SAMPLE_NOW.getTime() - 20 * 60000);
+  const tones = ['info', 'success', 'warning', 'danger'] as const;
+  return (
+    <div className="space-y-4">
+      <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Feedback</h2>
+      <div className="grid gap-3 md:grid-cols-2">
+        {tones.map((tone) => (
+          <Alert key={tone} tone={tone} title={`${tone} alert`} action={<Button size="sm" variant="outline">Action</Button>}>
+            One plain sentence about what happened and what to do next.
+          </Alert>
+        ))}
+      </div>
+      <div className="overflow-hidden rounded-2xl border border-border">
+        {tones.map((tone) => (
+          <Alert key={tone} layout="banner" tone={tone} title={`${tone} banner`} onDismiss={() => {}}>
+            Sits full width under the header.
+          </Alert>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" onClick={() => toast.success('Saved', 'Everything went through.')}>Success toast</Button>
+        <Button variant="outline" onClick={() => toast.error('Could not send', 'Check your connection and try again.')}>Danger toast</Button>
+        <Button variant="outline" onClick={() => toast.info('Template submitted', 'Meta usually replies within a day.', { label: 'View', onClick: () => {} })}>Info toast with action</Button>
+        <Button variant="outline" onClick={() => setConfirmOpen(true)}>Confirm dialog</Button>
+        <Button variant="destructive" onClick={() => setDangerOpen(true)}>Danger confirm</Button>
+      </div>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Pause this broadcast?"
+        description="Messages not yet sent will wait until you resume it."
+        confirmLabel="Pause broadcast"
+        onConfirm={() => {}}
+      />
+      <ConfirmDialog
+        open={dangerOpen}
+        onOpenChange={setDangerOpen}
+        destructive
+        title="Delete this template?"
+        description="It will be removed for good and broadcasts can no longer use it."
+        confirmLabel="Delete template"
+        onConfirm={() => {}}
+      />
+      <div className="grid gap-4 md:grid-cols-2">
+        <PushPermissionCard onTurnOn={() => {}} onNotNow={() => {}} />
+        <div className="overflow-hidden rounded-2xl border border-border bg-popover">
+          <div className="border-b border-border px-4 py-3 text-sm font-semibold">Notifications</div>
+          <NotificationPanel groups={groups} now={SAMPLE_NOW} onMarkAllRead={() => {}} className="max-h-96" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /** Every shared component on one surface. Rendered once per theme (see below). */
 function Showcase() {
@@ -100,6 +175,7 @@ function Showcase() {
       </div>
       <EmptyState icon={MessageSquare} title="No chats yet" description="Send your first message." actionLabel="New chat" onAction={() => setSheet(true)} variant="compact" />
       <Skeleton lines={2} />
+      <FeedbackShowcase />
       <BottomSheet open={sheet} onOpenChange={setSheet} title="Bottom sheet" size="sm">
         <p className="text-sm text-muted-foreground">Bottom sheet on phones, dialog on desktop.</p>
       </BottomSheet>
