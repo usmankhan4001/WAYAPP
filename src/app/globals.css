@@ -15,7 +15,7 @@
   `inline` = reference the var() directly in generated utilities so `.dark` swaps them.
 */
 @theme inline {
-  --font-sans: var(--font-urbanist), Urbanist, system-ui, sans-serif;
+  --font-sans: var(--font-manrope), Manrope, system-ui, sans-serif;
 
   /* smallest sanctioned UI text — badges, metadata, timestamps. Kills the
      arbitrary text-[9px]/[10px]/[11px] scattered across the app. */

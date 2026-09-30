@@ -341,5 +341,5 @@ export const nativeScale = {
   bottomNavHeight: 64,
 };
 
-/** Font family name shared by web (next/font Urbanist) and Expo. */
-export const fontFamily = "Urbanist";
+/** Font family name shared by web (next/font Manrope) and Expo. */
+export const fontFamily = "Manrope";
