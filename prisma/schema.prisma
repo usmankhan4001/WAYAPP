@@ -310,6 +310,8 @@ model Conversation {
   status        String              @default("OPEN") // OPEN, PENDING, RESOLVED, SPAM
   lastMessageAt DateTime            @default(now())
   unreadCount   Int                 @default(0)
+  pinned        Boolean             @default(false)
+  archived      Boolean             @default(false)
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 
@@ -361,6 +363,10 @@ model ChatMessage {
   mediaUrl       String?
   status         String        @default("SENT") // SENT, DELIVERED, READ, FAILED
   timestamp      DateTime      @default(now())
+  starred        Boolean       @default(false)
+  replyToWamid   String?       // the message this one quotes
+  reactions      String?       // JSON: [{"emoji":"👍","from":"customer|<userId>"}]
+  authorId       String?       // user who wrote an internal note (direction INTERNAL)
 
   @@index([contactId])
   @@index([conversationId])

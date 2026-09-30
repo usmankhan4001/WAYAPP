@@ -39,3 +39,19 @@ branches. Staying inside your files is what keeps the merge clean.
 | F. Reliability and access | `src/app/api/webhooks/whatsapp/route.ts`, `src/app/inbox/**`, `src/components/inbox/**`, `src/app/api/chat/**`, `src/lib/modules.ts`, `src/app/api/modules/**`, `src/app/api/auth/**`, `src/lib/auth/**` |
 
 `InitialSetupGatekeeper.tsx` belongs to stream C (not started). Nobody edits it.
+
+---
+## Round 2 (UI). Read docs/UI_SPEC.md first.
+New foundation fields (already in the schema, do not edit it): `Conversation.pinned`, `Conversation.archived`,
+`ChatMessage.starred`, `.replyToWamid`, `.reactions` (JSON string), `.authorId` (internal notes use
+`direction = 'INTERNAL'` and `messageType = 'note'`; they must never be sent to Meta and never count as
+inbound for the 24-hour window).
+
+| Stream | Owns |
+|---|---|
+| G1 Design system and shell | `design-tokens/**`, `src/app/tokens.css`, `src/app/globals.css`, `src/app/layout.tsx`, `src/components/ui/**`, `src/components/layout/**`, `src/lib/navigation.ts`, `mobile/lib/**`, `mobile/app/(tabs)/_layout.tsx`, `src/app/login/**`, `src/app/register/**`, `src/app/setup/**`, `src/app/settings/**` (visual conversion only) |
+| G2 Chat and inbox | `src/app/inbox/**`, `src/components/inbox/**`, `src/app/api/chat/**`, `src/app/api/webhooks/whatsapp/route.ts`, `mobile/app/(tabs)/inbox.tsx`, `mobile/app/chat/**` |
+| G3 Dashboard and stats | `src/app/page.tsx`, `src/components/dashboard/**` (new), `src/app/api/dashboard/**` (new), `src/app/analytics/**`, `src/components/analytics/**`, `mobile/app/(tabs)/index.tsx` (new) |
+| G4 Automations | `src/app/automations/**`, `src/app/flows/**`, `src/components/automations/**`, `src/components/flows/**` |
+| G5 Contacts, broadcasts, templates | `src/app/contacts/**`, `src/app/campaigns/**`, `src/app/templates/**`, `src/components/contacts/**`, `src/components/campaigns/**`, `src/components/templates/**` |
+G2-G5 use only semantic tokens and the shared components from `src/components/ui/**`; if one is missing, use the closest existing one and list it under "Needs from others".
