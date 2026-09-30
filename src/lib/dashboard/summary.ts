@@ -253,10 +253,9 @@ export async function loadDashboardSummary(db: PrismaClient, range: DashboardRan
       where: { timestamp: { gte: w.prevStart, lte: now }, direction: { in: ['INBOUND', 'OUTBOUND'] } },
       select: { direction: true, status: true, timestamp: true },
     }),
-    db.campaignMessage.findMany({
-      where: { OR: [{ sentAt: { gte: w.prevStart } }, { deliveredAt: { gte: w.prevStart } }, { readAt: { gte: w.prevStart } }] },
-      select: { sentAt: true, deliveredAt: true, readAt: true },
-    }),
+    // Not queried on purpose: the dispatcher writes a ChatMessage for every broadcast send and the
+    // webhook advances its status, so adding CampaignMessage rows would count each broadcast twice.
+    Promise.resolve([] as CampaignRow[]),
     db.conversation.findMany({
       where: { status: 'OPEN', archived: false },
       select: {
