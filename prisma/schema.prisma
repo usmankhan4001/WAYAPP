@@ -45,6 +45,7 @@ model User {
   role          String              @default("MEMBER") // SUPER_ADMIN, ADMIN, MEMBER, VIEWER
   status        String              @default("ACTIVE") // ACTIVE, SUSPENDED, INVITED
   isActive      Boolean             @default(true)
+  developerMode Boolean             @default(false) // reveals API keys, webhooks, HMAC, audit log in the UI
   lastLoginAt   DateTime?
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
@@ -137,6 +138,8 @@ model Contact {
   customAttributes   String?             // JSON string: { "company": "Acme", "city": "Dubai", "vip": true, ... }
   status             String              @default("ACTIVE") // ACTIVE, UNSUBSCRIBED, BOUNCED, BLOCKED
   optedOutAt         DateTime?
+  consentSource      String?             // how opt-in was obtained, e.g. "website form", "CSV import: event list"
+  consentAt          DateTime?
   lastInteractionAt  DateTime?
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
@@ -532,6 +535,10 @@ model PushSubscription {
   auth      String?
   expoToken String?  // Expo Push Token for Native App
   platform  String   @default("web") // web, ios, android
+  lastSeenAt DateTime?
+  muted      Boolean  @default(false)
+  quietStart Int?     // local hour 0-23, notifications silenced from...
+  quietEnd   Int?     // ...until this hour
   createdAt DateTime @default(now())
 
   @@index([userId])
