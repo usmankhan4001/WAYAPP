@@ -2,6 +2,7 @@
  * Pure logic for the notification centre: turns raw rows into plain-sentence items,
  * groups them (Today / Earlier) and works out what is unread. No I/O, so it is unit tested.
  */
+import { plainName } from '@/lib/templates/present';
 
 export type NotificationKind =
   | 'message'
@@ -87,8 +88,8 @@ export function buildNotifications(src: NotificationSource, now: Date = new Date
       kind: status === 'APPROVED' ? 'template_approved' : 'template_rejected',
       text:
         status === 'APPROVED'
-          ? `Your template "${tpl.name}" was approved.`
-          : `Your template "${tpl.name}" was rejected. Open it to see why.`,
+          ? `Your template "${plainName(tpl.name)}" was approved.`
+          : `Your template "${plainName(tpl.name)}" was rejected. Open it to see why.`,
       at: new Date(tpl.at).toISOString(),
       href: '/templates',
     })
