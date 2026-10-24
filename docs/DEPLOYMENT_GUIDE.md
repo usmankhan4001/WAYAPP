@@ -52,7 +52,7 @@ META_APP_SECRET="your_meta_app_secret"
 # Dedicated Cloudflare R2 Backup Credentials
 S3_BACKUP_ENABLED="true"
 S3_ENDPOINT="https://886591346ce7f20bba2a727a409f8045.r2.cloudflarestorage.com"
-S3_ACCESS_KEY="34b12172653df075e7567780fd326de9"
+S3_ACCESS_KEY="<your-r2-access-key-id>"
 S3_SECRET_KEY="your_r2_secret_key"
 S3_BUCKET_NAME="wayapp-backups"
 
